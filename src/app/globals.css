@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Internet Wall ships dark-mode only for the MVP — it's the product's visual identity. */
+:root {
+  --background: #08090b;
+  --foreground: #f3f3f1;
+  --surface: #101114;
+  --surface-2: #17181c;
+  --border: #232428;
+  --muted: #8a8b92;
+  --accent: #5b7cff;
+  --accent-2: #7dd3fc;
+  --gold: #d4a24c;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
