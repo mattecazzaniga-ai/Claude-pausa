@@ -3,8 +3,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Supabase (and most pooled Postgres providers) serve two connection strings:
+  // a pooled one (pgbouncer, transaction mode) for normal queries, and a direct
+  // one for schema changes. Prisma Migrate needs the direct connection because
+  // pooled/transaction-mode connections don't support the session state it uses.
+  directUrl = env("DIRECT_URL")
 }
 
 enum SquareStatus {
