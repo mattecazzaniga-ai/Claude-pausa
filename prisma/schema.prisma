@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SquareStatus {
+  AVAILABLE
+  OWNED
+  LISTED
+}
+
+enum ListingStatus {
+  ACTIVE
+  CANCELLED
+  SOLD
+}
+
+enum TransactionType {
+  PRIMARY
+  SECONDARY
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ChapterStatus {
+  ACTIVE
+  ENDED
+  UPCOMING
+}
+
+model User {
+  id            String    @id @default(cuid())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String
+  avatarUrl     String?
+  bio           String?
+  isAdmin       Boolean   @default(false)
+  isSuspended   Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  squares       Square[]       @relation("SquareOwner")
+  listings      Listing[]      @relation("ListingSeller")
+  purchases     Transaction[]  @relation("TransactionBuyer")
+  sales         Transaction[]  @relation("TransactionSeller")
+  analytics     AnalyticsEvent[]
+
+  @@index([username])
+}
+
+model Chapter {
+  id                String        @id @default(cuid())
+  number            Int           @unique
+  startDate         DateTime
+  endDate           DateTime
+  status            ChapterStatus @default(UPCOMING)
+  squaresSold       Int           @default(0)
+  totalUsers        Int           @default(0)
+  totalTransactions Int           @default(0)
+  createdAt         DateTime      @default(now())
+
+  squares      Square[]
+  transactions Transaction[]
+}
+
+model Square {
+  id              Int          @id
+  coordinateX     Int
+  coordinateY     Int
+  price           Float
+  status          SquareStatus @default(AVAILABLE)
+  ownerId         String?
+  chapterId       String
+  title           String?
+  description     String?
+  imageUrl        String?
+  externalUrl     String?
+  backgroundColor String?
+  purchasedAt     DateTime?
+  updatedAt       DateTime     @updatedAt
+
+  owner        User?         @relation("SquareOwner", fields: [ownerId], references: [id])
+  chapter      Chapter       @relation(fields: [chapterId], references: [id])
+  listings     Listing[]
+  transactions Transaction[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@index([coordinateX, coordinateY])
+}
+
+model Listing {
+  id        String        @id @default(cuid())
+  squareId  Int
+  sellerId  String
+  price     Float
+  status    ListingStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  square Square @relation(fields: [squareId], references: [id])
+  seller User   @relation("ListingSeller", fields: [sellerId], references: [id])
+
+  @@index([squareId])
+  @@index([status])
+}
+
+model Transaction {
+  id                    String            @id @default(cuid())
+  squareId              Int
+  buyerId               String
+  sellerId              String?
+  amount                Float
+  platformFee           Float             @default(0)
+  type                  TransactionType
+  status                TransactionStatus @default(PENDING)
+  chapterId             String
+  stripeSessionId       String?           @unique
+  stripePaymentIntentId String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  square  Square   @relation(fields: [squareId], references: [id])
+  buyer   User     @relation("TransactionBuyer", fields: [buyerId], references: [id])
+  seller  User?    @relation("TransactionSeller", fields: [sellerId], references: [id])
+  chapter Chapter  @relation(fields: [chapterId], references: [id])
+
+  @@index([squareId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([name])
+  @@index([createdAt])
+}
