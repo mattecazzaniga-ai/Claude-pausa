@@ -70,6 +70,7 @@ Stessa infrastruttura di riferimento della fase di validazione precedente: Verce
 - Il build (`npm run build`) esegue `prisma migrate deploy` automaticamente.
 - Aggiungi `GEMINI_API_KEY` su Vercel per attivare l'AI in produzione.
 - Se cambi la password del database su Supabase, aggiorna manualmente `DATABASE_URL` e `DIRECT_URL` su Vercel — non è automatico, e finché non lo fai il build fallisce con `P1000: Authentication failed`.
+- `DIRECT_URL` deve usare l'host del **Session pooler** di Supabase (`aws-0-<regione>.pooler.supabase.com`, porta 5432), non quello di "Direct connection" (`db.<project-ref>.supabase.co`) — quest'ultimo è raggiungibile solo via IPv6 e il build di Vercel non riesce a connettersi (`P1001: Can't reach database server`).
 
 ## 7. TODO / limitazioni note
 
