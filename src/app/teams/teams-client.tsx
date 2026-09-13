@@ -97,10 +97,6 @@ function NewTeamForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (selected.size === 0) {
-      setError("Seleziona almeno un atleta.");
-      return;
-    }
     setBusy(true);
     setError(null);
     const res = await fetch("/api/teams", {
@@ -138,11 +134,11 @@ function NewTeamForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted">Atleti</label>
+          <label className="mb-1.5 block text-xs font-medium text-muted">Atleti (opzionale)</label>
           {athletes === null ? (
             <p className="text-sm text-muted">Caricamento…</p>
           ) : athletes.length === 0 ? (
-            <p className="text-sm text-muted">Non hai ancora atleti da aggiungere a una squadra.</p>
+            <p className="text-sm text-muted">Non hai ancora atleti — potrai aggiungerli dopo, dalla pagina della squadra.</p>
           ) : (
             <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-border p-2">
               {athletes.map((a) => (

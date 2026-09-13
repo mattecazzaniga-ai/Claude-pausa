@@ -31,6 +31,8 @@ export function DashboardClient() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <SportProfileCard />
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">I tuoi atleti</h1>
         <button
@@ -83,6 +85,90 @@ export function DashboardClient() {
           onClose={() => setShowForm(false)}
           onCreated={(id) => router.push(`/athletes/${id}`)}
         />
+      )}
+    </div>
+  );
+}
+
+type SportProfile = {
+  formats: string[];
+  environment: string;
+  equipment: string;
+  scoringSystem: string;
+  keyRules: string;
+  terminology: string;
+};
+
+function SportProfileCard() {
+  const [sportName, setSportName] = useState<string | null>(null);
+  const [profile, setProfile] = useState<SportProfile | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/coach/sport-profile")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setSportName(data.sportName);
+          setProfile(data.profile);
+        }
+      });
+  }, []);
+
+  async function regenerate() {
+    setRegenerating(true);
+    setError(null);
+    const res = await fetch("/api/coach/sport-profile", { method: "POST" });
+    const data = await res.json();
+    setRegenerating(false);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante la rigenerazione.");
+      return;
+    }
+    setSportName(data.sportName);
+    setProfile(data.profile);
+  }
+
+  if (!profile) return null;
+
+  const hasContent = profile.environment || profile.equipment || profile.scoringSystem || profile.keyRules || profile.terminology;
+
+  return (
+    <div className="mb-6 rounded-xl border border-border bg-surface p-4">
+      <button onClick={() => setExpanded((v) => !v)} className="flex w-full items-center justify-between text-left">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Profilo AI — {sportName}</span>
+        <span className="text-xs text-muted">{expanded ? "Nascondi" : "Mostra"}</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 space-y-2 text-sm">
+          {hasContent ? (
+            <>
+              <p><span className="text-muted">Formato:</span> {profile.formats.join(", ") || "N/D"}</p>
+              <p><span className="text-muted">Campo/ambiente:</span> {profile.environment || "N/D"}</p>
+              <p><span className="text-muted">Attrezzatura:</span> {profile.equipment || "N/D"}</p>
+              <p><span className="text-muted">Punteggio:</span> {profile.scoringSystem || "N/D"}</p>
+              <p><span className="text-muted">Regole chiave:</span> {profile.keyRules || "N/D"}</p>
+              <p><span className="text-muted">Terminologia:</span> {profile.terminology || "N/D"}</p>
+            </>
+          ) : (
+            <p className="text-muted">Profilo non ancora generato (verrà creato alla prima nota/esercizio/sessione).</p>
+          )}
+
+          <p className="pt-1 text-xs text-muted">
+            Trovi un termine sbagliato o preso da uno sport simile (es. termini da padel dentro il beach tennis)? Rigeneralo.
+          </p>
+          {error && <p className="text-xs text-negative">{error}</p>}
+          <button
+            onClick={regenerate}
+            disabled={regenerating}
+            className="mt-1 rounded-md border border-border px-3 py-1.5 text-xs transition-colors hover:bg-surface-2 disabled:opacity-50"
+          >
+            {regenerating ? "Rigenerazione…" : "Rigenera profilo con AI"}
+          </button>
+        </div>
       )}
     </div>
   );

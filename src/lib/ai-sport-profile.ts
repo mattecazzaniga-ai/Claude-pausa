@@ -29,6 +29,14 @@ export async function generateSportProfile(sportName: string): Promise<Generated
       "Il profilo deve permettere di distinguere nettamente questo sport da tutti gli altri: niente di generico o riusabile per un altro sport. " +
       "Sii concreto e specifico: campo/superficie/dimensioni, attrezzatura reale, come funziona il punteggio, le 2-4 regole che più " +
       "condizionano come si allena, e il gergo tecnico che un allenatore userebbe davvero.\n\n" +
+      "ATTENZIONE — ERRORE DA EVITARE ASSOLUTAMENTE: la contaminazione terminologica tra sport simili. " +
+      "Prima di rispondere, identifica mentalmente gli sport con cui questo sport viene più spesso confuso " +
+      "(es. Beach Tennis è spesso confuso con Padel e Tennis; Calcio a 5 con Calcio; Beach Volley con Pallavolo; Squash con Racchetball). " +
+      "Ognuno di questi sport ha attrezzatura, regole e gergo PROPRI e DIVERSI, anche se sembrano simili a prima vista " +
+      "(es. il Padel si gioca con racchetta forata senza corde dentro un campo chiuso da pareti e usa colpi come 'chiquita' o 'bandeja'; " +
+      "il Beach Tennis si gioca con racchetta rigida piena, senza palleggio a terra, in un campo di sabbia senza pareti: questi due sport " +
+      "NON condividono gergo tecnico). Includi SOLO terminologia, colpi, regole e attrezzatura che sai con certezza appartenere a QUESTO " +
+      "sport esatto. Se hai anche un minimo dubbio che un termine appartenga invece a uno sport simile, NON includerlo.\n\n" +
       `Sport: ${sportName}`,
     config: {
       responseMimeType: "application/json",

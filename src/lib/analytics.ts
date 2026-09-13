@@ -16,7 +16,9 @@ export type AnalyticsEventName =
   | "session_block_regenerated"
   | "team_created"
   | "team_member_added"
-  | "team_session_generated";
+  | "team_member_removed"
+  | "team_session_generated"
+  | "sport_profile_regenerated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

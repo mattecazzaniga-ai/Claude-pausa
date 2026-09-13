@@ -36,6 +36,7 @@ export async function parseExerciseFromText(description: string, skills: SkillOp
       "Sei un assistente per allenatori sportivi. Trasforma la descrizione di un esercizio, scritta velocemente da un allenatore, " +
       "in una scheda esercizio strutturata e completa. Deduci i campi mancanti in modo ragionevole dal contesto sportivo — " +
       "attrezzatura, formato (individuale/coppia/squadra) e difficoltà devono avere senso per QUESTO sport specifico, non generici. " +
+      "Non usare mai terminologia o colpi presi in prestito da sport simili ma diversi (es. non usare gergo da Padel per il Beach Tennis). " +
       "Scrivi in italiano.\n\n" +
       `${sportContext ? `${sportContext}\n\n` : ""}` +
       `Descrizione dell'allenatore:\n"""${description}"""\n\n` +

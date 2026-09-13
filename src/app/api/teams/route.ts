@@ -35,13 +35,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dati non validi" }, { status: 400 });
   }
 
+  const requestedIds = parsed.data.athleteIds ?? [];
+
   // Only the coach's own athletes for their own sport can be added — prevents
   // cross-coach data leaks and mixing sports inside one team.
-  const validAthletes = await prisma.athlete.findMany({
-    where: { id: { in: parsed.data.athleteIds }, coachId: session.user.id, sportId: coach.primarySportId },
-    select: { id: true },
-  });
-  if (validAthletes.length === 0) {
+  const validAthletes = requestedIds.length
+    ? await prisma.athlete.findMany({
+        where: { id: { in: requestedIds }, coachId: session.user.id, sportId: coach.primarySportId },
+        select: { id: true },
+      })
+    : [];
+  if (requestedIds.length > 0 && validAthletes.length === 0) {
     return NextResponse.json({ error: "Nessuno degli atleti selezionati è valido per questo sport." }, { status: 400 });
   }
 

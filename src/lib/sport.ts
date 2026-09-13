@@ -90,6 +90,44 @@ export async function ensureSportProfile(sportId: string): Promise<void> {
 }
 
 /**
+ * Force-regenerates the Sport Profile, ignoring the "already generated"
+ * cache. Since the profile is shared by every coach using this sport, this
+ * is a data-quality fix (e.g. an AI generation that leaked terminology from
+ * a similar sport) rather than a per-coach preference — it overwrites the
+ * one shared Sport row. Never touches the skill taxonomy: Skill rows can be
+ * referenced by existing NoteTag/ExerciseSkill records, so they aren't safe
+ * to regenerate the same way.
+ */
+export async function regenerateSportProfile(sportId: string): Promise<SportProfileContext> {
+  const sport = await prisma.sport.findUnique({ where: { id: sportId } });
+  if (!sport) throw new Error("Sport not found");
+  if (!isAiConfigured) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
+
+  const profile = await generateSportProfile(sport.name);
+  await prisma.sport.update({
+    where: { id: sportId },
+    data: {
+      formats: profile.formats,
+      environment: profile.environment,
+      equipment: profile.equipment,
+      scoringSystem: profile.scoringSystem,
+      keyRules: profile.keyRules,
+      terminology: profile.terminology,
+      profileGeneratedAt: new Date(),
+    },
+  });
+
+  return {
+    formats: profile.formats,
+    environment: profile.environment,
+    equipment: profile.equipment,
+    scoringSystem: profile.scoringSystem,
+    keyRules: profile.keyRules,
+    terminology: profile.terminology,
+  };
+}
+
+/**
  * Fetches (generating on-demand if needed) the Sport Profile in the shape
  * every AI prompt consumes. Call this instead of reading Sport fields
  * directly so callers never have to know about the lazy-generation dance.

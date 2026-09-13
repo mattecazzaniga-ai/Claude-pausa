@@ -22,7 +22,9 @@ export async function generateSportTaxonomy(sportName: string): Promise<Generate
       `Sei un esperto di metodologia dell'allenamento per molti sport. Crea una tassonomia di valutazione per il seguente sport, ` +
       `pensata per un allenatore che vuole valutare e sviluppare i propri atleti. Usa terminologia tecnica corretta e specifica per questo sport ` +
       `(non generica). Includi normalmente categorie come Tecnica, Tattica, Fisico, e se rilevante per lo sport anche Mentale o altre categorie sport-specifiche. ` +
-      `Ogni categoria deve avere 4-8 competenze specifiche, concrete, osservabili durante un allenamento.\n\n` +
+      `Ogni categoria deve avere 4-8 competenze specifiche, concrete, osservabili durante un allenamento. ` +
+      `Attenzione a non confondere questo sport con sport simili (es. Beach Tennis vs Padel vs Tennis): usa solo nomi di colpi/competenze che ` +
+      `appartengono davvero a questo sport, mai presi in prestito da uno sport affine.\n\n` +
       `Sport: ${sportName}`,
     config: {
       responseMimeType: "application/json",

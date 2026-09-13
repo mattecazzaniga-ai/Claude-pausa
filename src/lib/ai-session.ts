@@ -76,7 +76,8 @@ export async function generateSessionPlan(params: {
       "ogni volta che copre ragionevolmente l'obiettivo del blocco. Proponi un esercizio nuovo (newExercise*) SOLO se nella libreria non c'è " +
       "nulla di adatto per quel blocco. Non inventare quando esiste già qualcosa di utilizzabile.\n\n" +
       "La sessione deve essere riconoscibile come specifica di QUESTO sport — usa il campo/ambiente, l'attrezzatura, il punteggio e la " +
-      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport.\n\n" +
+      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport. " +
+      "Non usare mai terminologia presa in prestito da uno sport simile ma diverso.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `Atleta: ${params.athleteName}\n` +
       `Obiettivi generali: ${params.objectives || "Non specificati"}\n` +
@@ -175,7 +176,8 @@ export async function generateTeamSessionPlan(params: {
       "nulla di adatto per quel blocco. Non inventare quando esiste già qualcosa di utilizzabile. " +
       "Scegli esercizi adatti a un gruppo (formato PAIR/SMALL_GROUP/TEAM), non esercizi pensati per un singolo atleta.\n\n" +
       "La sessione deve essere riconoscibile come specifica di QUESTO sport — usa il campo/ambiente, l'attrezzatura, il punteggio e la " +
-      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport.\n\n" +
+      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport. " +
+      "Non usare mai terminologia presa in prestito da uno sport simile ma diverso.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `Squadra: ${params.teamName}\n` +
       `Priorità individuali dei membri (bilancia il lavoro comune con ciò che emerge più spesso):\n${membersText}\n\n` +

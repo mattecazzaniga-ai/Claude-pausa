@@ -14,6 +14,7 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
   const [generating, setGenerating] = useState(false);
   const [addingId, setAddingId] = useState("");
   const [busyAdd, setBusyAdd] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function generateSession(e: React.FormEvent) {
@@ -62,6 +63,25 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
     }));
     setAddingId("");
     trackClient("team_member_added", { teamId: team.id, athleteId: addingId });
+  }
+
+  async function removeMember(athleteId: string) {
+    setRemovingId(athleteId);
+    setError(null);
+    const res = await fetch(`/api/teams/${team.id}/members/${athleteId}`, { method: "DELETE" });
+    setRemovingId(null);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Errore durante la rimozione.");
+      return;
+    }
+    const removed = team.members.find((m) => m.id === athleteId);
+    setTeam((prev) => ({
+      ...prev,
+      members: prev.members.filter((m) => m.id !== athleteId),
+      availableAthletes: removed ? [...prev.availableAthletes, { id: removed.id, name: removed.name }] : prev.availableAthletes,
+    }));
+    trackClient("team_member_removed", { teamId: team.id, athleteId });
   }
 
   return (
@@ -130,35 +150,50 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
             {team.members.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
                 <span>{m.name}</span>
-                {m.level && <span className="text-xs text-muted">{m.level}</span>}
+                <div className="flex items-center gap-2">
+                  {m.level && <span className="text-xs text-muted">{m.level}</span>}
+                  <button
+                    onClick={() => removeMember(m.id)}
+                    disabled={removingId === m.id}
+                    className="text-xs text-muted transition-colors hover:text-negative disabled:opacity-50"
+                  >
+                    {removingId === m.id ? "…" : "Rimuovi"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {team.availableAthletes.length > 0 && (
-          <form onSubmit={addMember} className="mt-4 flex gap-2">
-            <select
-              value={addingId}
-              onChange={(e) => setAddingId(e.target.value)}
-              className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-            >
-              <option value="">Aggiungi atleta…</option>
-              {team.availableAthletes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              disabled={!addingId || busyAdd}
-              className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2 disabled:opacity-50"
-            >
-              {busyAdd ? "…" : "Aggiungi"}
-            </button>
-          </form>
-        )}
+        <form onSubmit={addMember} className="mt-4 flex gap-2">
+          {team.availableAthletes.length > 0 ? (
+            <>
+              <select
+                value={addingId}
+                onChange={(e) => setAddingId(e.target.value)}
+                className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              >
+                <option value="">Aggiungi atleta…</option>
+                {team.availableAthletes.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                disabled={!addingId || busyAdd}
+                className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2 disabled:opacity-50"
+              >
+                {busyAdd ? "…" : "Aggiungi"}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-muted">
+              Tutti i tuoi atleti di questo sport sono già in questa squadra. Crea un nuovo atleta dal tuo elenco per poterlo aggiungere qui.
+            </p>
+          )}
+        </form>
       </div>
 
       {/* Session history */}

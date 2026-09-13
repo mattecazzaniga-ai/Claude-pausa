@@ -35,7 +35,9 @@ export const generateSessionSchema = z.object({
 
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
-  athleteIds: z.array(z.string()).min(1, "Aggiungi almeno un atleta").max(50),
+  // Athletes can be added later from the team page — a coach may want to
+  // create the roster shell before knowing who's on it yet.
+  athleteIds: z.array(z.string()).max(50).optional(),
 });
 
 export const addTeamMemberSchema = z.object({
