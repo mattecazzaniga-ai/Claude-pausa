@@ -15,6 +15,9 @@ const ALLOWED: AnalyticsEventName[] = [
   "training_session_generated",
   "session_block_replaced",
   "session_block_regenerated",
+  "team_created",
+  "team_member_added",
+  "team_session_generated",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

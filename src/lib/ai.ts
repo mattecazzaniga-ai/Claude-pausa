@@ -41,7 +41,7 @@ function parseJson<T>(text: string | undefined, fallback: T): T {
  * skill taxonomy, using Gemini's structured-output mode (a JSON schema the
  * response is constrained to) rather than a naive "parse this JSON" prompt.
  */
-export async function extractTagsFromNote(noteText: string, skills: SkillOption[]): Promise<ExtractedTag[]> {
+export async function extractTagsFromNote(noteText: string, skills: SkillOption[], sportContext?: string): Promise<ExtractedTag[]> {
   const client = requireAi();
   if (skills.length === 0) return [];
 
@@ -53,6 +53,7 @@ export async function extractTagsFromNote(noteText: string, skills: SkillOption[
       "Sei un assistente che estrae osservazioni tecniche strutturate dalle note di un allenatore sportivo. " +
       "Identifica solo le competenze esplicitamente osservate nel testo, con la frase esatta (o quasi) da cui deriva l'osservazione. " +
       "Non inventare competenze non menzionate. Se il testo non menziona nulla di specifico, restituisci una lista vuota.\n\n" +
+      `${sportContext ? `${sportContext}\n\n` : ""}` +
       `Nota dell'allenatore:\n"""${noteText}"""\n\n` +
       `Competenze disponibili per questo sport (usa esattamente questi ID):\n${skillList}`,
     config: {
@@ -108,6 +109,7 @@ export async function generateAthleteSummary(params: {
   athleteName: string;
   objectives: string | null;
   notes: TaggedNote[];
+  sportContext?: string;
 }): Promise<AthleteAiSummary> {
   const client = requireAi();
 
@@ -123,7 +125,8 @@ export async function generateAthleteSummary(params: {
     contents:
       "Sei un assistente per allenatori sportivi. Analizzi lo storico delle sessioni di un atleta e produci una sintesi utile e concreta, " +
       "in italiano, con un tono da collega esperto, non da report burocratico. Individua pattern ricorrenti (non singoli episodi isolati) " +
-      "e dai priorità concrete e azionabili per la prossima sessione. Sii specifico, evita generalità.\n\n" +
+      "e dai priorità concrete e azionabili per la prossima sessione, usando termini tecnici corretti per questo sport. Sii specifico, evita generalità.\n\n" +
+      `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `Atleta: ${params.athleteName}\n` +
       `Obiettivi: ${params.objectives || "Non specificati"}\n\n` +
       `Storico sessioni (dalla più vecchia alla più recente):\n\n${notesText}`,

@@ -49,6 +49,7 @@ export async function generateSessionPlan(params: {
   equipmentAvailable?: string;
   intensity?: string;
   libraryExercises: LibraryExercise[];
+  sportContext?: string;
 }): Promise<GeneratedSessionPlan> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -74,6 +75,9 @@ export async function generateSessionPlan(params: {
       "REGOLA FONDAMENTALE: prima cerca nella libreria di esercizi dell'allenatore fornita sotto. Usa un esercizio esistente (chosenExerciseId) " +
       "ogni volta che copre ragionevolmente l'obiettivo del blocco. Proponi un esercizio nuovo (newExercise*) SOLO se nella libreria non c'è " +
       "nulla di adatto per quel blocco. Non inventare quando esiste già qualcosa di utilizzabile.\n\n" +
+      "La sessione deve essere riconoscibile come specifica di QUESTO sport — usa il campo/ambiente, l'attrezzatura, il punteggio e la " +
+      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport.\n\n" +
+      `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `Atleta: ${params.athleteName}\n` +
       `Obiettivi generali: ${params.objectives || "Non specificati"}\n` +
       `Sintesi recente: ${params.aiSummary || "Nessuna ancora"}\n` +
@@ -128,6 +132,103 @@ export async function generateSessionPlan(params: {
 }
 
 /**
+ * Generates one session for an entire team at once (a single shared plan,
+ * not yet differentiated per athlete/subgroup — that's a separate, larger
+ * feature). Aggregates each member's current priorities so the plan still
+ * reflects real team needs rather than being generic.
+ */
+export async function generateTeamSessionPlan(params: {
+  teamName: string;
+  members: { name: string; priorities: { skill: string; reason: string }[] }[];
+  durationMinutes: number;
+  sessionObjective?: string;
+  equipmentAvailable?: string;
+  intensity?: string;
+  libraryExercises: LibraryExercise[];
+  sportContext?: string;
+}): Promise<GeneratedSessionPlan> {
+  if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
+
+  const libraryText = params.libraryExercises.length
+    ? params.libraryExercises
+        .map(
+          (e) =>
+            `- ${e.id}: "${e.name}" [${e.category}${e.format ? `/${e.format}` : ""}${e.difficulty ? `/${e.difficulty}` : ""}]` +
+            `${e.durationMinutes ? `, ~${e.durationMinutes} min` : ""}${e.equipment ? `, attrezzatura: ${e.equipment}` : ""}` +
+            `${e.skillNames.length ? `, competenze: ${e.skillNames.join(", ")}` : ""}`
+        )
+        .join("\n")
+    : "(la libreria dell'allenatore è vuota)";
+
+  const membersText = params.members.length
+    ? params.members
+        .map((m) => `- ${m.name}: ${m.priorities.length ? m.priorities.map((p) => `${p.skill} (${p.reason})`).join("; ") : "nessuna priorità specifica registrata"}`)
+        .join("\n")
+    : "(nessun atleta con storico ancora)";
+
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents:
+      "Sei un assistente per allenatori sportivi che costruisce sessioni di allenamento per un'INTERA squadra/gruppo (non un singolo atleta). " +
+      "REGOLA FONDAMENTALE: prima cerca nella libreria di esercizi dell'allenatore fornita sotto. Usa un esercizio esistente (chosenExerciseId) " +
+      "ogni volta che copre ragionevolmente l'obiettivo del blocco. Proponi un esercizio nuovo (newExercise*) SOLO se nella libreria non c'è " +
+      "nulla di adatto per quel blocco. Non inventare quando esiste già qualcosa di utilizzabile. " +
+      "Scegli esercizi adatti a un gruppo (formato PAIR/SMALL_GROUP/TEAM), non esercizi pensati per un singolo atleta.\n\n" +
+      "La sessione deve essere riconoscibile come specifica di QUESTO sport — usa il campo/ambiente, l'attrezzatura, il punteggio e la " +
+      "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport.\n\n" +
+      `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
+      `Squadra: ${params.teamName}\n` +
+      `Priorità individuali dei membri (bilancia il lavoro comune con ciò che emerge più spesso):\n${membersText}\n\n` +
+      `Durata sessione richiesta: ${params.durationMinutes} minuti\n` +
+      `${params.sessionObjective ? `Obiettivo specifico per questa sessione: ${params.sessionObjective}\n` : ""}` +
+      `${params.equipmentAvailable ? `Attrezzatura disponibile: ${params.equipmentAvailable}\n` : ""}` +
+      `${params.intensity ? `Intensità desiderata: ${params.intensity}\n` : ""}\n` +
+      `Libreria esercizi dell'allenatore per questo sport:\n${libraryText}\n\n` +
+      "Struttura la sessione in blocchi (tipicamente riscaldamento, uno o più blocchi tecnici/tattici/fisici legati alle priorità ricorrenti, situazione di gioco/scrimmage, defaticamento). " +
+      "La somma delle durate dei blocchi deve essere vicina alla durata totale richiesta.",
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          objective: { type: "string", description: "Obiettivo generale della sessione, 1 frase." },
+          blocks: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                type: { type: "string", enum: ["WARMUP", "TECHNICAL", "TACTICAL", "PHYSICAL", "GAME", "COOLDOWN"] },
+                durationMinutes: { type: "integer" },
+                rationale: {
+                  type: "string",
+                  description: "Perché questo blocco/esercizio è stato scelto per QUESTA squadra ora, collegato alle priorità ricorrenti se possibile.",
+                },
+                chosenExerciseId: {
+                  type: "string",
+                  description: "ID esatto dalla libreria fornita, oppure stringa vuota se si propone un esercizio nuovo.",
+                },
+                newExerciseName: { type: "string", description: "Vuoto se è stato scelto un esercizio esistente." },
+                newExerciseDescription: { type: "string", description: "Vuoto se è stato scelto un esercizio esistente." },
+                newExerciseCoachingPoints: { type: "string", description: "Vuoto se è stato scelto un esercizio esistente." },
+              },
+              required: ["type", "durationMinutes", "rationale", "chosenExerciseId", "newExerciseName", "newExerciseDescription", "newExerciseCoachingPoints"],
+            },
+          },
+        },
+        required: ["objective", "blocks"],
+      },
+    },
+  });
+
+  const parsed = JSON.parse(response.text ?? "{}") as GeneratedSessionPlan;
+  const validIds = new Set(params.libraryExercises.map((e) => e.id));
+  return {
+    objective: parsed.objective ?? "",
+    blocks: (parsed.blocks ?? []).map((b) => ({ ...b, chosenExerciseId: validIds.has(b.chosenExerciseId) ? b.chosenExerciseId : "" })),
+  };
+}
+
+/**
  * Finds/generates one replacement for a single block — same shape as a
  * single block from generateSessionPlan, reused for "one-click replace".
  */
@@ -136,6 +237,7 @@ export async function generateReplacementExercise(params: {
   currentExerciseName: string;
   libraryExercises: LibraryExercise[];
   excludeExerciseId: string;
+  sportContext?: string;
 }): Promise<GeneratedBlock> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -150,7 +252,9 @@ export async function generateReplacementExercise(params: {
     model: MODEL,
     contents:
       `Un allenatore vuole sostituire l'esercizio "${params.currentExerciseName}" (blocco di tipo ${params.blockType}) con un'alternativa che copra lo stesso obiettivo. ` +
-      "Cerca prima nella libreria fornita; proponi un esercizio nuovo solo se non c'è nulla di adatto.\n\n" +
+      "Cerca prima nella libreria fornita; proponi un esercizio nuovo solo se non c'è nulla di adatto. " +
+      "Se proponi un esercizio nuovo, deve essere specifico per questo sport (ambiente/attrezzatura/terminologia reali), non generico.\n\n" +
+      `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `Libreria disponibile:\n${libraryText}`,
     config: {
       responseMimeType: "application/json",

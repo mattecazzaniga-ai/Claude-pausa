@@ -22,6 +22,9 @@ export function Nav() {
               <Link href="/dashboard" className="hover:text-foreground transition-colors">
                 I miei atleti
               </Link>
+              <Link href="/teams" className="hover:text-foreground transition-colors">
+                Squadre
+              </Link>
               <Link href="/exercises" className="hover:text-foreground transition-colors">
                 Esercizi
               </Link>
@@ -74,6 +77,9 @@ export function Nav() {
             <>
               <Link href="/dashboard" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 I miei atleti
+              </Link>
+              <Link href="/teams" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                Squadre
               </Link>
               <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Esercizi

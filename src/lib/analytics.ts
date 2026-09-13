@@ -13,7 +13,10 @@ export type AnalyticsEventName =
   | "exercise_quick_created"
   | "training_session_generated"
   | "session_block_replaced"
-  | "session_block_regenerated";
+  | "session_block_regenerated"
+  | "team_created"
+  | "team_member_added"
+  | "team_session_generated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

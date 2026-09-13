@@ -14,6 +14,8 @@ MVP funzionante: un coach registra atleti, scrive una nota libera dopo ogni sess
   - `generateAthleteSummary`: legge le ultime ~8 sessioni di UN atleta (non l'intero database del coach) e genera una sintesi narrativa + fino a 3 priorità concrete per la prossima sessione. Modello: Sonnet 5 (più capace, serve per un output che il coach legge e su cui agisce).
   - Nessun RAG/vector database: a questo volume di dati (decine di atleti, decine di note ciascuno) è over-engineering. Si aggiungerà solo se un coach accumula storico molto più grande.
 - **Tassonomia sport-agnostica**: `Sport → SkillCategory → Skill` — aggiungere un nuovo sport è solo seed di nuove righe, zero codice.
+- **Sport Profile**: oltre alla tassonomia di competenze, ogni sport ha un profilo (formato individuale/coppia/squadra, ambiente, attrezzatura, punteggio, regole chiave, terminologia), generato una volta via AI e passato a ogni prompt (nota, esercizio, sessione) — così l'output è davvero specifico per quello sport, non genericamente etichettato.
+- **Squadre**: un coach può raggruppare atleti in una squadra e generare un'unica sessione di allenamento per l'intero gruppo, che aggrega le priorità dei singoli membri (nessuna differenziazione per sottogruppo/individuo ancora — è una feature a sé).
 - **Degrado senza AI**: se `GEMINI_API_KEY` non è configurata, l'app resta completamente usabile — le note si salvano, l'AI semplicemente non le elabora ancora (nessun errore, nessun blocco).
 - **Analytics**: eventi minimi (`signup`, `athlete_created`, `session_note_created`, `ai_extraction_completed/failed`, `athlete_summary_viewed`) per capire l'uso reale prima di costruire altro.
 

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createSessionNoteSchema } from "@/lib/validation";
 import { isAiConfigured, extractTagsFromNote, generateAthleteSummary } from "@/lib/ai";
-import { getSportSkills } from "@/lib/sport";
+import { getSportSkills, getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 
@@ -46,8 +46,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   try {
     const skillOptions = await getSportSkills(athlete.sportId);
+    const sportProfile = await getSportProfile(athlete.sportId);
+    const sportContext = formatSportProfileForPrompt(athlete.sport.name, sportProfile);
 
-    const extracted = await extractTagsFromNote(note.rawText, skillOptions);
+    const extracted = await extractTagsFromNote(note.rawText, skillOptions, sportContext);
     if (extracted.length > 0) {
       await prisma.noteTag.createMany({
         data: extracted.map((t) => ({ sessionNoteId: note.id, skillId: t.skillId, sentiment: t.sentiment, excerpt: t.excerpt })),
@@ -73,6 +75,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           rawText: n.rawText,
           tags: n.tags.map((t) => ({ sentiment: t.sentiment, skillName: t.skill.name, categoryName: t.skill.category.name })),
         })),
+      sportContext,
     });
 
     await prisma.athlete.update({

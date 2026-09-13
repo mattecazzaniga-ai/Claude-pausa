@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { generateReplacementExercise, type LibraryExercise } from "@/lib/ai-session";
+import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import type { $Enums } from "@prisma/client";
@@ -52,11 +53,21 @@ export async function POST(_req: Request, { params }: { params: { id: string; bl
     skillNames: e.skills.map((s) => s.skill.name),
   }));
 
+  let sportContext: string | undefined;
+  if (trainingSession.sportId) {
+    const sport = await prisma.sport.findUnique({ where: { id: trainingSession.sportId }, select: { name: true } });
+    if (sport) {
+      const sportProfile = await getSportProfile(trainingSession.sportId);
+      sportContext = formatSportProfileForPrompt(sport.name, sportProfile);
+    }
+  }
+
   const replacement = await generateReplacementExercise({
     blockType: block.type,
     currentExerciseName: block.exercise?.name ?? "esercizio corrente",
     libraryExercises,
     excludeExerciseId: block.exerciseId ?? "",
+    sportContext,
   });
 
   let exerciseId: string | null = replacement.chosenExerciseId || null;

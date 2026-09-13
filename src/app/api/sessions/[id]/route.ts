@@ -11,6 +11,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     where: { id: params.id },
     include: {
       athlete: { select: { id: true, name: true } },
+      team: { select: { id: true, name: true } },
       blocks: {
         orderBy: { order: "asc" },
         include: { exercise: { include: { skills: { include: { skill: true } } } } },

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { quickCreateExerciseSchema } from "@/lib/validation";
 import { parseExerciseFromText } from "@/lib/ai-exercise";
 import { isAiConfigured } from "@/lib/ai";
-import { getSportSkills } from "@/lib/sport";
+import { getSportSkills, getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Troppe richieste, rallenta un attimo." }, { status: 429 });
   }
 
-  const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySportId: true } });
+  const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySportId: true, primarySport: { select: { name: true } } } });
   if (!coach?.primarySportId) {
     return NextResponse.json({ error: "Seleziona prima il tuo sport principale.", code: "SPORT_REQUIRED" }, { status: 409 });
   }
@@ -38,7 +38,9 @@ export async function POST(req: Request) {
   }
 
   const skills = await getSportSkills(coach.primarySportId);
-  const draft = await parseExerciseFromText(parsed.data.description, skills);
+  const sportProfile = await getSportProfile(coach.primarySportId);
+  const sportContext = formatSportProfileForPrompt(coach.primarySport?.name ?? "", sportProfile);
+  const draft = await parseExerciseFromText(parsed.data.description, skills, sportContext);
 
   track("exercise_quick_created", session.user.id, {});
 

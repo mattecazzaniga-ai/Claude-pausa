@@ -15,6 +15,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
     where: { id: params.id },
     include: {
       athlete: { select: { id: true, name: true } },
+      team: { select: { id: true, name: true } },
       blocks: {
         orderBy: { order: "asc" },
         include: { exercise: { include: { skills: { include: { skill: true } } } } },
@@ -30,6 +31,7 @@ export default async function SessionPage({ params }: { params: { id: string } }
     durationMinutes: trainingSession.durationMinutes,
     createdAt: trainingSession.createdAt.toISOString(),
     athlete: trainingSession.athlete,
+    team: trainingSession.team,
     blocks: trainingSession.blocks.map((b) => ({
       id: b.id,
       order: b.order,
@@ -55,9 +57,15 @@ export default async function SessionPage({ params }: { params: { id: string } }
     <main className="min-h-screen">
       <Nav />
       <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-        <Link href={`/athletes/${trainingSession.athlete.id}`} className="text-sm text-muted hover:text-foreground">
-          ← {trainingSession.athlete.name}
-        </Link>
+        {trainingSession.athlete ? (
+          <Link href={`/athletes/${trainingSession.athlete.id}`} className="text-sm text-muted hover:text-foreground">
+            ← {trainingSession.athlete.name}
+          </Link>
+        ) : trainingSession.team ? (
+          <Link href={`/teams/${trainingSession.team.id}`} className="text-sm text-muted hover:text-foreground">
+            ← {trainingSession.team.name}
+          </Link>
+        ) : null}
       </div>
       <SessionClient initialData={data} />
     </main>

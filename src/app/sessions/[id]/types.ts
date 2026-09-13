@@ -21,6 +21,7 @@ export type TrainingSessionData = {
   objective: string | null;
   durationMinutes: number;
   createdAt: string;
-  athlete: { id: string; name: string };
+  athlete: { id: string; name: string } | null;
+  team: { id: string; name: string } | null;
   blocks: SessionBlockData[];
 };

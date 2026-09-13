@@ -33,6 +33,22 @@ export const generateSessionSchema = z.object({
   intensity: z.string().trim().max(40).optional(),
 });
 
+export const createTeamSchema = z.object({
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
+  athleteIds: z.array(z.string()).min(1, "Aggiungi almeno un atleta").max(50),
+});
+
+export const addTeamMemberSchema = z.object({
+  athleteId: z.string().min(1),
+});
+
+export const generateTeamSessionSchema = z.object({
+  durationMinutes: z.number().int().min(10).max(240),
+  objective: z.string().trim().max(300).optional(),
+  equipment: z.string().trim().max(200).optional(),
+  intensity: z.string().trim().max(40).optional(),
+});
+
 export const createExerciseSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(100),
   description: z.string().trim().max(1000).optional().nullable(),
