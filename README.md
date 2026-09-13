@@ -48,7 +48,7 @@ src/app/api/athletes/**        CRUD atleti + creazione nota (trigger AI)
 | `DIRECT_URL` | Solo con provider pooled (Supabase, ecc.) | Connessione diretta per le migration |
 | `NEXTAUTH_SECRET` | Sì | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Sì | URL pubblico dell'app |
-| `GEMINI_API_KEY` | No (ma senza, l'AI non funziona) | Chiave **gratuita** da **aistudio.google.com/apikey** — nessuna carta di credito richiesta. Piano free: 250 richieste/giorno con `gemini-2.5-flash`, ampiamente sufficiente per validare con pochi coach. Nota: sul piano gratuito Google può usare i prompt per migliorare i propri modelli — da rivalutare prima di un lancio con molti coach esterni e dati sensibili. |
+| `GEMINI_API_KEY` | No (ma senza, l'AI non funziona) | Chiave **gratuita** da **aistudio.google.com/apikey** — nessuna carta di credito richiesta. Piano free: 250 richieste/giorno con `gemini-2.5-flash`, ampiamente sufficiente per validare con pochi coach. Da giugno 2026 le chiavi nuove hanno formato `AQ.Ab...` (non più `AIzaSy...`) — è normale, l'SDK `@google/genai` che usiamo lo gestisce da solo. Nota: sul piano gratuito Google può usare i prompt per migliorare i propri modelli — da rivalutare prima di un lancio con molti coach esterni e dati sensibili. |
 | `NEXT_PUBLIC_APP_URL` | Sì | Stesso URL pubblico |
 
 ## 5. Come avviarlo in locale
