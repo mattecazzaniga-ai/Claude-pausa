@@ -77,18 +77,24 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const sportProfile = await getSportProfile(athlete.sportId);
   const sportContext = formatSportProfileForPrompt(athlete.sport.name, sportProfile);
 
-  const plan = await generateSessionPlan({
-    athleteName: athlete.name,
-    objectives: athlete.objectives,
-    aiSummary: athlete.aiSummary,
-    aiPriorities: (athlete.aiPriorities as { skill: string; reason: string }[] | null) ?? [],
-    durationMinutes: parsed.data.durationMinutes,
-    sessionObjective: parsed.data.objective,
-    equipmentAvailable: parsed.data.equipment,
-    intensity: parsed.data.intensity,
-    libraryExercises,
-    sportContext,
-  });
+  let plan;
+  try {
+    plan = await generateSessionPlan({
+      athleteName: athlete.name,
+      objectives: athlete.objectives,
+      aiSummary: athlete.aiSummary,
+      aiPriorities: (athlete.aiPriorities as { skill: string; reason: string }[] | null) ?? [],
+      durationMinutes: parsed.data.durationMinutes,
+      sessionObjective: parsed.data.objective,
+      equipmentAvailable: parsed.data.equipment,
+      intensity: parsed.data.intensity,
+      libraryExercises,
+      sportContext,
+    });
+  } catch (err) {
+    console.error("AI session generation failed", err);
+    return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
+  }
 
   const trainingSession = await prisma.trainingSession.create({
     data: {

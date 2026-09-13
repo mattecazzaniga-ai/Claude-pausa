@@ -19,14 +19,18 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    athletes: athletes.map((a) => ({
-      id: a.id,
-      name: a.name,
-      level: a.level,
-      sportName: a.sport.name,
-      lastSessionDate: a.sessionNotes[0]?.sessionDate ?? null,
-      priorityCount: Array.isArray(a.aiPriorities) ? a.aiPriorities.length : 0,
-    })),
+    athletes: athletes.map((a) => {
+      const priorities = (a.aiPriorities as { skill: string; reason: string }[] | null) ?? [];
+      return {
+        id: a.id,
+        name: a.name,
+        level: a.level,
+        sportName: a.sport.name,
+        lastSessionDate: a.sessionNotes[0]?.sessionDate ?? null,
+        priorityCount: priorities.length,
+        topPriority: priorities[0] ?? null,
+      };
+    }),
   });
 }
 

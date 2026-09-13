@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isAiConfigured } from "@/lib/ai";
 import { Nav } from "@/components/nav";
 import { DashboardClient } from "./dashboard-client";
 
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen">
       <Nav />
-      <DashboardClient />
+      <DashboardClient aiConfigured={isAiConfigured} />
     </main>
   );
 }

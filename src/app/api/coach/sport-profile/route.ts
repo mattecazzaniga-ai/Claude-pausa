@@ -34,7 +34,13 @@ export async function POST() {
   const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySport: true } });
   if (!coach?.primarySport) return NextResponse.json({ error: "Nessuno sport selezionato." }, { status: 409 });
 
-  const profile = await regenerateSportProfile(coach.primarySport.id);
+  let profile;
+  try {
+    profile = await regenerateSportProfile(coach.primarySport.id);
+  } catch (err) {
+    console.error("Sport profile regeneration failed", err);
+    return NextResponse.json({ error: "La rigenerazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
+  }
 
   track("sport_profile_regenerated", session.user.id, { sportId: coach.primarySport.id });
 

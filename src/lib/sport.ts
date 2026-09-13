@@ -35,7 +35,16 @@ export async function ensureSportTaxonomy(sportId: string): Promise<void> {
   const sport = await prisma.sport.findUnique({ where: { id: sportId } });
   if (!sport) return;
 
-  const taxonomy = await generateSportTaxonomy(sport.name);
+  let taxonomy;
+  try {
+    taxonomy = await generateSportTaxonomy(sport.name);
+  } catch (err) {
+    // Degrade like the !isAiConfigured case above: caller just sees an
+    // empty taxonomy rather than a crashed request. A later call retries
+    // (nothing was persisted), since this only checked the count above.
+    console.error("Sport taxonomy generation failed", sportId, err);
+    return;
+  }
   for (let i = 0; i < taxonomy.categories.length; i++) {
     const cat = taxonomy.categories[i];
     const category = await prisma.skillCategory.create({ data: { sportId, name: cat.name, order: i } });
@@ -74,7 +83,16 @@ export async function ensureSportProfile(sportId: string): Promise<void> {
   if (!sport || sport.profileGeneratedAt) return;
   if (!isAiConfigured) return; // nothing we can do without AI — callers just get a name-only context
 
-  const profile = await generateSportProfile(sport.name);
+  let profile;
+  try {
+    profile = await generateSportProfile(sport.name);
+  } catch (err) {
+    // Degrade like the !isAiConfigured case above: callers just get a
+    // name-only context rather than a crashed request. Not persisted, so a
+    // later call retries.
+    console.error("Sport profile generation failed", sportId, err);
+    return;
+  }
   await prisma.sport.update({
     where: { id: sportId },
     data: {

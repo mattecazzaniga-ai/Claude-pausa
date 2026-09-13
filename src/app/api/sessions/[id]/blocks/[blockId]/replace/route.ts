@@ -62,13 +62,19 @@ export async function POST(_req: Request, { params }: { params: { id: string; bl
     }
   }
 
-  const replacement = await generateReplacementExercise({
-    blockType: block.type,
-    currentExerciseName: block.exercise?.name ?? "esercizio corrente",
-    libraryExercises,
-    excludeExerciseId: block.exerciseId ?? "",
-    sportContext,
-  });
+  let replacement;
+  try {
+    replacement = await generateReplacementExercise({
+      blockType: block.type,
+      currentExerciseName: block.exercise?.name ?? "esercizio corrente",
+      libraryExercises,
+      excludeExerciseId: block.exerciseId ?? "",
+      sportContext,
+    });
+  } catch (err) {
+    console.error("AI block replacement failed", err);
+    return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
+  }
 
   let exerciseId: string | null = replacement.chosenExerciseId || null;
   if (!exerciseId && replacement.newExerciseName) {

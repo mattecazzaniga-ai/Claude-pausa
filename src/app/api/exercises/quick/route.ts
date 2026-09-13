@@ -40,7 +40,14 @@ export async function POST(req: Request) {
   const skills = await getSportSkills(coach.primarySportId);
   const sportProfile = await getSportProfile(coach.primarySportId);
   const sportContext = formatSportProfileForPrompt(coach.primarySport?.name ?? "", sportProfile);
-  const draft = await parseExerciseFromText(parsed.data.description, skills, sportContext);
+
+  let draft;
+  try {
+    draft = await parseExerciseFromText(parsed.data.description, skills, sportContext);
+  } catch (err) {
+    console.error("AI quick-create exercise parsing failed", err);
+    return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
+  }
 
   track("exercise_quick_created", session.user.id, {});
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatRelativeDate } from "@/lib/format";
 
+type Priority = { skill: string; reason: string };
+
 type AthleteListItem = {
   id: string;
   name: string;
@@ -12,17 +14,29 @@ type AthleteListItem = {
   sportName: string;
   lastSessionDate: string | null;
   priorityCount: number;
+  topPriority: Priority | null;
 };
 
-export function DashboardClient() {
+type TeamListItem = {
+  id: string;
+  name: string;
+  sportName: string;
+  memberCount: number;
+  topPriority: Priority | null;
+};
+
+export function DashboardClient({ aiConfigured }: { aiConfigured: boolean }) {
   const router = useRouter();
   const [athletes, setAthletes] = useState<AthleteListItem[] | null>(null);
+  const [teams, setTeams] = useState<TeamListItem[] | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/athletes");
-    const data = await res.json();
-    setAthletes(data.athletes ?? []);
+    const [athletesRes, teamsRes] = await Promise.all([fetch("/api/athletes"), fetch("/api/teams")]);
+    const athletesData = await athletesRes.json();
+    const teamsData = await teamsRes.json();
+    setAthletes(athletesData.athletes ?? []);
+    setTeams(teamsData.teams ?? []);
   }
 
   useEffect(() => {
@@ -32,6 +46,8 @@ export function DashboardClient() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <SportProfileCard />
+
+      {aiConfigured && athletes && teams && <TodayFocusCard athletes={athletes} teams={teams} />}
 
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">I tuoi atleti</h1>
@@ -70,9 +86,9 @@ export function DashboardClient() {
                   {a.lastSessionDate ? ` · ultima sessione ${formatRelativeDate(a.lastSessionDate)}` : " · nessuna sessione ancora"}
                 </p>
               </div>
-              {a.priorityCount > 0 && (
-                <span className="rounded-full bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
-                  {a.priorityCount} priorità
+              {a.topPriority && (
+                <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
+                  {a.topPriority.skill}
                 </span>
               )}
             </Link>
@@ -86,6 +102,103 @@ export function DashboardClient() {
           onCreated={(id) => router.push(`/athletes/${id}`)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * "Cosa alleniamo oggi?" — surfaces the single most useful next action
+ * instead of making the coach open an athlete/team first: the top cached AI
+ * priority for one athlete and one group, each one click away from a
+ * generated session. No new AI call — reuses aiPriorities already computed
+ * after the last note/evaluation.
+ */
+function TodayFocusCard({ athletes, teams }: { athletes: AthleteListItem[]; teams: TeamListItem[] }) {
+  const router = useRouter();
+  const [generatingKey, setGeneratingKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const athleteFocus = athletes.find((a) => a.topPriority);
+  const teamFocus = teams.find((t) => t.topPriority);
+
+  if (!athleteFocus && !teamFocus) return null;
+
+  async function generateForAthlete(a: AthleteListItem) {
+    if (!a.topPriority) return;
+    setGeneratingKey(`athlete:${a.id}`);
+    setError(null);
+    const res = await fetch(`/api/athletes/${a.id}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ durationMinutes: 60, objective: `Lavorare su: ${a.topPriority.skill}` }),
+    });
+    const data = await res.json();
+    setGeneratingKey(null);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante la generazione della sessione.");
+      return;
+    }
+    router.push(`/sessions/${data.sessionId}`);
+  }
+
+  async function generateForTeam(t: TeamListItem) {
+    if (!t.topPriority) return;
+    setGeneratingKey(`team:${t.id}`);
+    setError(null);
+    const res = await fetch(`/api/teams/${t.id}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ durationMinutes: 60, objective: `Lavorare su: ${t.topPriority.skill}` }),
+    });
+    const data = await res.json();
+    setGeneratingKey(null);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante la generazione della sessione.");
+      return;
+    }
+    router.push(`/sessions/${data.sessionId}`);
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-accent/30 bg-accent/5 p-5">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-accent">Cosa alleniamo oggi?</h2>
+      <div className="space-y-3">
+        {athleteFocus?.topPriority && (
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">
+                {athleteFocus.name} — <span className="text-accent">{athleteFocus.topPriority.skill}</span>
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted">{athleteFocus.topPriority.reason}</p>
+            </div>
+            <button
+              onClick={() => generateForAthlete(athleteFocus)}
+              disabled={generatingKey === `athlete:${athleteFocus.id}`}
+              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {generatingKey === `athlete:${athleteFocus.id}` ? "Generazione…" : "Genera sessione"}
+            </button>
+          </div>
+        )}
+        {teamFocus?.topPriority && (
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface p-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">
+                {teamFocus.name} — <span className="text-accent">{teamFocus.topPriority.skill}</span>
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted">{teamFocus.topPriority.reason}</p>
+            </div>
+            <button
+              onClick={() => generateForTeam(teamFocus)}
+              disabled={generatingKey === `team:${teamFocus.id}`}
+              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {generatingKey === `team:${teamFocus.id}` ? "Generazione…" : "Genera sessione"}
+            </button>
+          </div>
+        )}
+      </div>
+      {error && <p className="mt-2 text-xs text-negative">{error}</p>}
     </div>
   );
 }
