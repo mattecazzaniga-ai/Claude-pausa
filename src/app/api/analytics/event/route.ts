@@ -30,6 +30,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "calendar_event_updated",
   "calendar_event_deleted",
   "calendar_session_generated",
+  "evaluation_criteria_imported",
+  "evaluation_criteria_bulk_saved",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

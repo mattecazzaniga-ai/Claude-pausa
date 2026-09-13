@@ -28,7 +28,9 @@ export type AnalyticsEventName =
   | "calendar_event_created"
   | "calendar_event_updated"
   | "calendar_event_deleted"
-  | "calendar_session_generated";
+  | "calendar_session_generated"
+  | "evaluation_criteria_imported"
+  | "evaluation_criteria_bulk_saved";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

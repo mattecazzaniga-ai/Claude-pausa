@@ -74,6 +74,20 @@ export const createEvaluationCriterionSchema = z.object({
   notes: z.string().trim().max(500).optional().nullable(),
 });
 
+export const bulkCreateCriteriaSchema = z.object({
+  criteria: z
+    .array(
+      z.object({
+        category: z.string().trim().min(1, "La categoria è obbligatoria").max(60),
+        name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(100),
+        scoreType: evaluationScoreTypeEnum,
+        targetLevel: z.string().trim().max(200).optional().nullable(),
+      })
+    )
+    .min(1, "Aggiungi almeno un criterio")
+    .max(60),
+});
+
 export const createEvaluationSchema = z.object({
   notes: z.string().trim().max(1000).optional().nullable(),
   scores: z

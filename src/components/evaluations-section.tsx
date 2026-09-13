@@ -61,6 +61,7 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
   const [evaluations, setEvaluations] = useState<EvaluationItem[] | null>(null);
   const [comparison, setComparison] = useState<ComparisonRow[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -80,11 +81,16 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
 
   return (
     <div className="mb-8 rounded-xl border border-border bg-surface p-5">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Valutazioni</h2>
-        <button onClick={() => setShowForm(true)} className="text-xs text-accent underline underline-offset-4">
-          + Nuova valutazione
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => setShowImport(true)} className="text-xs text-accent underline underline-offset-4">
+            Importa criteri da file
+          </button>
+          <button onClick={() => setShowForm(true)} className="text-xs text-accent underline underline-offset-4">
+            + Nuova valutazione
+          </button>
+        </div>
       </div>
 
       {error && <p className="mb-2 text-xs text-negative">{error}</p>}
@@ -148,6 +154,219 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
           onError={setError}
         />
       )}
+
+      {showImport && (
+        <ImportCriteriaModal
+          onClose={() => setShowImport(false)}
+          onSaved={() => {
+            setShowImport(false);
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type ImportedCriterionRow = { category: string; name: string; scoreType: ScoreType; targetLevel: string };
+
+/**
+ * Master prompt §3-4: upload/paste the coach's own evaluation sheet, AI
+ * reads its structure, then the coach reviews every row — editing, deleting
+ * or adding — before anything is saved. Nothing here writes to the database
+ * until "Salva".
+ */
+function ImportCriteriaModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [step, setStep] = useState<"upload" | "review">("upload");
+  const [mode, setMode] = useState<"file" | "text">("file");
+  const [file, setFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState("");
+  const [rows, setRows] = useState<ImportedCriterionRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function analyze(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const form = new FormData();
+    if (mode === "file" && file) form.append("file", file);
+    else if (mode === "text" && pastedText.trim()) form.append("text", pastedText.trim());
+    else {
+      setError("Carica un file o incolla il testo della scheda.");
+      setBusy(false);
+      return;
+    }
+    const res = await fetch("/api/coach/evaluation-criteria/import", { method: "POST", body: form });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante l'analisi.");
+      return;
+    }
+    const flattened: ImportedCriterionRow[] = (data.categories as { name: string; criteria: { name: string; scoreType: ScoreType; targetLevel: string }[] }[]).flatMap(
+      (cat) => cat.criteria.map((c) => ({ category: cat.name, name: c.name, scoreType: c.scoreType, targetLevel: c.targetLevel || "" }))
+    );
+    setRows(flattened);
+    setStep("review");
+  }
+
+  function updateRow(i: number, patch: Partial<ImportedCriterionRow>) {
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+  function removeRow(i: number) {
+    setRows((prev) => prev.filter((_, idx) => idx !== i));
+  }
+  function addRow() {
+    setRows((prev) => [...prev, { category: "", name: "", scoreType: "SCALE_1_10", targetLevel: "" }]);
+  }
+
+  async function save() {
+    const criteria = rows.filter((r) => r.category.trim() && r.name.trim());
+    if (criteria.length === 0) {
+      setError("Nessun criterio da salvare.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/coach/evaluation-criteria/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ criteria: criteria.map((r) => ({ ...r, targetLevel: r.targetLevel || undefined })) }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante il salvataggio.");
+      return;
+    }
+    trackClient("evaluation_criteria_bulk_saved", { count: criteria.length });
+    onSaved();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[85vh] w-full max-w-lg animate-scale-in space-y-4 overflow-y-auto rounded-xl border border-border bg-surface p-6"
+      >
+        {step === "upload" ? (
+          <form onSubmit={analyze} className="space-y-3">
+            <h2 className="text-lg font-semibold">Importa criteri da file</h2>
+            <p className="text-xs text-muted">
+              Carica la tua scheda di valutazione (PDF, DOCX, CSV, TXT o una foto) oppure incolla il testo. L&apos;AI riconosce SOLO la
+              struttura presente nel documento — non inventa criteri.
+            </p>
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setMode("file")}
+                className={`rounded-md px-3 py-1.5 ${mode === "file" ? "bg-accent text-black" : "border border-border text-muted"}`}
+              >
+                Carica file
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("text")}
+                className={`rounded-md px-3 py-1.5 ${mode === "text" ? "bg-accent text-black" : "border border-border text-muted"}`}
+              >
+                Incolla testo
+              </button>
+            </div>
+
+            {mode === "file" ? (
+              <input
+                type="file"
+                accept=".pdf,.docx,.csv,.txt,image/jpeg,image/png,image/webp"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none file:mr-3 file:rounded file:border-0 file:bg-accent file:px-2 file:py-1 file:text-xs file:font-medium file:text-black"
+              />
+            ) : (
+              <textarea
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                rows={6}
+                placeholder={"Incolla qui il testo della tua scheda, es.:\nTecnica\n- Servizio\n- Diritto\nTattica\n- Posizionamento"}
+                className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            )}
+
+            {error && <p className="text-sm text-negative">{error}</p>}
+
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={busy}
+                className="flex-1 rounded-md bg-accent py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "Analisi in corso…" : "Analizza con AI"}
+              </button>
+              <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-2">
+                Annulla
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Abbiamo trovato questa struttura</h2>
+            <p className="text-xs text-muted">Controlla, modifica, elimina o aggiungi righe prima di salvare — nulla viene salvato finché non confermi.</p>
+
+            <div className="space-y-2">
+              {rows.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-1.5 rounded-md bg-surface-2 p-2">
+                  <input
+                    value={row.category}
+                    onChange={(e) => updateRow(i, { category: e.target.value })}
+                    placeholder="Categoria"
+                    className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs outline-none focus:border-accent"
+                  />
+                  <input
+                    value={row.name}
+                    onChange={(e) => updateRow(i, { name: e.target.value })}
+                    placeholder="Criterio"
+                    className="min-w-[140px] flex-1 rounded-md border border-border bg-surface px-2 py-1 text-xs outline-none focus:border-accent"
+                  />
+                  <select
+                    value={row.scoreType}
+                    onChange={(e) => updateRow(i, { scoreType: e.target.value as ScoreType })}
+                    className="rounded-md border border-border bg-surface px-2 py-1 text-xs outline-none focus:border-accent"
+                  >
+                    {Object.entries(SCORE_TYPE_LABEL).map(([type, label]) => (
+                      <option key={type} value={type}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => removeRow(i)} className="text-xs text-negative">
+                    Rimuovi
+                  </button>
+                </div>
+              ))}
+              {rows.length === 0 && <p className="text-sm text-muted">Nessun criterio riconosciuto. Aggiungine uno manualmente.</p>}
+            </div>
+
+            <button type="button" onClick={addRow} className="text-xs text-accent underline underline-offset-4">
+              + Aggiungi riga
+            </button>
+
+            {error && <p className="text-sm text-negative">{error}</p>}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={save}
+                disabled={busy}
+                className="flex-1 rounded-md bg-accent py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? "Salvataggio…" : `Salva ${rows.length} criteri`}
+              </button>
+              <button type="button" onClick={onClose} className="rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-2">
+                Annulla
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
