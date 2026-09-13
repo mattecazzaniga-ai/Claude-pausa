@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatRelativeDate, formatDate } from "@/lib/format";
 import { trackClient } from "@/lib/track-client";
 import type { AthleteData, SessionNoteData } from "./types";
@@ -20,10 +21,36 @@ const SENTIMENT_LABEL: Record<string, string> = {
 };
 
 export function AthleteClient({ initialData, aiConfigured }: { initialData: AthleteData; aiConfigured: boolean }) {
+  const router = useRouter();
   const [athlete, setAthlete] = useState(initialData);
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionDuration, setSessionDuration] = useState("60");
+  const [sessionObjective, setSessionObjective] = useState("");
+  const [generatingSession, setGeneratingSession] = useState(false);
+
+  async function generateSession(e: React.FormEvent) {
+    e.preventDefault();
+    setGeneratingSession(true);
+    setError(null);
+    const res = await fetch(`/api/athletes/${athlete.id}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        durationMinutes: Number(sessionDuration) || 60,
+        objective: sessionObjective || undefined,
+      }),
+    });
+    const data = await res.json();
+    setGeneratingSession(false);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante la generazione della sessione.");
+      return;
+    }
+    trackClient("training_session_generated", { athleteId: athlete.id });
+    router.push(`/sessions/${data.sessionId}`);
+  }
 
   async function submitNote(e: React.FormEvent) {
     e.preventDefault();
@@ -114,6 +141,45 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
           </p>
         )}
       </div>
+
+      {/* Session generator — the core "wow moment": priorities + exercise library -> a real session plan */}
+      {aiConfigured && (
+        <form onSubmit={generateSession} className="mb-8 rounded-xl border border-border bg-surface p-5">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Genera sessione</h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-muted">Durata (min)</label>
+              <input
+                type="number"
+                min={10}
+                max={240}
+                value={sessionDuration}
+                onChange={(e) => setSessionDuration(e.target.value)}
+                className="w-24 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="mb-1.5 block text-xs font-medium text-muted">Obiettivo specifico (opzionale)</label>
+              <input
+                value={sessionObjective}
+                onChange={(e) => setSessionObjective(e.target.value)}
+                placeholder="Es. lavoro sulla difesa in pressione"
+                className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={generatingSession}
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {generatingSession ? "Generazione…" : "Genera con AI"}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Usa prima la tua libreria esercizi, genera nuovi esercizi solo se necessario.
+          </p>
+        </form>
+      )}
 
       {/* Quick note capture */}
       <form onSubmit={submitNote} className="mb-8 rounded-xl border border-border bg-surface p-5">

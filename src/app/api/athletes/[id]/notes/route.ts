@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createSessionNoteSchema } from "@/lib/validation";
 import { isAiConfigured, extractTagsFromNote, generateAthleteSummary } from "@/lib/ai";
+import { getSportSkills } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 
@@ -44,11 +45,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   try {
-    const skills = await prisma.skill.findMany({
-      where: { category: { sportId: athlete.sportId } },
-      include: { category: true },
-    });
-    const skillOptions = skills.map((s) => ({ id: s.id, name: s.name, category: s.category.name }));
+    const skillOptions = await getSportSkills(athlete.sportId);
 
     const extracted = await extractTagsFromNote(note.rawText, skillOptions);
     if (extracted.length > 0) {

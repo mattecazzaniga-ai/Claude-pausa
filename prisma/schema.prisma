@@ -15,29 +15,77 @@ enum Sentiment {
   IMPROVING
 }
 
-model Coach {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  athletes     Athlete[]
-  sessionNotes SessionNote[]
-  analytics    AnalyticsEvent[]
+enum ExerciseCategory {
+  TECHNICAL
+  TACTICAL
+  PHYSICAL
+  COGNITIVE
+  WARMUP
+  COOLDOWN
+  COMPETITIVE
 }
 
-/// A sport defines its own skill taxonomy. The product ships with one seeded
-/// sport (beach tennis) but nothing in the schema or UI hardcodes it — adding
-/// a new sport is just seeding new Sport/SkillCategory/Skill rows.
+enum ExerciseFormat {
+  INDIVIDUAL
+  PAIR
+  SMALL_GROUP
+  TEAM
+  GAME
+}
+
+enum ExerciseDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ELITE
+}
+
+enum ExerciseSource {
+  COACH_CREATED
+  AI_GENERATED
+}
+
+enum SessionBlockType {
+  WARMUP
+  TECHNICAL
+  TACTICAL
+  PHYSICAL
+  GAME
+  COOLDOWN
+}
+
+model Coach {
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  passwordHash   String
+  primarySportId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  primarySport     Sport?            @relation(fields: [primarySportId], references: [id])
+  athletes         Athlete[]
+  sessionNotes     SessionNote[]
+  exercises        Exercise[]
+  trainingSessions TrainingSession[]
+  analytics        AnalyticsEvent[]
+}
+
+/// A sport defines its own skill taxonomy. The full list of common sports is
+/// seeded up front (so onboarding never waits on AI), but the taxonomy itself
+/// (SkillCategory/Skill) is generated on first real use — see lib/sport.ts —
+/// rather than hand-authored for every sport. Adding a brand-new sport a
+/// coach types in manually goes through the exact same path.
 model Sport {
   id   String @id @default(cuid())
   slug String @unique
   name String
 
-  skillCategories SkillCategory[]
-  athletes        Athlete[]
+  coaches          Coach[]
+  skillCategories  SkillCategory[]
+  athletes         Athlete[]
+  exercises        Exercise[]
+  trainingSessions TrainingSession[]
 }
 
 model SkillCategory {
@@ -58,8 +106,9 @@ model Skill {
   name       String
   order      Int    @default(0)
 
-  category SkillCategory @relation(fields: [categoryId], references: [id])
-  noteTags NoteTag[]
+  category      SkillCategory   @relation(fields: [categoryId], references: [id])
+  noteTags      NoteTag[]
+  exerciseLinks ExerciseSkill[]
 
   @@index([categoryId])
 }
@@ -77,13 +126,14 @@ model Athlete {
 
   // Cached AI output so the athlete page doesn't re-call the model on every
   // view — regenerated only when a new session note is added.
-  aiSummary         String?
-  aiPriorities      Json?
+  aiSummary          String?
+  aiPriorities       Json?
   aiSummaryUpdatedAt DateTime?
 
-  coach        Coach         @relation(fields: [coachId], references: [id])
-  sport        Sport         @relation(fields: [sportId], references: [id])
-  sessionNotes SessionNote[]
+  coach            Coach             @relation(fields: [coachId], references: [id])
+  sport            Sport             @relation(fields: [sportId], references: [id])
+  sessionNotes     SessionNote[]
+  trainingSessions TrainingSession[]
 
   @@index([coachId])
 }
@@ -116,6 +166,96 @@ model NoteTag {
 
   @@index([sessionNoteId])
   @@index([skillId])
+}
+
+/// A coach's own exercise library — the core asset the AI session generator
+/// draws from before it ever invents something new (see lib/session.ts).
+model Exercise {
+  id       String @id @default(cuid())
+  coachId  String
+  sportId  String
+  name     String
+
+  description     String?
+  instructions     String?
+  category         ExerciseCategory
+  format           ExerciseFormat?
+  difficulty       ExerciseDifficulty?
+  durationMinutes  Int?
+  sets             Int?
+  reps             Int?
+  restSeconds      Int?
+  intensity        String?
+  equipment        String?
+  minAthletes      Int?
+  maxAthletes      Int?
+  spaceRequired    String?
+  coachingPoints   String?
+  commonMistakes   String?
+  progressionNote  String?
+  regressionNote   String?
+  tags             String[] @default([])
+  /// Never let an AI-generated exercise be mistaken for the coach's own —
+  /// see the AI knowledge priority rules in lib/session.ts.
+  source           ExerciseSource @default(COACH_CREATED)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  coach         Coach           @relation(fields: [coachId], references: [id])
+  sport         Sport           @relation(fields: [sportId], references: [id])
+  skills        ExerciseSkill[]
+  sessionBlocks SessionBlock[]
+
+  @@index([coachId])
+  @@index([sportId])
+}
+
+model ExerciseSkill {
+  id         String @id @default(cuid())
+  exerciseId String
+  skillId    String
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+  skill    Skill    @relation(fields: [skillId], references: [id])
+
+  @@unique([exerciseId, skillId])
+  @@index([skillId])
+}
+
+/// A generated (or manually built) training session: an ordered list of
+/// blocks, each usually pointing at one Exercise from the coach's library.
+model TrainingSession {
+  id              String   @id @default(cuid())
+  coachId         String
+  athleteId       String
+  objective       String?
+  durationMinutes Int
+  createdAt       DateTime @default(now())
+
+  coach   Coach          @relation(fields: [coachId], references: [id])
+  athlete Athlete        @relation(fields: [athleteId], references: [id])
+  sport   Sport?         @relation(fields: [sportId], references: [id])
+  sportId String?
+  blocks  SessionBlock[]
+
+  @@index([athleteId])
+  @@index([coachId])
+}
+
+model SessionBlock {
+  id                String           @id @default(cuid())
+  trainingSessionId String
+  order             Int
+  type              SessionBlockType
+  durationMinutes   Int
+  exerciseId        String?
+  /// Short "why this exercise" explanation shown to the coach — see spec §8.
+  rationale         String?
+
+  trainingSession TrainingSession @relation(fields: [trainingSessionId], references: [id])
+  exercise        Exercise?       @relation(fields: [exerciseId], references: [id])
+
+  @@index([trainingSessionId])
 }
 
 model AnalyticsEvent {

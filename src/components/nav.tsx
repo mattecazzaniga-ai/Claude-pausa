@@ -18,9 +18,14 @@ export function Nav() {
 
         <nav className="hidden items-center gap-6 text-sm text-muted sm:flex">
           {session?.user && (
-            <Link href="/dashboard" className="hover:text-foreground transition-colors">
-              I miei atleti
-            </Link>
+            <>
+              <Link href="/dashboard" className="hover:text-foreground transition-colors">
+                I miei atleti
+              </Link>
+              <Link href="/exercises" className="hover:text-foreground transition-colors">
+                Esercizi
+              </Link>
+            </>
           )}
         </nav>
 
@@ -69,6 +74,9 @@ export function Nav() {
             <>
               <Link href="/dashboard" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 I miei atleti
+              </Link>
+              <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                Esercizi
               </Link>
               <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-md px-2 py-2 text-left text-sm hover:bg-surface-2">
                 Esci

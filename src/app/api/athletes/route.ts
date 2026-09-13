@@ -40,15 +40,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dati non validi" }, { status: 400 });
   }
 
-  // MVP ships with a single sport (beach tennis); once more sports exist this
-  // becomes a field on the form instead of a fixed lookup.
-  const sport = await prisma.sport.findUnique({ where: { slug: "beach-tennis" } });
-  if (!sport) return NextResponse.json({ error: "Sport non configurato" }, { status: 500 });
+  const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySportId: true } });
+  if (!coach?.primarySportId) {
+    return NextResponse.json({ error: "Seleziona prima il tuo sport principale.", code: "SPORT_REQUIRED" }, { status: 409 });
+  }
 
   const athlete = await prisma.athlete.create({
     data: {
       coachId: session.user.id,
-      sportId: sport.id,
+      sportId: coach.primarySportId,
       name: parsed.data.name,
       birthYear: parsed.data.birthYear ?? undefined,
       level: parsed.data.level ?? undefined,

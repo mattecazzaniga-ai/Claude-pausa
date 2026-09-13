@@ -10,6 +10,11 @@ const ALLOWED: AnalyticsEventName[] = [
   "ai_extraction_completed",
   "ai_extraction_failed",
   "athlete_summary_viewed",
+  "exercise_created",
+  "exercise_quick_created",
+  "training_session_generated",
+  "session_block_replaced",
+  "session_block_regenerated",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

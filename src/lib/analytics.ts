@@ -3,11 +3,17 @@ import type { Prisma } from "@prisma/client";
 
 export type AnalyticsEventName =
   | "signup"
+  | "sport_onboarded"
   | "athlete_created"
   | "session_note_created"
   | "ai_extraction_completed"
   | "ai_extraction_failed"
-  | "athlete_summary_viewed";
+  | "athlete_summary_viewed"
+  | "exercise_created"
+  | "exercise_quick_created"
+  | "training_session_generated"
+  | "session_block_replaced"
+  | "session_block_regenerated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —
