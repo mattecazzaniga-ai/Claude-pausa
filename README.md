@@ -69,6 +69,7 @@ Stessa infrastruttura di riferimento della fase di validazione precedente: Verce
 - `DATABASE_URL` deve essere la stringa **pooled** (porta 6543 su Supabase, con `?pgbouncer=true`), `DIRECT_URL` quella diretta.
 - Il build (`npm run build`) esegue `prisma migrate deploy` automaticamente.
 - Aggiungi `GEMINI_API_KEY` su Vercel per attivare l'AI in produzione.
+- Se cambi la password del database su Supabase, aggiorna manualmente `DATABASE_URL` e `DIRECT_URL` su Vercel — non è automatico, e finché non lo fai il build fallisce con `P1000: Authentication failed`.
 
 ## 7. TODO / limitazioni note
 
