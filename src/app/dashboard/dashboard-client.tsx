@@ -47,6 +47,8 @@ export function DashboardClient({ aiConfigured }: { aiConfigured: boolean }) {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <SportProfileCard />
 
+      <UpcomingEventsCard />
+
       {aiConfigured && athletes && teams && <TodayFocusCard athletes={athletes} teams={teams} />}
 
       <div className="mb-6 flex items-center justify-between">
@@ -283,6 +285,57 @@ function SportProfileCard() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+type UpcomingEvent = {
+  id: string;
+  type: "TRAINING" | "EVALUATION" | "COMPETITION" | "OTHER";
+  title: string;
+  startAt: string;
+  athlete: { id: string; name: string } | null;
+  team: { id: string; name: string } | null;
+};
+
+const EVENT_ICON: Record<UpcomingEvent["type"], string> = { TRAINING: "🏋️", EVALUATION: "📋", COMPETITION: "🏆", OTHER: "📌" };
+
+/** Master prompt §18/31: "at a glance" — the coach shouldn't have to open the calendar to see what's coming up. */
+function UpcomingEventsCard() {
+  const [events, setEvents] = useState<UpcomingEvent[] | null>(null);
+
+  useEffect(() => {
+    const from = new Date().toISOString();
+    const to = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    fetch(`/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setEvents(data ? (data.events ?? []).slice(0, 5) : []));
+  }, []);
+
+  if (events === null || events.length === 0) return null;
+
+  return (
+    <div className="mb-6 rounded-xl border border-border bg-surface p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">Prossimi eventi</h2>
+        <Link href="/calendar" className="text-xs text-accent underline underline-offset-4">
+          Apri calendario
+        </Link>
+      </div>
+      <div className="space-y-1.5">
+        {events.map((ev) => (
+          <div key={ev.id} className="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
+            <span>
+              {EVENT_ICON[ev.type]} {ev.title}
+              {(ev.athlete || ev.team) && <span className="text-muted"> · {ev.athlete?.name ?? ev.team?.name}</span>}
+            </span>
+            <span className="shrink-0 text-xs text-muted">
+              {new Date(ev.startAt).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}{" "}
+              {new Date(ev.startAt).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

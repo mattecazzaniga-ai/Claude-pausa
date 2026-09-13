@@ -24,6 +24,12 @@ const ALLOWED: AnalyticsEventName[] = [
   "objective_updated",
   "evaluation_created",
   "evaluation_criterion_created",
+  "competition_created",
+  "competition_result_recorded",
+  "calendar_event_created",
+  "calendar_event_updated",
+  "calendar_event_deleted",
+  "calendar_session_generated",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

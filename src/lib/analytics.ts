@@ -22,7 +22,13 @@ export type AnalyticsEventName =
   | "objective_created"
   | "objective_updated"
   | "evaluation_created"
-  | "evaluation_criterion_created";
+  | "evaluation_criterion_created"
+  | "competition_created"
+  | "competition_result_recorded"
+  | "calendar_event_created"
+  | "calendar_event_updated"
+  | "calendar_event_deleted"
+  | "calendar_session_generated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

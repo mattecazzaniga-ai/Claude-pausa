@@ -25,6 +25,9 @@ export function Nav() {
               <Link href="/teams" className="hover:text-foreground transition-colors">
                 Squadre
               </Link>
+              <Link href="/calendar" className="hover:text-foreground transition-colors">
+                Calendario
+              </Link>
               <Link href="/exercises" className="hover:text-foreground transition-colors">
                 Esercizi
               </Link>
@@ -80,6 +83,9 @@ export function Nav() {
               </Link>
               <Link href="/teams" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Squadre
+              </Link>
+              <Link href="/calendar" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                Calendario
               </Link>
               <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Esercizi

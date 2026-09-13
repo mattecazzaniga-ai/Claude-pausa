@@ -102,6 +102,29 @@ enum EvaluationKind {
   PERIODIC
 }
 
+enum CompetitionType {
+  TOURNAMENT
+  MATCH
+  CHAMPIONSHIP
+  LEAGUE
+  FRIENDLY
+  OTHER
+}
+
+enum CompetitionResult {
+  WIN
+  LOSS
+  DRAW
+  NOT_RECORDED
+}
+
+enum CalendarEventType {
+  TRAINING
+  EVALUATION
+  COMPETITION
+  OTHER
+}
+
 model Coach {
   id             String   @id @default(cuid())
   name           String
@@ -120,6 +143,8 @@ model Coach {
   goals            Objective[]
   evaluations      Evaluation[]
   customCriteria   EvaluationCriterion[]
+  competitions     Competition[]
+  calendarEvents   CalendarEvent[]
   analytics        AnalyticsEvent[]
 }
 
@@ -153,6 +178,7 @@ model Sport {
   trainingSessions    TrainingSession[]
   teams               Team[]
   evaluationCriteria  EvaluationCriterion[]
+  competitions        Competition[]
 }
 
 model SkillCategory {
@@ -204,6 +230,8 @@ model Athlete {
   teamMemberships  TeamMember[]
   goals            Objective[]
   evaluations      Evaluation[]
+  competitions     Competition[]
+  calendarEvents   CalendarEvent[]
 
   @@index([coachId])
 }
@@ -226,6 +254,8 @@ model Team {
   trainingSessions TrainingSession[]
   goals            Objective[]
   evaluations      Evaluation[]
+  competitions     Competition[]
+  calendarEvents   CalendarEvent[]
 
   @@index([coachId])
 }
@@ -347,6 +377,7 @@ model TrainingSession {
   sport   Sport?         @relation(fields: [sportId], references: [id])
   sportId String?
   blocks  SessionBlock[]
+  calendarEvent CalendarEvent?
 
   @@index([athleteId])
   @@index([teamId])
@@ -463,6 +494,76 @@ model EvaluationScore {
 
   @@unique([evaluationId, criterionId])
   @@index([criterionId])
+}
+
+/// Master prompt §16-24 (Competitions/Tournaments/Matches). Exactly one of
+/// athleteId/teamId is set, same pattern as TrainingSession/Objective. Result
+/// fields stay empty until the coach records them after the event.
+model Competition {
+  id             String            @id @default(cuid())
+  coachId        String
+  athleteId      String?
+  teamId         String?
+  sportId        String
+  name           String
+  type           CompetitionType
+  scheduledAt    DateTime
+  location       String?
+  opponent       String?
+  importance     String?
+  preNotes       String?
+  postNotes      String?
+  result         CompetitionResult @default(NOT_RECORDED)
+  score          String?
+  /// AI "what did we learn" analysis after the result is recorded — see
+  /// lib/ai-competition.ts. Merged into the athlete's cached priorities the
+  /// same way a periodic evaluation is, closing the Competition -> Training
+  /// loop instead of results being dead data.
+  aiPostAnalysis String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  coach         Coach          @relation(fields: [coachId], references: [id])
+  athlete       Athlete?       @relation(fields: [athleteId], references: [id])
+  team          Team?          @relation(fields: [teamId], references: [id])
+  sport         Sport          @relation(fields: [sportId], references: [id])
+  calendarEvent CalendarEvent?
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([teamId])
+}
+
+/// Master prompt §15-24 (Coach Calendar). A planned event — distinct from a
+/// TrainingSession, which is the generated *content* of a training. A
+/// TRAINING event links to a TrainingSession once one is generated for it
+/// (see api/calendar/[id]/generate-session); a COMPETITION event is
+/// auto-created alongside its Competition so the coach never re-enters the
+/// same date twice (master prompt §40).
+model CalendarEvent {
+  id                String            @id @default(cuid())
+  coachId           String
+  athleteId         String?
+  teamId            String?
+  competitionId     String?           @unique
+  trainingSessionId String?           @unique
+  type              CalendarEventType
+  title             String
+  startAt           DateTime
+  endAt             DateTime
+  location          String?
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  coach           Coach            @relation(fields: [coachId], references: [id])
+  athlete         Athlete?         @relation(fields: [athleteId], references: [id])
+  team            Team?            @relation(fields: [teamId], references: [id])
+  competition     Competition?     @relation(fields: [competitionId], references: [id])
+  trainingSession TrainingSession? @relation(fields: [trainingSessionId], references: [id])
+
+  @@index([coachId])
+  @@index([startAt])
 }
 
 model AnalyticsEvent {

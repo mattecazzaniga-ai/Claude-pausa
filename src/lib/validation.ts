@@ -88,6 +88,47 @@ export const createEvaluationSchema = z.object({
     .max(60),
 });
 
+const competitionTypeEnum = z.enum(["TOURNAMENT", "MATCH", "CHAMPIONSHIP", "LEAGUE", "FRIENDLY", "OTHER"]);
+const competitionResultEnum = z.enum(["WIN", "LOSS", "DRAW", "NOT_RECORDED"]);
+
+export const createCompetitionSchema = z.object({
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(150),
+  type: competitionTypeEnum,
+  scheduledAt: z.string().datetime(),
+  location: z.string().trim().max(150).optional().nullable(),
+  opponent: z.string().trim().max(150).optional().nullable(),
+  importance: z.string().trim().max(200).optional().nullable(),
+  preNotes: z.string().trim().max(1000).optional().nullable(),
+});
+
+export const recordCompetitionResultSchema = z.object({
+  result: competitionResultEnum,
+  score: z.string().trim().max(60).optional().nullable(),
+  postNotes: z.string().trim().max(1500).optional().nullable(),
+});
+
+export const createCalendarEventSchema = z
+  .object({
+    type: z.enum(["TRAINING", "OTHER"]),
+    title: z.string().trim().min(2, "Il titolo deve avere almeno 2 caratteri").max(150),
+    startAt: z.string().datetime(),
+    endAt: z.string().datetime(),
+    athleteId: z.string().optional().nullable(),
+    teamId: z.string().optional().nullable(),
+    location: z.string().trim().max(150).optional().nullable(),
+    notes: z.string().trim().max(1000).optional().nullable(),
+  })
+  .refine((data) => !(data.athleteId && data.teamId), { message: "Scegli un atleta oppure una squadra, non entrambi." });
+
+export const updateCalendarEventSchema = z.object({
+  title: z.string().trim().min(2).max(150).optional(),
+  startAt: z.string().datetime().optional(),
+  endAt: z.string().datetime().optional(),
+  location: z.string().trim().max(150).optional().nullable(),
+  notes: z.string().trim().max(1000).optional().nullable(),
+  trainingSessionId: z.string().optional(),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
   // Athletes can be added later from the team page — a coach may want to
