@@ -71,6 +71,7 @@ Stessa infrastruttura di riferimento della fase di validazione precedente: Verce
 - Aggiungi `GEMINI_API_KEY` su Vercel per attivare l'AI in produzione.
 - Se cambi la password del database su Supabase, aggiorna manualmente `DATABASE_URL` e `DIRECT_URL` su Vercel — non è automatico, e finché non lo fai il build fallisce con `P1000: Authentication failed`.
 - `DIRECT_URL` deve usare l'host del **Session pooler** di Supabase (`aws-0-<regione>.pooler.supabase.com`, porta 5432), non quello di "Direct connection" (`db.<project-ref>.supabase.co`) — quest'ultimo è raggiungibile solo via IPv6 e il build di Vercel non riesce a connettersi (`P1001: Can't reach database server`).
+- Se manca `?pgbouncer=true` in fondo a `DATABASE_URL`, le query a runtime falliscono con `PostgresError 42P05: prepared statement "s0" already exists` — Prisma usa prepared statement per default, incompatibili con il pooler di Supabase in modalità transaction senza questo parametro.
 
 ## 7. TODO / limitazioni note
 
