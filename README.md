@@ -14,7 +14,7 @@ MVP funzionante: un coach registra atleti, scrive una nota libera dopo ogni sess
   - `generateAthleteSummary`: legge le ultime ~8 sessioni di UN atleta (non l'intero database del coach) e genera una sintesi narrativa + fino a 3 priorità concrete per la prossima sessione. Modello: Sonnet 5 (più capace, serve per un output che il coach legge e su cui agisce).
   - Nessun RAG/vector database: a questo volume di dati (decine di atleti, decine di note ciascuno) è over-engineering. Si aggiungerà solo se un coach accumula storico molto più grande.
 - **Tassonomia sport-agnostica**: `Sport → SkillCategory → Skill` — aggiungere un nuovo sport è solo seed di nuove righe, zero codice.
-- **Degrado senza AI**: se `ANTHROPIC_API_KEY` non è configurata, l'app resta completamente usabile — le note si salvano, l'AI semplicemente non le elabora ancora (nessun errore, nessun blocco).
+- **Degrado senza AI**: se `GEMINI_API_KEY` non è configurata, l'app resta completamente usabile — le note si salvano, l'AI semplicemente non le elabora ancora (nessun errore, nessun blocco).
 - **Analytics**: eventi minimi (`signup`, `athlete_created`, `session_note_created`, `ai_extraction_completed/failed`, `athlete_summary_viewed`) per capire l'uso reale prima di costruire altro.
 
 ## 2. Cosa NON è stato costruito (deliberatamente)
@@ -48,7 +48,7 @@ src/app/api/athletes/**        CRUD atleti + creazione nota (trigger AI)
 | `DIRECT_URL` | Solo con provider pooled (Supabase, ecc.) | Connessione diretta per le migration |
 | `NEXTAUTH_SECRET` | Sì | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Sì | URL pubblico dell'app |
-| `ANTHROPIC_API_KEY` | No (ma senza, l'AI non funziona) | Chiave da **console.anthropic.com** — attenzione: **non** è lo stesso account/credito di Claude Pro/Max (abbonamento chat), è un accesso API separato a consumo. Costo per nota: frazioni di centesimo. |
+| `GEMINI_API_KEY` | No (ma senza, l'AI non funziona) | Chiave **gratuita** da **aistudio.google.com/apikey** — nessuna carta di credito richiesta. Piano free: 250 richieste/giorno con `gemini-2.5-flash`, ampiamente sufficiente per validare con pochi coach. Nota: sul piano gratuito Google può usare i prompt per migliorare i propri modelli — da rivalutare prima di un lancio con molti coach esterni e dati sensibili. |
 | `NEXT_PUBLIC_APP_URL` | Sì | Stesso URL pubblico |
 
 ## 5. Come avviarlo in locale
@@ -61,14 +61,14 @@ npm run db:seed
 npm run dev
 ```
 
-Login demo creato dal seed: `demo@coachbrain.app` / `demo1234` — include un atleta con due sessioni e una sintesi AI **pre-scritta** (per vedere subito come dovrebbe apparire il prodotto anche senza chiave API impostata). Le note *nuove* aggiunte in locale richiedono `ANTHROPIC_API_KEY` per essere elaborate.
+Login demo creato dal seed: `demo@coachbrain.app` / `demo1234` — include un atleta con due sessioni e una sintesi AI **pre-scritta** (per vedere subito come dovrebbe apparire il prodotto anche senza chiave API impostata). Le note *nuove* aggiunte in locale richiedono `GEMINI_API_KEY` per essere elaborate.
 
 ## 6. Deploy
 
 Stessa infrastruttura di riferimento della fase di validazione precedente: Vercel + Postgres pooled (Supabase/Neon). Ricorda:
 - `DATABASE_URL` deve essere la stringa **pooled** (porta 6543 su Supabase, con `?pgbouncer=true`), `DIRECT_URL` quella diretta.
 - Il build (`npm run build`) esegue `prisma migrate deploy` automaticamente.
-- Aggiungi `ANTHROPIC_API_KEY` su Vercel per attivare l'AI in produzione.
+- Aggiungi `GEMINI_API_KEY` su Vercel per attivare l'AI in produzione.
 
 ## 7. TODO / limitazioni note
 

@@ -1,16 +1,17 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.ANTHROPIC_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY;
 
 /** The rest of the app can check this to show a clear "AI not configured" state instead of failing silently. */
 export const isAiConfigured = Boolean(apiKey);
 
-const anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-// Cheap/fast model for structured tagging, stronger model for the narrative
-// synthesis a coach actually reads.
-const EXTRACTION_MODEL = "claude-haiku-4-5-20251001";
-const SUMMARY_MODEL = "claude-sonnet-5";
+// Free-tier model (Google AI Studio / Gemini Developer API — no credit card
+// required). Same model for extraction and summary: both calls are small
+// and cheap enough that splitting cheap/strong models isn't worth the
+// complexity while this runs on the free tier.
+const MODEL = "gemini-2.5-flash";
 
 export type SkillOption = { id: string; name: string; category: string };
 
@@ -20,72 +21,72 @@ export type ExtractedTag = {
   excerpt: string;
 };
 
+function requireAi() {
+  if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
+  return ai;
+}
+
+function parseJson<T>(text: string | undefined, fallback: T): T {
+  if (!text) return fallback;
+  try {
+    return JSON.parse(text) as T;
+  } catch (err) {
+    console.error("Failed to parse Gemini JSON response", err, text);
+    return fallback;
+  }
+}
+
 /**
  * Turns one free-text coaching note into structured tags against the sport's
- * skill taxonomy, using tool-use (function calling) rather than a naive
- * "parse this JSON" prompt — the model is constrained to a schema, so the
- * output is always structurally valid.
+ * skill taxonomy, using Gemini's structured-output mode (a JSON schema the
+ * response is constrained to) rather than a naive "parse this JSON" prompt.
  */
 export async function extractTagsFromNote(noteText: string, skills: SkillOption[]): Promise<ExtractedTag[]> {
-  if (!anthropic) throw new Error("AI not configured: ANTHROPIC_API_KEY is missing.");
+  const client = requireAi();
   if (skills.length === 0) return [];
 
   const skillList = skills.map((s) => `- ${s.id}: ${s.category} / ${s.name}`).join("\n");
 
-  const response = await anthropic.messages.create({
-    model: EXTRACTION_MODEL,
-    max_tokens: 1024,
-    system:
+  const response = await client.models.generateContent({
+    model: MODEL,
+    contents:
       "Sei un assistente che estrae osservazioni tecniche strutturate dalle note di un allenatore sportivo. " +
       "Identifica solo le competenze esplicitamente osservate nel testo, con la frase esatta (o quasi) da cui deriva l'osservazione. " +
-      "Non inventare competenze non menzionate. Se il testo non menziona nulla di specifico, restituisci una lista vuota.",
-    messages: [
-      {
-        role: "user",
-        content:
-          `Nota dell'allenatore:\n"""${noteText}"""\n\n` +
-          `Competenze disponibili per questo sport (usa esattamente questi ID):\n${skillList}`,
-      },
-    ],
-    tools: [
-      {
-        name: "record_observations",
-        description: "Registra le osservazioni tecniche strutturate estratte dalla nota.",
-        input_schema: {
-          type: "object",
-          properties: {
-            observations: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  skillId: { type: "string", description: "L'ID esatto della competenza dalla lista fornita." },
-                  sentiment: {
-                    type: "string",
-                    enum: ["POSITIVE", "NEGATIVE", "NEUTRAL", "IMPROVING"],
-                    description:
-                      "POSITIVE = punto di forza confermato, NEGATIVE = criticità/problema, IMPROVING = in miglioramento ma non ancora risolto, NEUTRAL = osservazione senza giudizio.",
-                  },
-                  excerpt: { type: "string", description: "La frase o porzione di testo da cui deriva l'osservazione." },
+      "Non inventare competenze non menzionate. Se il testo non menziona nulla di specifico, restituisci una lista vuota.\n\n" +
+      `Nota dell'allenatore:\n"""${noteText}"""\n\n` +
+      `Competenze disponibili per questo sport (usa esattamente questi ID):\n${skillList}`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          observations: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                skillId: { type: "string", description: "L'ID esatto della competenza dalla lista fornita." },
+                sentiment: {
+                  type: "string",
+                  enum: ["POSITIVE", "NEGATIVE", "NEUTRAL", "IMPROVING"],
+                  description:
+                    "POSITIVE = punto di forza confermato, NEGATIVE = criticità/problema, IMPROVING = in miglioramento ma non ancora risolto, NEUTRAL = osservazione senza giudizio.",
                 },
-                required: ["skillId", "sentiment", "excerpt"],
+                excerpt: { type: "string", description: "La frase o porzione di testo da cui deriva l'osservazione." },
               },
+              required: ["skillId", "sentiment", "excerpt"],
             },
           },
-          required: ["observations"],
         },
+        required: ["observations"],
       },
-    ],
-    tool_choice: { type: "tool", name: "record_observations" },
+    },
   });
 
-  const toolUse = response.content.find((block) => block.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") return [];
-
-  const input = toolUse.input as { observations?: ExtractedTag[] };
+  const parsed = parseJson<{ observations?: ExtractedTag[] }>(response.text, {});
   const validIds = new Set(skills.map((s) => s.id));
 
-  return (input.observations ?? []).filter((obs) => validIds.has(obs.skillId));
+  return (parsed.observations ?? []).filter((obs) => validIds.has(obs.skillId));
 }
 
 export type AthletePriority = { skill: string; reason: string };
@@ -108,7 +109,7 @@ export async function generateAthleteSummary(params: {
   objectives: string | null;
   notes: TaggedNote[];
 }): Promise<AthleteAiSummary> {
-  if (!anthropic) throw new Error("AI not configured: ANTHROPIC_API_KEY is missing.");
+  const client = requireAi();
 
   const notesText = params.notes
     .map((n) => {
@@ -117,58 +118,44 @@ export async function generateAthleteSummary(params: {
     })
     .join("\n\n");
 
-  const response = await anthropic.messages.create({
-    model: SUMMARY_MODEL,
-    max_tokens: 1024,
-    system:
+  const response = await client.models.generateContent({
+    model: MODEL,
+    contents:
       "Sei un assistente per allenatori sportivi. Analizzi lo storico delle sessioni di un atleta e produci una sintesi utile e concreta, " +
       "in italiano, con un tono da collega esperto, non da report burocratico. Individua pattern ricorrenti (non singoli episodi isolati) " +
-      "e dai priorità concrete e azionabili per la prossima sessione. Sii specifico, evita generalità.",
-    messages: [
-      {
-        role: "user",
-        content:
-          `Atleta: ${params.athleteName}\n` +
-          `Obiettivi: ${params.objectives || "Non specificati"}\n\n` +
-          `Storico sessioni (dalla più vecchia alla più recente):\n\n${notesText}`,
-      },
-    ],
-    tools: [
-      {
-        name: "record_summary",
-        description: "Registra la sintesi strutturata dello sviluppo dell'atleta.",
-        input_schema: {
-          type: "object",
-          properties: {
-            summary: {
-              type: "string",
-              description:
-                "2-4 frasi: cosa emerge dallo storico, cosa è consolidato, cosa è ricorrente/problematico. Colloquiale ma preciso.",
-            },
-            priorities: {
-              type: "array",
-              maxItems: 3,
-              items: {
-                type: "object",
-                properties: {
-                  skill: { type: "string", description: "Nome della competenza su cui concentrarsi." },
-                  reason: { type: "string", description: "Perché è la priorità, basato sui pattern osservati." },
-                },
-                required: ["skill", "reason"],
+      "e dai priorità concrete e azionabili per la prossima sessione. Sii specifico, evita generalità.\n\n" +
+      `Atleta: ${params.athleteName}\n` +
+      `Obiettivi: ${params.objectives || "Non specificati"}\n\n` +
+      `Storico sessioni (dalla più vecchia alla più recente):\n\n${notesText}`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description:
+              "2-4 frasi: cosa emerge dallo storico, cosa è consolidato, cosa è ricorrente/problematico. Colloquiale ma preciso.",
+          },
+          priorities: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                skill: { type: "string", description: "Nome della competenza su cui concentrarsi." },
+                reason: { type: "string", description: "Perché è la priorità, basato sui pattern osservati." },
               },
+              required: ["skill", "reason"],
             },
           },
-          required: ["summary", "priorities"],
         },
+        required: ["summary", "priorities"],
       },
-    ],
-    tool_choice: { type: "tool", name: "record_summary" },
+    },
   });
 
-  const toolUse = response.content.find((block) => block.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
-    return { summary: "Non è stato possibile generare una sintesi.", priorities: [] };
-  }
-
-  return toolUse.input as AthleteAiSummary;
+  return parseJson<AthleteAiSummary>(response.text, {
+    summary: "Non è stato possibile generare una sintesi.",
+    priorities: [],
+  });
 }

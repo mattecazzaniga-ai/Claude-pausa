@@ -79,7 +79,7 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
 
       {!aiConfigured && (
         <div className="mb-6 rounded-lg border border-improving/30 bg-improving/10 px-4 py-3 text-sm text-improving">
-          L&apos;AI non è ancora configurata (manca ANTHROPIC_API_KEY). Le note si salvano comunque, ma non vengono
+          L&apos;AI non è ancora configurata (manca GEMINI_API_KEY). Le note si salvano comunque, ma non vengono
           ancora analizzate automaticamente.
         </div>
       )}
