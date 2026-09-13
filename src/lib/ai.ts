@@ -11,7 +11,7 @@ const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 // required). Same model for extraction and summary: both calls are small
 // and cheap enough that splitting cheap/strong models isn't worth the
 // complexity while this runs on the free tier.
-const MODEL = "gemini-2.5-flash";
+const MODEL = "gemini-3.6-flash";
 
 export type SkillOption = { id: string; name: string; category: string };
 
