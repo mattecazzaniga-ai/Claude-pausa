@@ -8,6 +8,7 @@ import type { AthleteData, SessionNoteData } from "./types";
 import { ObjectivesSection } from "@/components/objectives-section";
 import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
+import { VoiceInputButton } from "@/components/voice-input-button";
 import { Tabs } from "@/components/tabs";
 
 const SENTIMENT_STYLE: Record<string, string> = {
@@ -192,7 +193,10 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
 
                 {/* Quick note capture */}
                 <form onSubmit={submitNote} className="rounded-xl border border-border bg-surface p-5">
-                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Nuova nota di sessione</h2>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Nuova nota di sessione</h2>
+                    <VoiceInputButton onResult={(text) => setNoteText((prev) => (prev ? `${prev} ${text}` : text))} />
+                  </div>
                   <textarea
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}

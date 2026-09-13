@@ -33,6 +33,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "calendar_session_generated",
   "evaluation_criteria_imported",
   "evaluation_criteria_bulk_saved",
+  "session_feedback_recorded",
+  "training_mode_started",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

@@ -24,4 +24,6 @@ export type TrainingSessionData = {
   athlete: { id: string; name: string } | null;
   team: { id: string; name: string } | null;
   blocks: SessionBlockData[];
+  feedbackRating: "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_WORK" | null;
+  feedbackNote: string | null;
 };

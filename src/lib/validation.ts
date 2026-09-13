@@ -149,6 +149,11 @@ export const updateCalendarEventSchema = z.object({
   trainingSessionId: z.string().optional(),
 });
 
+export const sessionFeedbackSchema = z.object({
+  rating: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "NEEDS_WORK"]),
+  note: z.string().trim().max(1500).optional().nullable(),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
   // Athletes can be added later from the team page — a coach may want to

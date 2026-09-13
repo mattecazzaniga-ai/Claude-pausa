@@ -371,6 +371,14 @@ model TrainingSession {
   durationMinutes Int
   createdAt       DateTime @default(now())
 
+  /// Master prompt §33 (minimum-effort session feedback), captured from
+  /// Training Mode's end-of-session screen. Works uniformly for both
+  /// athlete- and team-linked sessions; when there's an athlete, the note is
+  /// also posted as a real SessionNote so it still feeds the existing AI
+  /// analysis loop rather than being a dead end of its own.
+  feedbackRating SessionFeedbackRating?
+  feedbackNote   String?
+
   coach   Coach          @relation(fields: [coachId], references: [id])
   athlete Athlete?       @relation(fields: [athleteId], references: [id])
   team    Team?          @relation(fields: [teamId], references: [id])
@@ -382,6 +390,13 @@ model TrainingSession {
   @@index([athleteId])
   @@index([teamId])
   @@index([coachId])
+}
+
+enum SessionFeedbackRating {
+  EXCELLENT
+  GOOD
+  AVERAGE
+  NEEDS_WORK
 }
 
 model SessionBlock {

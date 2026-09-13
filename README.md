@@ -24,6 +24,9 @@ MVP funzionante: un coach registra atleti, scrive una nota libera dopo ogni sess
 - **Import valutazioni da file**: un coach può caricare la propria scheda di valutazione (PDF, DOCX, CSV, TXT o una foto) o incollarne il testo; l'AI ne riconosce la struttura reale (categorie, criteri, tipo di punteggio) senza inventare nulla, il coach rivede/modifica/elimina/aggiunge righe, e solo dopo conferma i criteri diventano personalizzati per il suo sport.
 - **Preparazione pre-gara AI**: per una competizione non ancora disputata, l'AI genera un consiglio di preparazione basato su forma attuale, priorità di allenamento e giorni rimanenti — rigenerabile man mano che la data si avvicina. Non tocca mai le priorità (è una previsione, non un'osservazione).
 - **Eventi ricorrenti in calendario**: un evento di allenamento può ripetersi su più giorni della settimana fino a una data di fine, generando automaticamente tutte le occorrenze.
+- **Training Mode**: vista mobile-first per condurre l'allenamento sul campo, un blocco alla volta — timer, punti chiave, nota rapida (anche vocale) — con un "Come è andata?" a fine sessione che salva un feedback e, per le sessioni legate a un atleta, alimenta anche la sua sintesi AI.
+- **Note vocali**: pulsante microfono (Web Speech API, nascosto se il browser non lo supporta) per dettare le note invece di scriverle.
+- **Homepage aggiornata**: copy allineato a quello che il prodotto è oggi, non più solo alle note testuali del primissimo MVP.
 
 ### Redesign UX
 Le pagine atleta e squadra usano una navigazione a tab (Panoramica / Sviluppo / Competizioni / Storico) invece di un'unica colonna di card impilate. La dashboard apre con un saluto e dà priorità a "Cosa alleniamo oggi?", poi ai prossimi eventi, poi al profilo sport (meno urgente).

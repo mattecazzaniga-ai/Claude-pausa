@@ -7,13 +7,14 @@ export function HomeClient() {
     <>
       <section className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-16 pt-20 text-center sm:pt-28">
         <span className="mb-5 rounded-full border border-border bg-surface px-3 py-1 text-xs uppercase tracking-widest text-muted">
-          Beach Tennis · in arrivo altri sport
+          Il tuo sport. I tuoi atleti. Il tuo modo di allenare.
         </span>
         <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
-          Il secondo cervello per il tuo coaching
+          Tu alleni. Noi ricordiamo.
         </h1>
         <p className="mt-5 max-w-lg text-balance text-lg text-muted">
-          Scrivi due righe dopo ogni sessione. CoachBrain ricorda lo storico di ogni atleta e ti dice su cosa lavorare dopo — e perché.
+          Un sistema AI che conosce il tuo sport, ricorda ogni atleta e ogni squadra, impara come alleni e ti aiuta a
+          decidere cosa fare — e perché — alla prossima sessione.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -36,18 +37,18 @@ export function HomeClient() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Step
             number="1"
-            title="Scrivi la nota"
-            text={`"Buona esecuzione in attacco, ma arriva in ritardo sulle palle profonde."`}
+            title="Valuta e osserva"
+            text="Una valutazione adattata al tuo sport, o due righe dopo ogni sessione: l'AI struttura tutto e lo collega allo storico dell'atleta."
           />
           <Step
             number="2"
-            title="L'AI la struttura"
-            text="Riconosce le competenze coinvolte e le collega allo storico dell'atleta — non solo a questa sessione."
+            title="L'AI trova la priorità"
+            text="Confronta valutazioni, note e competizioni nel tempo — non solo l'ultima sessione — e ti spiega perché una cosa conta più delle altre."
           />
           <Step
             number="3"
-            title="Sai su cosa lavorare"
-            text="Se lo stesso problema si ripete, diventa una priorità chiara per la prossima sessione."
+            title="Alleni con uno scopo"
+            text="Sessione generata dalla tua libreria esercizi, calendario aggiornato, e la priorità che cambia man mano che l'atleta migliora."
           />
         </div>
 
@@ -66,7 +67,7 @@ export function HomeClient() {
       </section>
 
       <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted">
-        CoachBrain — non un gestionale, un secondo cervello per chi allena davvero.
+        CoachBrain — non un gestionale. Il sistema che ricorda per te, così puoi pensare solo ad allenare.
       </footer>
     </>
   );
