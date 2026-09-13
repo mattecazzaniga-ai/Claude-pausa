@@ -520,6 +520,11 @@ model Competition {
   /// same way a periodic evaluation is, closing the Competition -> Training
   /// loop instead of results being dead data.
   aiPostAnalysis String?
+  /// AI preparation advice generated on demand before the competition is
+  /// played — master prompt §18/25. Purely advisory: unlike aiPostAnalysis,
+  /// it never touches the athlete's cached priorities, since it's a
+  /// forecast, not an observation.
+  aiPreAnalysis  String?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createCalendarEventSchema } from "@/lib/validation";
+import { computeRecurrenceOccurrences } from "@/lib/calendar";
 import { track } from "@/lib/analytics";
 
 export async function GET(req: Request) {
@@ -46,18 +47,38 @@ export async function POST(req: Request) {
     if (!team || team.coachId !== session.user.id) return NextResponse.json({ error: "Squadra non valida." }, { status: 400 });
   }
 
+  const baseData = {
+    coachId: session.user.id,
+    type: parsed.data.type,
+    title: parsed.data.title,
+    athleteId: parsed.data.athleteId || undefined,
+    teamId: parsed.data.teamId || undefined,
+    location: parsed.data.location || undefined,
+    notes: parsed.data.notes || undefined,
+  };
+
+  if (parsed.data.repeat) {
+    const occurrences = computeRecurrenceOccurrences(
+      new Date(parsed.data.startAt),
+      new Date(parsed.data.endAt),
+      parsed.data.repeat.daysOfWeek,
+      new Date(parsed.data.repeat.until)
+    );
+    if (occurrences.length === 0) {
+      return NextResponse.json({ error: "Nessuna data valida nell'intervallo scelto per la ripetizione." }, { status: 400 });
+    }
+
+    await prisma.calendarEvent.createMany({
+      data: occurrences.map((o) => ({ ...baseData, startAt: o.startAt, endAt: o.endAt })),
+    });
+
+    track("calendar_event_created", session.user.id, { type: baseData.type, recurring: true, count: occurrences.length });
+
+    return NextResponse.json({ count: occurrences.length });
+  }
+
   const event = await prisma.calendarEvent.create({
-    data: {
-      coachId: session.user.id,
-      type: parsed.data.type,
-      title: parsed.data.title,
-      startAt: new Date(parsed.data.startAt),
-      endAt: new Date(parsed.data.endAt),
-      athleteId: parsed.data.athleteId || undefined,
-      teamId: parsed.data.teamId || undefined,
-      location: parsed.data.location || undefined,
-      notes: parsed.data.notes || undefined,
-    },
+    data: { ...baseData, startAt: new Date(parsed.data.startAt), endAt: new Date(parsed.data.endAt) },
   });
 
   track("calendar_event_created", session.user.id, { eventId: event.id, type: event.type });

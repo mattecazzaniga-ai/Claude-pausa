@@ -74,3 +74,69 @@ export async function analyzeCompetitionPerformance(params: {
     return { narrative: "Non è stato possibile generare un'analisi.", priorities: [] };
   }
 }
+
+/**
+ * Master prompt §18/25 (Pre-Competition Mode): forward-looking preparation
+ * advice based on current form (cached AI summary/priorities), how many
+ * days remain, and the coach's own pre-competition notes. Deliberately
+ * returns only a narrative — unlike the post-competition analysis, this is
+ * a forecast, not an observation, so it must never rewrite the athlete's
+ * cached priorities.
+ */
+export async function analyzeCompetitionPreparation(params: {
+  subjectName: string;
+  sportContext?: string;
+  competitionName: string;
+  competitionType: string;
+  daysUntil: number;
+  opponent?: string | null;
+  importance?: string | null;
+  currentSummary?: string | null;
+  currentPriorities: { skill: string; reason: string }[];
+  preNotes?: string | null;
+}): Promise<{ narrative: string }> {
+  if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
+
+  const prioritiesText = params.currentPriorities.length
+    ? params.currentPriorities.map((p) => `- ${p.skill}: ${p.reason}`).join("\n")
+    : "Nessuna priorità specifica registrata al momento.";
+
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents:
+      "Sei un assistente per allenatori sportivi che prepara un atleta o una squadra a una competizione imminente. " +
+      "Usa SOLO le informazioni fornite qui sotto — non inventare la forma attuale, non inventare informazioni sull'avversario che non ti sono state date. " +
+      "Dai consigli concreti e specifici per lo sport su cosa fare (e cosa evitare) negli allenamenti prima della gara, tenendo conto di quanti giorni mancano " +
+      "(es. vicino alla gara: mantenere la meccanica attuale, priorità a lavoro tattico specifico e recupero, non introdurre cambi tecnici importanti). " +
+      "Tono da collega esperto, 2-4 frasi, in italiano.\n\n" +
+      `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
+      `Soggetto: ${params.subjectName}\n` +
+      `Competizione: ${params.competitionName} (${params.competitionType})${params.opponent ? `, contro ${params.opponent}` : ""}\n` +
+      `${params.importance ? `Importanza: ${params.importance}\n` : ""}` +
+      `Giorni rimanenti: ${params.daysUntil}\n` +
+      `Sintesi forma attuale: ${params.currentSummary || "Non ancora disponibile"}\n` +
+      `Priorità attuali di allenamento:\n${prioritiesText}\n` +
+      `${params.preNotes ? `Note dell'allenatore sulla preparazione: ${params.preNotes}\n` : ""}`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object",
+        properties: {
+          narrative: {
+            type: "string",
+            description: "Consiglio di preparazione pre-gara, 2-4 frasi, concreto e specifico per questo sport e questa scadenza.",
+          },
+        },
+        required: ["narrative"],
+      },
+    },
+  });
+
+  try {
+    const parsed = JSON.parse(response.text ?? "") as { narrative: string };
+    return { narrative: parsed.narrative ?? "" };
+  } catch (err) {
+    console.error("Failed to parse competition preparation from Gemini", err, response.text);
+    return { narrative: "Non è stato possibile generare un consiglio di preparazione." };
+  }
+}

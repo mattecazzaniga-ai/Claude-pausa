@@ -131,6 +131,12 @@ export const createCalendarEventSchema = z
     teamId: z.string().optional().nullable(),
     location: z.string().trim().max(150).optional().nullable(),
     notes: z.string().trim().max(1000).optional().nullable(),
+    repeat: z
+      .object({
+        daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+        until: z.string().datetime(),
+      })
+      .optional(),
   })
   .refine((data) => !(data.athleteId && data.teamId), { message: "Scegli un atleta oppure una squadra, non entrambi." });
 

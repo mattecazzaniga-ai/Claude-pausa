@@ -19,6 +19,7 @@ type Competition = {
   result: CompetitionResult;
   score: string | null;
   aiPostAnalysis: string | null;
+  aiPreAnalysis: string | null;
 };
 
 const TYPE_LABEL: Record<CompetitionType, string> = {
@@ -113,6 +114,23 @@ function CompetitionCard({
   onUpdated: () => void;
 }) {
   const [showResultForm, setShowResultForm] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+
+  async function generatePreparation() {
+    setPreparing(true);
+    onError(null);
+    const res = await fetch(`${basePath}/competitions/${competition.id}/prepare`, { method: "POST" });
+    const data = await res.json();
+    setPreparing(false);
+    if (!res.ok) {
+      onError(data.error ?? "Errore durante la generazione della preparazione.");
+      return;
+    }
+    trackClient("competition_prepared", {});
+    onUpdated();
+  }
+
+  const daysUntil = Math.ceil((+new Date(competition.scheduledAt) - Date.now()) / (24 * 60 * 60 * 1000));
 
   return (
     <div className="rounded-lg bg-surface-2 p-3">
@@ -132,16 +150,37 @@ function CompetitionCard({
 
       {competition.preNotes && <p className="mt-2 text-xs text-foreground/80">Preparazione: {competition.preNotes}</p>}
       {competition.postNotes && <p className="mt-2 text-xs text-foreground/80">Osservazioni: {competition.postNotes}</p>}
+      {competition.aiPreAnalysis && (
+        <p className="mt-2 rounded-md bg-surface p-2 text-xs text-muted">
+          <span className="font-medium text-accent">Preparazione AI: </span>
+          {competition.aiPreAnalysis}
+        </p>
+      )}
       {competition.aiPostAnalysis && <p className="mt-2 rounded-md bg-surface p-2 text-xs text-muted">{competition.aiPostAnalysis}</p>}
 
-      {!upcoming && competition.result === "NOT_RECORDED" && !showResultForm && (
-        <button
-          onClick={() => setShowResultForm(true)}
-          className="mt-2 rounded-md border border-border px-2 py-1 text-[11px] transition-colors hover:bg-surface"
-        >
-          Registra risultato
-        </button>
-      )}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {upcoming && (
+          <button
+            onClick={generatePreparation}
+            disabled={preparing}
+            className="rounded-md border border-border px-2 py-1 text-[11px] transition-colors hover:bg-surface disabled:opacity-50"
+          >
+            {preparing
+              ? "Generazione…"
+              : competition.aiPreAnalysis
+                ? "Rigenera preparazione AI"
+                : `Genera preparazione AI (${daysUntil} ${daysUntil === 1 ? "giorno" : "giorni"})`}
+          </button>
+        )}
+        {!upcoming && competition.result === "NOT_RECORDED" && !showResultForm && (
+          <button
+            onClick={() => setShowResultForm(true)}
+            className="rounded-md border border-border px-2 py-1 text-[11px] transition-colors hover:bg-surface"
+          >
+            Registra risultato
+          </button>
+        )}
+      </div>
 
       {showResultForm && (
         <RecordResultForm

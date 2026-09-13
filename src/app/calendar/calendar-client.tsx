@@ -24,6 +24,8 @@ type CalendarEvent = {
 type Option = { id: string; name: string };
 
 const TYPE_ICON: Record<EventType, string> = { TRAINING: "🏋️", EVALUATION: "📋", COMPETITION: "🏆", OTHER: "📌" };
+// Indexed like JS Date#getDay(): 0 = Sunday .. 6 = Saturday.
+const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 const TYPE_LABEL: Record<EventType, string> = { TRAINING: "Allenamento", EVALUATION: "Valutazione", COMPETITION: "Competizione", OTHER: "Altro" };
 
 function startOfWeek(d: Date): Date {
@@ -186,13 +188,29 @@ function NewEventForm({
   const [endTime, setEndTime] = useState("19:00");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatDays, setRepeatDays] = useState<Set<number>>(new Set());
+  const [repeatUntil, setRepeatUntil] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleDay(day: number) {
+    setRepeatDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!date) {
       setError("Seleziona una data.");
+      return;
+    }
+    if (repeatEnabled && (repeatDays.size === 0 || !repeatUntil)) {
+      setError("Per ripetere l'evento, scegli almeno un giorno della settimana e una data di fine.");
       return;
     }
     setBusy(true);
@@ -210,6 +228,9 @@ function NewEventForm({
         teamId: kind === "team" ? id : undefined,
         location: location || undefined,
         notes: notes || undefined,
+        repeat: repeatEnabled
+          ? { daysOfWeek: Array.from(repeatDays), until: new Date(`${repeatUntil}T23:59:59`).toISOString() }
+          : undefined,
       }),
     });
     const data = await res.json();
@@ -317,6 +338,39 @@ function NewEventForm({
           placeholder="Note (opzionale)"
           className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
         />
+
+        <div>
+          <label className="flex items-center gap-2 text-xs font-medium text-muted">
+            <input type="checkbox" checked={repeatEnabled} onChange={(e) => setRepeatEnabled(e.target.checked)} className="accent-accent" />
+            Ripeti settimanalmente
+          </label>
+          {repeatEnabled && (
+            <div className="mt-2 space-y-2 rounded-md border border-dashed border-border p-3">
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAY_LABELS.map((label, day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`rounded-md px-2.5 py-1 text-xs ${repeatDays.has(day) ? "bg-accent text-black" : "border border-border text-muted"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-muted">Fino al</label>
+                <input
+                  type="date"
+                  value={repeatUntil}
+                  onChange={(e) => setRepeatUntil(e.target.value)}
+                  min={date}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         {error && <p className="text-sm text-negative">{error}</p>}
 

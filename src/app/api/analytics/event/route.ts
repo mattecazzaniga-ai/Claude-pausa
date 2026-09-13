@@ -26,6 +26,7 @@ const ALLOWED: AnalyticsEventName[] = [
   "evaluation_criterion_created",
   "competition_created",
   "competition_result_recorded",
+  "competition_prepared",
   "calendar_event_created",
   "calendar_event_updated",
   "calendar_event_deleted",
