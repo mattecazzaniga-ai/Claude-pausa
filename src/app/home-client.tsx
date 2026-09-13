@@ -1,91 +1,85 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { WallCanvas, type WallCanvasHandle } from "@/components/wall-canvas";
-import { trackClient } from "@/lib/track-client";
-import { TOTAL_SQUARES } from "@/lib/grid";
 
-export function HomeClient({
-  stats,
-}: {
-  stats: { owned: number; users: number; chapterNumber: number };
-}) {
-  const router = useRouter();
-  const wallRef = useRef<WallCanvasHandle>(null);
-
-  useEffect(() => {
-    trackClient("landing_page_view");
-  }, []);
-
+export function HomeClient() {
   return (
     <>
-      <section className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-10 pt-16 text-center sm:pt-24">
+      <section className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-16 pt-20 text-center sm:pt-28">
         <span className="mb-5 rounded-full border border-border bg-surface px-3 py-1 text-xs uppercase tracking-widest text-muted">
-          Chapter {String(stats.chapterNumber).padStart(2, "0")} · Live now
+          Beach Tennis · in arrivo altri sport
         </span>
-        <h1 className="text-balance text-5xl font-semibold uppercase tracking-tight sm:text-7xl lg:text-8xl">
-          Internet Wall
+        <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
+          Il secondo cervello per il tuo coaching
         </h1>
-        <p className="mt-5 max-w-md text-balance text-lg text-muted sm:text-xl">
-          Own a tiny piece of the internet.
-        </p>
-        <p className="mt-1 max-w-lg text-balance text-sm text-muted">
-          100,000 squares. One giant wall. Yours could be part of it.
+        <p className="mt-5 max-w-lg text-balance text-lg text-muted">
+          Scrivi due righe dopo ogni sessione. CoachBrain ricorda lo storico di ogni atleta e ti dice su cosa lavorare dopo — e perché.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/wall"
-            className="rounded-md bg-accent px-6 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            href="/register"
+            className="rounded-md bg-accent px-6 py-3 text-sm font-medium text-black transition-opacity hover:opacity-90"
           >
-            Explore the Wall
+            Inizia gratis
           </Link>
           <Link
-            href="/register"
+            href="/login"
             className="rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-surface-2"
           >
-            Get your square
+            Ho già un account
           </Link>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-4xl grid-cols-2 gap-3 px-4 pb-14 sm:grid-cols-4 sm:gap-4">
-        <Stat value={TOTAL_SQUARES.toLocaleString()} label="Total squares" />
-        <Stat value={stats.owned.toLocaleString()} label="Owned" />
-        <Stat value="€1" label="Starting price" />
-        <Stat value={`Ch. ${String(stats.chapterNumber).padStart(2, "0")}`} label="90 days" />
-      </section>
-
-      <section className="mx-auto max-w-6xl px-4 pb-24">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm text-muted">A live look at the wall — drag, scroll to zoom, click a square.</p>
-          <Link href="/wall" className="text-sm text-accent hover:underline">
-            Open full wall →
-          </Link>
-        </div>
-        <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-border sm:h-[520px]">
-          <WallCanvas
-            ref={wallRef}
-            version={0}
-            onSelectSquare={(id) => router.push(`/wall?square=${id}`)}
+      <section className="mx-auto max-w-4xl px-4 pb-24">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Step
+            number="1"
+            title="Scrivi la nota"
+            text={`"Buona esecuzione in attacco, ma arriva in ritardo sulle palle profonde."`}
           />
+          <Step
+            number="2"
+            title="L'AI la struttura"
+            text="Riconosce le competenze coinvolte e le collega allo storico dell'atleta — non solo a questa sessione."
+          />
+          <Step
+            number="3"
+            title="Sai su cosa lavorare"
+            text="Se lo stesso problema si ripete, diventa una priorità chiara per la prossima sessione."
+          />
+        </div>
+
+        <div className="mt-10 rounded-xl border border-border bg-surface p-6">
+          <p className="text-xs uppercase tracking-wider text-muted">Esempio reale</p>
+          <p className="mt-3 text-sm text-foreground/90">
+            &ldquo;Luca sta consolidando bene il servizio, con una percentuale di prime in netto miglioramento nelle
+            ultime due sessioni. La priorità resta la difesa sulla palla profonda: lo stesso ritardo nel
+            posizionamento è comparso in entrambe le ultime sessioni, in particolare nei momenti di pressione.&rdquo;
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-negative/15 px-2.5 py-1 text-negative">Difesa/Bagher — ricorrente</span>
+            <span className="rounded-full bg-improving/15 px-2.5 py-1 text-improving">Servizio — in miglioramento</span>
+          </div>
         </div>
       </section>
 
       <footer className="border-t border-border px-4 py-8 text-center text-xs text-muted">
-        Internet Wall — a small digital experiment. Not a marketplace, not a game. Just a wall.
+        CoachBrain — non un gestionale, un secondo cervello per chi allena davvero.
       </footer>
     </>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function Step({ number, title, text }: { number: string; title: string; text: string }) {
   return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-5 text-center">
-      <p className="text-2xl font-semibold tracking-tight sm:text-3xl">{value}</p>
-      <p className="mt-1 text-xs uppercase tracking-wider text-muted">{label}</p>
+    <div className="rounded-xl border border-border bg-surface p-5">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/15 text-sm font-semibold text-accent">
+        {number}
+      </span>
+      <h3 className="mt-3 text-sm font-semibold">{title}</h3>
+      <p className="mt-1.5 text-sm text-muted">{text}</p>
     </div>
   );
 }

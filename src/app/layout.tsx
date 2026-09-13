@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Internet Wall — Own a tiny piece of the internet",
+  title: "CoachBrain — Il secondo cervello per allenatori",
   description:
-    "100,000 squares. One giant wall. Buy, customize, and display a tiny piece of the internet, forever part of a shared digital monument.",
+    "Scrivi due righe dopo ogni sessione. CoachBrain ricorda lo storico di ogni atleta e ti dice su cosa lavorare dopo.",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="it" className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>

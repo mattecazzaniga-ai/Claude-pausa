@@ -1,29 +1,19 @@
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3, "Username must be at least 3 characters")
-    .max(20, "Username must be at most 20 characters")
-    .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores allowed"),
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters").max(72),
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(60),
+  email: z.string().trim().toLowerCase().email("Inserisci un'email valida"),
+  password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(72),
 });
 
-export const customizeSquareSchema = z.object({
-  title: z.string().trim().max(60).optional().nullable(),
-  description: z.string().trim().max(280).optional().nullable(),
-  imageUrl: z.union([z.string().trim().url().max(2048), z.literal("")]).optional().nullable(),
-  externalUrl: z.union([z.string().trim().url().max(2048), z.literal("")]).optional().nullable(),
-  backgroundColor: z
-    .string()
-    .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color like #6366f1")
-    .optional()
-    .nullable(),
+export const createAthleteSchema = z.object({
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
+  birthYear: z.number().int().min(1930).max(new Date().getFullYear()).optional().nullable(),
+  level: z.string().trim().max(40).optional().nullable(),
+  objectives: z.string().trim().max(500).optional().nullable(),
 });
 
-export const createListingSchema = z.object({
-  price: z.number().positive().max(100000),
+export const createSessionNoteSchema = z.object({
+  rawText: z.string().trim().min(5, "Scrivi almeno qualche parola").max(2000),
+  sessionDate: z.string().datetime().optional(),
 });

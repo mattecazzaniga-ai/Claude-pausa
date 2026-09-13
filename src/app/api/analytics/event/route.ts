@@ -4,16 +4,12 @@ import { authOptions } from "@/lib/auth";
 import { track, type AnalyticsEventName } from "@/lib/analytics";
 
 const ALLOWED: AnalyticsEventName[] = [
-  "landing_page_view",
-  "wall_open",
-  "square_view",
-  "square_purchase_started",
-  "square_purchase_completed",
-  "square_customized",
-  "listing_created",
-  "resale_started",
-  "resale_completed",
   "signup",
+  "athlete_created",
+  "session_note_created",
+  "ai_extraction_completed",
+  "ai_extraction_failed",
+  "athlete_summary_viewed",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

@@ -18,7 +18,9 @@ const config: Config = {
         muted: "var(--muted)",
         accent: "var(--accent)",
         "accent-2": "var(--accent-2)",
-        gold: "var(--gold)",
+        positive: "var(--positive)",
+        negative: "var(--negative)",
+        improving: "var(--improving)",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
@@ -27,12 +29,10 @@ const config: Config = {
       animation: {
         "fade-in": "fadeIn 0.4s ease-out",
         "scale-in": "scaleIn 0.2s ease-out",
-        shimmer: "shimmer 2.5s linear infinite",
       },
       keyframes: {
         fadeIn: { from: { opacity: "0" }, to: { opacity: "1" } },
         scaleIn: { from: { opacity: "0", transform: "scale(0.97)" }, to: { opacity: "1", transform: "scale(1)" } },
-        shimmer: { "0%": { backgroundPosition: "0% 0" }, "100%": { backgroundPosition: "200% 0" } },
       },
     },
   },

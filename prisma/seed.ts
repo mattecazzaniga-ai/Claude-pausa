@@ -1,120 +1,153 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { WALL_WIDTH, WALL_HEIGHT, TOTAL_SQUARES } from "../src/lib/grid";
 
 const prisma = new PrismaClient();
 
+/**
+ * Draft skill taxonomy for beach tennis, based on standard racquet-sport
+ * coaching categories (technical / tactical / physical / mental). This is a
+ * starting point, not gospel — the founder's own coaching expertise should
+ * refine it before real coaches start using it.
+ */
+const BEACH_TENNIS_TAXONOMY = [
+  {
+    name: "Tecnica",
+    skills: ["Dritto", "Rovescio", "Servizio", "Smash", "Volée", "Difesa/Bagher"],
+  },
+  {
+    name: "Tattica",
+    skills: [
+      "Posizionamento in campo",
+      "Lettura del gioco avversario",
+      "Gestione del punto",
+      "Transizione difesa-attacco",
+      "Copertura della rete in coppia",
+    ],
+  },
+  {
+    name: "Fisico",
+    skills: ["Footwork/Spostamenti", "Esplosività", "Resistenza nel set lungo"],
+  },
+  {
+    name: "Mentale",
+    skills: ["Gestione della pressione", "Concentrazione nei punti chiave", "Comunicazione con il compagno"],
+  },
+];
+
 async function main() {
-  console.log(`Seeding Internet Wall: ${TOTAL_SQUARES} squares (${WALL_WIDTH}x${WALL_HEIGHT})...`);
+  console.log("Seeding CoachBrain...");
 
-  const existingChapter = await prisma.chapter.findUnique({ where: { number: 1 } });
-  const chapter =
-    existingChapter ??
-    (await prisma.chapter.create({
-      data: {
-        number: 1,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        status: "ACTIVE",
-      },
-    }));
+  let sport = await prisma.sport.findUnique({ where: { slug: "beach-tennis" } });
+  if (!sport) {
+    sport = await prisma.sport.create({ data: { slug: "beach-tennis", name: "Beach Tennis" } });
 
-  const squareCount = await prisma.square.count();
-  if (squareCount === 0) {
-    // Bulk-generate all squares directly in Postgres. Doing this with 100,000
-    // individual Prisma `create` calls would take minutes; a single
-    // generate_series INSERT takes well under a second.
-    console.log("Inserting squares in bulk via generate_series...");
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "Square" (id, "coordinateX", "coordinateY", price, status, "chapterId", "updatedAt")
-      SELECT
-        s.id,
-        s.id % ${WALL_WIDTH} AS "coordinateX",
-        (s.id / ${WALL_WIDTH})::int AS "coordinateY",
-        CASE
-          WHEN GREATEST(ABS(s.id % ${WALL_WIDTH} - ${(WALL_WIDTH - 1) / 2}), ABS((s.id / ${WALL_WIDTH})::int - ${(WALL_HEIGHT - 1) / 2})) / ${Math.max((WALL_WIDTH - 1) / 2, (WALL_HEIGHT - 1) / 2)}::float < 0.15 THEN 3
-          WHEN GREATEST(ABS(s.id % ${WALL_WIDTH} - ${(WALL_WIDTH - 1) / 2}), ABS((s.id / ${WALL_WIDTH})::int - ${(WALL_HEIGHT - 1) / 2})) / ${Math.max((WALL_WIDTH - 1) / 2, (WALL_HEIGHT - 1) / 2)}::float < 0.4 THEN 2
-          WHEN GREATEST(ABS(s.id % ${WALL_WIDTH} - ${(WALL_WIDTH - 1) / 2}), ABS((s.id / ${WALL_WIDTH})::int - ${(WALL_HEIGHT - 1) / 2})) / ${Math.max((WALL_WIDTH - 1) / 2, (WALL_HEIGHT - 1) / 2)}::float < 0.7 THEN 1.5
-          ELSE 1
-        END AS price,
-        'AVAILABLE'::"SquareStatus" AS status,
-        '${chapter.id}' AS "chapterId",
-        NOW() AS "updatedAt"
-      FROM generate_series(0, ${TOTAL_SQUARES - 1}) AS s(id);
-    `);
-    console.log("Squares inserted.");
+    for (let i = 0; i < BEACH_TENNIS_TAXONOMY.length; i++) {
+      const cat = BEACH_TENNIS_TAXONOMY[i];
+      const category = await prisma.skillCategory.create({
+        data: { sportId: sport.id, name: cat.name, order: i },
+      });
+      for (let j = 0; j < cat.skills.length; j++) {
+        await prisma.skill.create({
+          data: { categoryId: category.id, name: cat.skills[j], order: j },
+        });
+      }
+    }
+    console.log(`Created sport "Beach Tennis" with ${BEACH_TENNIS_TAXONOMY.length} skill categories.`);
   } else {
-    console.log(`Squares already seeded (${squareCount}), skipping bulk insert.`);
+    console.log("Beach Tennis sport already seeded, skipping taxonomy.");
   }
 
-  // A demo admin + a demo user, so the app is explorable immediately after seed.
-  const adminEmail = "admin@internetwall.app";
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
-  if (!existingAdmin) {
-    await prisma.user.create({
+  const demoEmail = "demo@coachbrain.app";
+  let coach = await prisma.coach.findUnique({ where: { email: demoEmail } });
+  if (!coach) {
+    coach = await prisma.coach.create({
       data: {
-        username: "admin",
-        email: adminEmail,
-        passwordHash: await bcrypt.hash("admin1234", 10),
-        isAdmin: true,
-      },
-    });
-    console.log("Created admin user: admin@internetwall.app / admin1234");
-  }
-
-  const demoEmail = "demo@internetwall.app";
-  const existingDemo = await prisma.user.findUnique({ where: { email: demoEmail } });
-  if (!existingDemo) {
-    const demo = await prisma.user.create({
-      data: {
-        username: "demo",
+        name: "Coach Demo",
         email: demoEmail,
         passwordHash: await bcrypt.hash("demo1234", 10),
       },
     });
 
-    // Give the demo user a few owned squares near the center so the wall
-    // doesn't look completely empty on first run.
-    const demoSquareIds = [
-      Math.floor(TOTAL_SQUARES / 2),
-      Math.floor(TOTAL_SQUARES / 2) + 1,
-      Math.floor(TOTAL_SQUARES / 2) + WALL_WIDTH,
-    ];
-    for (const id of demoSquareIds) {
-      const square = await prisma.square.findUnique({ where: { id } });
-      if (!square || square.status !== "AVAILABLE") continue;
-      await prisma.square.update({
-        where: { id },
-        data: {
-          status: "OWNED",
-          ownerId: demo.id,
-          title: "Hello, Internet",
-          description: "One of the first squares on the wall.",
-          backgroundColor: "#6366f1",
-          purchasedAt: new Date(),
-        },
-      });
-      await prisma.transaction.create({
-        data: {
-          squareId: id,
-          buyerId: demo.id,
-          amount: square.price,
-          platformFee: 0,
-          type: "PRIMARY",
-          status: "COMPLETED",
-          chapterId: chapter.id,
-        },
+    const defense = await prisma.skill.findFirst({ where: { name: "Difesa/Bagher", category: { sportId: sport.id } } });
+    const serve = await prisma.skill.findFirst({ where: { name: "Servizio", category: { sportId: sport.id } } });
+    const positioning = await prisma.skill.findFirst({
+      where: { name: "Posizionamento in campo", category: { sportId: sport.id } },
+    });
+
+    const athlete = await prisma.athlete.create({
+      data: {
+        coachId: coach.id,
+        sportId: sport.id,
+        name: "Luca Bianchi",
+        level: "Intermedio",
+        objectives: "Migliorare la solidità in difesa e la gestione dei punti chiave.",
+        aiSummary:
+          "Luca sta consolidando bene il servizio, con una percentuale di prime in netto miglioramento nelle ultime due sessioni. La priorità resta la difesa sulla palla profonda: lo stesso ritardo nel posizionamento è comparso in entrambe le ultime sessioni, in particolare nei momenti di pressione.",
+        aiPriorities: [
+          { skill: "Difesa/Bagher", reason: "Segnalato in 2 sessioni consecutive, peggiora sotto pressione" },
+          { skill: "Posizionamento in campo", reason: "Collegato al problema sulla palla profonda" },
+        ],
+        aiSummaryUpdatedAt: new Date(),
+      },
+    });
+
+    const note1 = await prisma.sessionNote.create({
+      data: {
+        athleteId: athlete.id,
+        coachId: coach.id,
+        rawText:
+          "Oggi buona esecuzione in attacco, ma arriva spesso in ritardo sulle palle profonde e il posizionamento peggiora sotto pressione.",
+        sessionDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+        aiProcessed: true,
+      },
+    });
+    const note2 = await prisma.sessionNote.create({
+      data: {
+        athleteId: athlete.id,
+        coachId: coach.id,
+        rawText:
+          "Ripetuto lo stesso problema sulla palla profonda. Il servizio invece è migliorato molto, buona percentuale di prime.",
+        sessionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        aiProcessed: true,
+      },
+    });
+
+    if (defense && positioning && serve) {
+      await prisma.noteTag.createMany({
+        data: [
+          {
+            sessionNoteId: note1.id,
+            skillId: defense.id,
+            sentiment: "NEGATIVE",
+            excerpt: "arriva spesso in ritardo sulle palle profonde",
+          },
+          {
+            sessionNoteId: note1.id,
+            skillId: positioning.id,
+            sentiment: "NEGATIVE",
+            excerpt: "il posizionamento peggiora sotto pressione",
+          },
+          {
+            sessionNoteId: note2.id,
+            skillId: defense.id,
+            sentiment: "NEGATIVE",
+            excerpt: "Ripetuto lo stesso problema sulla palla profonda",
+          },
+          {
+            sessionNoteId: note2.id,
+            skillId: serve.id,
+            sentiment: "IMPROVING",
+            excerpt: "il servizio invece è migliorato molto, buona percentuale di prime",
+          },
+        ],
       });
     }
-    await prisma.chapter.update({
-      where: { id: chapter.id },
-      data: { squaresSold: { increment: demoSquareIds.length }, totalTransactions: { increment: demoSquareIds.length } },
-    });
-    console.log("Created demo user: demo@internetwall.app / demo1234");
-  }
 
-  const totalUsers = await prisma.user.count();
-  await prisma.chapter.update({ where: { id: chapter.id }, data: { totalUsers } });
+    console.log("Created demo coach with 1 athlete and sample session notes + tags.");
+    console.log("Demo login: demo@coachbrain.app / demo1234");
+  } else {
+    console.log("Demo coach already exists, skipping.");
+  }
 
   console.log("Seed complete.");
 }

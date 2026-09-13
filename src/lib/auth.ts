@@ -18,21 +18,18 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
+        const coach = await prisma.coach.findUnique({
           where: { email: credentials.email.toLowerCase().trim() },
         });
-        if (!user) return null;
-        if (user.isSuspended) throw new Error("This account has been suspended.");
+        if (!coach) return null;
 
-        const valid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const valid = await bcrypt.compare(credentials.password, coach.passwordHash);
         if (!valid) return null;
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.username,
-          image: user.avatarUrl ?? undefined,
-          isAdmin: user.isAdmin,
+          id: coach.id,
+          email: coach.email,
+          name: coach.name,
         };
       },
     }),
@@ -41,16 +38,14 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.username = user.name ?? "";
-        token.isAdmin = (user as { isAdmin?: boolean }).isAdmin ?? false;
+        token.name = user.name ?? "";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        session.user.username = token.username as string;
-        session.user.isAdmin = Boolean(token.isAdmin);
+        session.user.name = token.name as string;
       }
       return session;
     },

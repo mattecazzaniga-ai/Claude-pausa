@@ -1,5 +1,5 @@
 {
-  "name": "internet-wall",
+  "name": "coachbrain",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,8 +16,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "@prisma/client": "6.19.3",
-    "@radix-ui/react-dialog": "^1.1.23",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -26,7 +26,6 @@
     "prisma": "6.19.3",
     "react": "^18",
     "react-dom": "^18",
-    "stripe": "^22.6.2",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.6.2"
   },

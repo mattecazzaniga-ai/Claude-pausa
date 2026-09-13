@@ -2,17 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Internet Wall ships dark-mode only for the MVP — it's the product's visual identity. */
+/* CoachBrain: dark, warm, sport-native palette — deliberately distinct from a generic SaaS blue. */
 :root {
-  --background: #08090b;
-  --foreground: #f3f3f1;
-  --surface: #101114;
-  --surface-2: #17181c;
-  --border: #232428;
-  --muted: #8a8b92;
-  --accent: #5b7cff;
-  --accent-2: #7dd3fc;
-  --gold: #d4a24c;
+  --background: #0c0d0f;
+  --foreground: #f5f3ef;
+  --surface: #15171a;
+  --surface-2: #1c1e22;
+  --border: #2a2c31;
+  --muted: #9a9a93;
+  --accent: #f2994a;
+  --accent-2: #2dd4bf;
+  --positive: #34d399;
+  --negative: #f87171;
+  --improving: #60a5fa;
 }
 
 * {

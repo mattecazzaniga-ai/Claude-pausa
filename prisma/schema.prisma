@@ -5,153 +5,127 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  // Supabase (and most pooled Postgres providers) serve two connection strings:
-  // a pooled one (pgbouncer, transaction mode) for normal queries, and a direct
-  // one for schema changes. Prisma Migrate needs the direct connection because
-  // pooled/transaction-mode connections don't support the session state it uses.
   directUrl = env("DIRECT_URL")
 }
 
-enum SquareStatus {
-  AVAILABLE
-  OWNED
-  LISTED
+enum Sentiment {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+  IMPROVING
 }
 
-enum ListingStatus {
-  ACTIVE
-  CANCELLED
-  SOLD
+model Coach {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  athletes     Athlete[]
+  sessionNotes SessionNote[]
+  analytics    AnalyticsEvent[]
 }
 
-enum TransactionType {
-  PRIMARY
-  SECONDARY
+/// A sport defines its own skill taxonomy. The product ships with one seeded
+/// sport (beach tennis) but nothing in the schema or UI hardcodes it — adding
+/// a new sport is just seeding new Sport/SkillCategory/Skill rows.
+model Sport {
+  id   String @id @default(cuid())
+  slug String @unique
+  name String
+
+  skillCategories SkillCategory[]
+  athletes        Athlete[]
 }
 
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
+model SkillCategory {
+  id      String @id @default(cuid())
+  sportId String
+  name    String
+  order   Int    @default(0)
+
+  sport  Sport   @relation(fields: [sportId], references: [id])
+  skills Skill[]
+
+  @@index([sportId])
 }
 
-enum ChapterStatus {
-  ACTIVE
-  ENDED
-  UPCOMING
+model Skill {
+  id         String @id @default(cuid())
+  categoryId String
+  name       String
+  order      Int    @default(0)
+
+  category SkillCategory @relation(fields: [categoryId], references: [id])
+  noteTags NoteTag[]
+
+  @@index([categoryId])
 }
 
-model User {
+model Athlete {
+  id         String    @id @default(cuid())
+  coachId    String
+  sportId    String
+  name       String
+  birthYear  Int?
+  level      String?
+  objectives String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  // Cached AI output so the athlete page doesn't re-call the model on every
+  // view — regenerated only when a new session note is added.
+  aiSummary         String?
+  aiPriorities      Json?
+  aiSummaryUpdatedAt DateTime?
+
+  coach        Coach         @relation(fields: [coachId], references: [id])
+  sport        Sport         @relation(fields: [sportId], references: [id])
+  sessionNotes SessionNote[]
+
+  @@index([coachId])
+}
+
+model SessionNote {
+  id          String   @id @default(cuid())
+  athleteId   String
+  coachId     String
+  sessionDate DateTime @default(now())
+  rawText     String
+  aiProcessed Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  athlete Athlete   @relation(fields: [athleteId], references: [id])
+  coach   Coach     @relation(fields: [coachId], references: [id])
+  tags    NoteTag[]
+
+  @@index([athleteId])
+}
+
+model NoteTag {
   id            String    @id @default(cuid())
-  username      String    @unique
-  email         String    @unique
-  passwordHash  String
-  avatarUrl     String?
-  bio           String?
-  isAdmin       Boolean   @default(false)
-  isSuspended   Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  sessionNoteId String
+  skillId       String
+  sentiment     Sentiment
+  excerpt       String
 
-  squares       Square[]       @relation("SquareOwner")
-  listings      Listing[]      @relation("ListingSeller")
-  purchases     Transaction[]  @relation("TransactionBuyer")
-  sales         Transaction[]  @relation("TransactionSeller")
-  analytics     AnalyticsEvent[]
+  sessionNote SessionNote @relation(fields: [sessionNoteId], references: [id])
+  skill       Skill       @relation(fields: [skillId], references: [id])
 
-  @@index([username])
-}
-
-model Chapter {
-  id                String        @id @default(cuid())
-  number            Int           @unique
-  startDate         DateTime
-  endDate           DateTime
-  status            ChapterStatus @default(UPCOMING)
-  squaresSold       Int           @default(0)
-  totalUsers        Int           @default(0)
-  totalTransactions Int           @default(0)
-  createdAt         DateTime      @default(now())
-
-  squares      Square[]
-  transactions Transaction[]
-}
-
-model Square {
-  id              Int          @id
-  coordinateX     Int
-  coordinateY     Int
-  price           Float
-  status          SquareStatus @default(AVAILABLE)
-  ownerId         String?
-  chapterId       String
-  title           String?
-  description     String?
-  imageUrl        String?
-  externalUrl     String?
-  backgroundColor String?
-  purchasedAt     DateTime?
-  updatedAt       DateTime     @updatedAt
-
-  owner        User?         @relation("SquareOwner", fields: [ownerId], references: [id])
-  chapter      Chapter       @relation(fields: [chapterId], references: [id])
-  listings     Listing[]
-  transactions Transaction[]
-
-  @@index([status])
-  @@index([ownerId])
-  @@index([coordinateX, coordinateY])
-}
-
-model Listing {
-  id        String        @id @default(cuid())
-  squareId  Int
-  sellerId  String
-  price     Float
-  status    ListingStatus @default(ACTIVE)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  square Square @relation(fields: [squareId], references: [id])
-  seller User   @relation("ListingSeller", fields: [sellerId], references: [id])
-
-  @@index([squareId])
-  @@index([status])
-}
-
-model Transaction {
-  id                    String            @id @default(cuid())
-  squareId              Int
-  buyerId               String
-  sellerId              String?
-  amount                Float
-  platformFee           Float             @default(0)
-  type                  TransactionType
-  status                TransactionStatus @default(PENDING)
-  chapterId             String
-  stripeSessionId       String?           @unique
-  stripePaymentIntentId String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-
-  square  Square   @relation(fields: [squareId], references: [id])
-  buyer   User     @relation("TransactionBuyer", fields: [buyerId], references: [id])
-  seller  User?    @relation("TransactionSeller", fields: [sellerId], references: [id])
-  chapter Chapter  @relation(fields: [chapterId], references: [id])
-
-  @@index([squareId])
-  @@index([buyerId])
-  @@index([status])
+  @@index([sessionNoteId])
+  @@index([skillId])
 }
 
 model AnalyticsEvent {
   id        String   @id @default(cuid())
   name      String
-  userId    String?
+  coachId   String?
   metadata  Json?
   createdAt DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id])
+  coach Coach? @relation(fields: [coachId], references: [id])
 
   @@index([name])
   @@index([createdAt])
