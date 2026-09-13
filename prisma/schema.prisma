@@ -63,6 +63,45 @@ enum SportFormat {
   TEAM
 }
 
+enum ObjectiveTermLength {
+  SHORT
+  MEDIUM
+  LONG
+}
+
+/// Not every coaching objective can be reduced to a number ("become more
+/// confident attacking the net") — see master prompt §13. Both are first-class.
+enum ObjectiveKind {
+  QUANTITATIVE
+  QUALITATIVE
+}
+
+enum ObjectiveStatus {
+  ACTIVE
+  ACHIEVED
+  ABANDONED
+}
+
+/// Different sports/dimensions need different measurements — a universal
+/// 1-10 scale would be meaningless for a stopwatch time or a pass-completion
+/// percentage. See master prompt §7.
+enum EvaluationScoreType {
+  SCALE_1_5
+  SCALE_1_10
+  PERCENTAGE
+  TIME_SECONDS
+  DISTANCE_METERS
+  REPETITIONS
+  SUCCESS_RATE
+  CUSTOM_NUMERIC
+  QUALITATIVE
+}
+
+enum EvaluationKind {
+  INITIAL
+  PERIODIC
+}
+
 model Coach {
   id             String   @id @default(cuid())
   name           String
@@ -78,6 +117,9 @@ model Coach {
   exercises        Exercise[]
   trainingSessions TrainingSession[]
   teams            Team[]
+  goals            Objective[]
+  evaluations      Evaluation[]
+  customCriteria   EvaluationCriterion[]
   analytics        AnalyticsEvent[]
 }
 
@@ -104,12 +146,13 @@ model Sport {
   terminology        String?
   profileGeneratedAt DateTime?
 
-  coaches          Coach[]
-  skillCategories  SkillCategory[]
-  athletes         Athlete[]
-  exercises        Exercise[]
-  trainingSessions TrainingSession[]
-  teams            Team[]
+  coaches             Coach[]
+  skillCategories     SkillCategory[]
+  athletes            Athlete[]
+  exercises           Exercise[]
+  trainingSessions    TrainingSession[]
+  teams               Team[]
+  evaluationCriteria  EvaluationCriterion[]
 }
 
 model SkillCategory {
@@ -159,6 +202,8 @@ model Athlete {
   sessionNotes     SessionNote[]
   trainingSessions TrainingSession[]
   teamMemberships  TeamMember[]
+  goals            Objective[]
+  evaluations      Evaluation[]
 
   @@index([coachId])
 }
@@ -179,6 +224,8 @@ model Team {
   sport            Sport             @relation(fields: [sportId], references: [id])
   members          TeamMember[]
   trainingSessions TrainingSession[]
+  goals            Objective[]
+  evaluations      Evaluation[]
 
   @@index([coachId])
 }
@@ -320,6 +367,102 @@ model SessionBlock {
   exercise        Exercise?       @relation(fields: [exerciseId], references: [id])
 
   @@index([trainingSessionId])
+}
+
+/// Master prompt §12-15. Exactly one of athleteId/teamId is set — same
+/// pattern as TrainingSession. Baseline/target/current are stored as free
+/// text since units vary wildly by dimension (%, seconds, a 1-10 score, or
+/// a plain qualitative statement) — do not force a numeric-only model.
+model Objective {
+  id            String              @id @default(cuid())
+  coachId       String
+  athleteId     String?
+  teamId        String?
+  title         String
+  description   String?
+  termLength    ObjectiveTermLength
+  kind          ObjectiveKind
+  baselineValue String?
+  targetValue   String?
+  currentValue  String?
+  unit          String?
+  deadline      DateTime?
+  status        ObjectiveStatus     @default(ACTIVE)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  coach   Coach    @relation(fields: [coachId], references: [id])
+  athlete Athlete? @relation(fields: [athleteId], references: [id])
+  team    Team?    @relation(fields: [teamId], references: [id])
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([teamId])
+}
+
+/// A dimension an athlete/team gets scored on. coachId null = the sport's
+/// shared default set, generated once via AI the same lazy way as the skill
+/// taxonomy (see lib/evaluation.ts#ensureEvaluationCriteria); coachId set =
+/// a coach's own custom criterion (master prompt §6), visible only to them.
+model EvaluationCriterion {
+  id          String              @id @default(cuid())
+  sportId     String
+  coachId     String?
+  category    String
+  name        String
+  scoreType   EvaluationScoreType
+  order       Int                 @default(0)
+  targetLevel String?
+  notes       String?
+  createdAt   DateTime            @default(now())
+
+  sport  Sport             @relation(fields: [sportId], references: [id])
+  coach  Coach?            @relation(fields: [coachId], references: [id])
+  scores EvaluationScore[]
+
+  @@index([sportId])
+  @@index([coachId])
+}
+
+/// One evaluation event (initial or periodic) for an athlete or team.
+/// Exactly one of athleteId/teamId is set.
+model Evaluation {
+  id          String         @id @default(cuid())
+  coachId     String
+  athleteId   String?
+  teamId      String?
+  kind        EvaluationKind
+  evaluatedAt DateTime       @default(now())
+  notes       String?
+  /// AI-generated comparison narrative vs the previous evaluation — see
+  /// master prompt §10. Null until a periodic evaluation triggers analysis.
+  aiAnalysis  String?
+  createdAt   DateTime       @default(now())
+
+  coach   Coach              @relation(fields: [coachId], references: [id])
+  athlete Athlete?           @relation(fields: [athleteId], references: [id])
+  team    Team?              @relation(fields: [teamId], references: [id])
+  scores  EvaluationScore[]
+
+  @@index([athleteId])
+  @@index([teamId])
+  @@index([coachId])
+}
+
+model EvaluationScore {
+  id           String @id @default(cuid())
+  evaluationId String
+  criterionId  String
+  /// Stored as text regardless of scoreType (a percentage, a time, a
+  /// qualitative note) — parsed/formatted for display per criterion.scoreType.
+  value        String
+  note         String?
+
+  evaluation Evaluation          @relation(fields: [evaluationId], references: [id])
+  criterion  EvaluationCriterion @relation(fields: [criterionId], references: [id])
+
+  @@unique([evaluationId, criterionId])
+  @@index([criterionId])
 }
 
 model AnalyticsEvent {

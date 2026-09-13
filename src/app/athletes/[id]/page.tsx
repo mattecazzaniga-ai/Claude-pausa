@@ -20,6 +20,7 @@ export default async function AthletePage({ params }: { params: { id: string } }
         orderBy: { sessionDate: "desc" },
         include: { tags: { include: { skill: true } } },
       },
+      goals: { orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
     },
   });
 
@@ -40,6 +41,19 @@ export default async function AthletePage({ params }: { params: { id: string } }
       sessionDate: n.sessionDate.toISOString(),
       aiProcessed: n.aiProcessed,
       tags: n.tags.map((t) => ({ skillName: t.skill.name, sentiment: t.sentiment, excerpt: t.excerpt })),
+    })),
+    goals: athlete.goals.map((g) => ({
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      termLength: g.termLength,
+      kind: g.kind,
+      baselineValue: g.baselineValue,
+      targetValue: g.targetValue,
+      currentValue: g.currentValue,
+      unit: g.unit,
+      deadline: g.deadline?.toISOString() ?? null,
+      status: g.status,
     })),
   };
 

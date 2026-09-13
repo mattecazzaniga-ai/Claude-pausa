@@ -8,6 +8,9 @@ export type SessionNoteData = {
   tags: NoteTagData[];
 };
 
+import type { GoalData } from "@/components/objectives-section";
+export type { GoalData };
+
 export type AthleteData = {
   id: string;
   name: string;
@@ -18,4 +21,5 @@ export type AthleteData = {
   aiPriorities: { skill: string; reason: string }[];
   aiSummaryUpdatedAt: string | null;
   notes: SessionNoteData[];
+  goals: GoalData[];
 };

@@ -33,6 +33,61 @@ export const generateSessionSchema = z.object({
   intensity: z.string().trim().max(40).optional(),
 });
 
+const objectiveTermLengthEnum = z.enum(["SHORT", "MEDIUM", "LONG"]);
+const objectiveKindEnum = z.enum(["QUANTITATIVE", "QUALITATIVE"]);
+const objectiveStatusEnum = z.enum(["ACTIVE", "ACHIEVED", "ABANDONED"]);
+
+export const createObjectiveSchema = z.object({
+  title: z.string().trim().min(2, "Il titolo deve avere almeno 2 caratteri").max(150),
+  description: z.string().trim().max(1000).optional().nullable(),
+  termLength: objectiveTermLengthEnum,
+  kind: objectiveKindEnum,
+  baselineValue: z.string().trim().max(50).optional().nullable(),
+  targetValue: z.string().trim().max(50).optional().nullable(),
+  currentValue: z.string().trim().max(50).optional().nullable(),
+  unit: z.string().trim().max(20).optional().nullable(),
+  deadline: z.string().datetime().optional().nullable(),
+});
+
+export const updateObjectiveSchema = z.object({
+  currentValue: z.string().trim().max(50).optional().nullable(),
+  status: objectiveStatusEnum.optional(),
+});
+
+const evaluationScoreTypeEnum = z.enum([
+  "SCALE_1_5",
+  "SCALE_1_10",
+  "PERCENTAGE",
+  "TIME_SECONDS",
+  "DISTANCE_METERS",
+  "REPETITIONS",
+  "SUCCESS_RATE",
+  "CUSTOM_NUMERIC",
+  "QUALITATIVE",
+]);
+
+export const createEvaluationCriterionSchema = z.object({
+  category: z.string().trim().min(1).max(60),
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(100),
+  scoreType: evaluationScoreTypeEnum,
+  targetLevel: z.string().trim().max(200).optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable(),
+});
+
+export const createEvaluationSchema = z.object({
+  notes: z.string().trim().max(1000).optional().nullable(),
+  scores: z
+    .array(
+      z.object({
+        criterionId: z.string().min(1),
+        value: z.string().trim().min(1).max(300),
+        note: z.string().trim().max(300).optional().nullable(),
+      })
+    )
+    .min(1, "Inserisci almeno un punteggio")
+    .max(60),
+});
+
 export const createTeamSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
   // Athletes can be added later from the team page — a coach may want to

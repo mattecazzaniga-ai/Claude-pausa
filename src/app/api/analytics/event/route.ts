@@ -20,6 +20,10 @@ const ALLOWED: AnalyticsEventName[] = [
   "team_member_removed",
   "team_session_generated",
   "sport_profile_regenerated",
+  "objective_created",
+  "objective_updated",
+  "evaluation_created",
+  "evaluation_criterion_created",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

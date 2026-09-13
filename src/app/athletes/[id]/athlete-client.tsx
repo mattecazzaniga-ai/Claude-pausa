@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatRelativeDate, formatDate } from "@/lib/format";
 import { trackClient } from "@/lib/track-client";
 import type { AthleteData, SessionNoteData } from "./types";
+import { ObjectivesSection } from "@/components/objectives-section";
+import { EvaluationsSection } from "@/components/evaluations-section";
 
 const SENTIMENT_STYLE: Record<string, string> = {
   POSITIVE: "bg-positive/15 text-positive",
@@ -110,6 +112,10 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
           ancora analizzate automaticamente.
         </div>
       )}
+
+      <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
+
+      <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
 
       {/* AI summary / priorities */}
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">

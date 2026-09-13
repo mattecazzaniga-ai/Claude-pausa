@@ -18,6 +18,7 @@ export default async function TeamPage({ params }: { params: { id: string } }) {
       sport: { select: { name: true } },
       members: { include: { athlete: { select: { id: true, name: true, level: true } } } },
       trainingSessions: { orderBy: { createdAt: "desc" }, select: { id: true, objective: true, durationMinutes: true, createdAt: true } },
+      goals: { orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
     },
   });
 
@@ -40,6 +41,19 @@ export default async function TeamPage({ params }: { params: { id: string } }) {
       objective: s.objective,
       durationMinutes: s.durationMinutes,
       createdAt: s.createdAt.toISOString(),
+    })),
+    goals: team.goals.map((g) => ({
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      termLength: g.termLength,
+      kind: g.kind,
+      baselineValue: g.baselineValue,
+      targetValue: g.targetValue,
+      currentValue: g.currentValue,
+      unit: g.unit,
+      deadline: g.deadline?.toISOString() ?? null,
+      status: g.status,
     })),
   };
 

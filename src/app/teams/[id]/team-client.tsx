@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/format";
 import { trackClient } from "@/lib/track-client";
 import type { TeamData } from "./types";
+import { ObjectivesSection } from "@/components/objectives-section";
+import { EvaluationsSection } from "@/components/evaluations-section";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
   const router = useRouter();
@@ -139,6 +141,10 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
       )}
 
       {error && <p className="mb-4 text-sm text-negative">{error}</p>}
+
+      <ObjectivesSection basePath={`/api/teams/${team.id}/objectives`} initialGoals={team.goals} />
+
+      <EvaluationsSection basePath={`/api/teams/${team.id}`} />
 
       {/* Members */}
       <div className="mb-8 rounded-xl border border-border bg-surface p-5">
