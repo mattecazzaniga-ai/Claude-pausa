@@ -8,6 +8,7 @@ import type { TeamData } from "./types";
 import { ObjectivesSection } from "@/components/objectives-section";
 import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
+import { Tabs } from "@/components/tabs";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
   const router = useRouter();
@@ -102,135 +103,154 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
         </div>
       )}
 
-      {/* Session generator — one plan for the whole team, aggregating member priorities */}
-      {aiConfigured && (
-        <form onSubmit={generateSession} className="mb-8 rounded-xl border border-border bg-surface p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Genera sessione di squadra</h2>
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted">Durata (min)</label>
-              <input
-                type="number"
-                min={10}
-                max={240}
-                value={sessionDuration}
-                onChange={(e) => setSessionDuration(e.target.value)}
-                className="w-24 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="mb-1.5 block text-xs font-medium text-muted">Obiettivo specifico (opzionale)</label>
-              <input
-                value={sessionObjective}
-                onChange={(e) => setSessionObjective(e.target.value)}
-                placeholder="Es. lavoro sulla copertura del campo in coppia"
-                className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={generating || team.members.length === 0}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {generating ? "Generazione…" : "Genera con AI"}
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            Una sessione unica per tutta la squadra, basata sulle priorità aggregate dei membri.
-          </p>
-        </form>
-      )}
-
       {error && <p className="mb-4 text-sm text-negative">{error}</p>}
 
-      <ObjectivesSection basePath={`/api/teams/${team.id}/objectives`} initialGoals={team.goals} />
+      <Tabs
+        tabs={[
+          {
+            id: "overview",
+            label: "Panoramica",
+            content: (
+              <>
+                {/* Session generator — one plan for the whole team, aggregating member priorities */}
+                {aiConfigured && (
+                  <form onSubmit={generateSession} className="mb-6 rounded-xl border border-border bg-surface p-5">
+                    <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Genera sessione di squadra</h2>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted">Durata (min)</label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={240}
+                          value={sessionDuration}
+                          onChange={(e) => setSessionDuration(e.target.value)}
+                          className="w-24 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[200px]">
+                        <label className="mb-1.5 block text-xs font-medium text-muted">Obiettivo specifico (opzionale)</label>
+                        <input
+                          value={sessionObjective}
+                          onChange={(e) => setSessionObjective(e.target.value)}
+                          placeholder="Es. lavoro sulla copertura del campo in coppia"
+                          className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={generating || team.members.length === 0}
+                        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+                      >
+                        {generating ? "Generazione…" : "Genera con AI"}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-muted">Una sessione unica per tutta la squadra, basata sulle priorità aggregate dei membri.</p>
+                  </form>
+                )}
 
-      <EvaluationsSection basePath={`/api/teams/${team.id}`} />
+                {/* Members */}
+                <div className="rounded-xl border border-border bg-surface p-5">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Atleti</h2>
+                  {team.members.length === 0 ? (
+                    <p className="text-sm text-muted">Nessun atleta ancora in questa squadra.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {team.members.map((m) => (
+                        <div key={m.id} className="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
+                          <span>{m.name}</span>
+                          <div className="flex items-center gap-2">
+                            {m.level && <span className="text-xs text-muted">{m.level}</span>}
+                            <button
+                              onClick={() => removeMember(m.id)}
+                              disabled={removingId === m.id}
+                              className="text-xs text-muted transition-colors hover:text-negative disabled:opacity-50"
+                            >
+                              {removingId === m.id ? "…" : "Rimuovi"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-      <CompetitionsSection basePath={`/api/teams/${team.id}`} />
-
-      {/* Members */}
-      <div className="mb-8 rounded-xl border border-border bg-surface p-5">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Atleti</h2>
-        {team.members.length === 0 ? (
-          <p className="text-sm text-muted">Nessun atleta ancora in questa squadra.</p>
-        ) : (
-          <div className="space-y-1.5">
-            {team.members.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-md bg-surface-2 px-3 py-2 text-sm">
-                <span>{m.name}</span>
-                <div className="flex items-center gap-2">
-                  {m.level && <span className="text-xs text-muted">{m.level}</span>}
-                  <button
-                    onClick={() => removeMember(m.id)}
-                    disabled={removingId === m.id}
-                    className="text-xs text-muted transition-colors hover:text-negative disabled:opacity-50"
-                  >
-                    {removingId === m.id ? "…" : "Rimuovi"}
-                  </button>
+                  <form onSubmit={addMember} className="mt-4 flex gap-2">
+                    {team.availableAthletes.length > 0 ? (
+                      <>
+                        <select
+                          value={addingId}
+                          onChange={(e) => setAddingId(e.target.value)}
+                          className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                        >
+                          <option value="">Aggiungi atleta…</option>
+                          {team.availableAthletes.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="submit"
+                          disabled={!addingId || busyAdd}
+                          className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2 disabled:opacity-50"
+                        >
+                          {busyAdd ? "…" : "Aggiungi"}
+                        </button>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted">
+                        Tutti i tuoi atleti di questo sport sono già in questa squadra. Crea un nuovo atleta dal tuo elenco per poterlo aggiungere qui.
+                      </p>
+                    )}
+                  </form>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={addMember} className="mt-4 flex gap-2">
-          {team.availableAthletes.length > 0 ? (
-            <>
-              <select
-                value={addingId}
-                onChange={(e) => setAddingId(e.target.value)}
-                className="flex-1 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              >
-                <option value="">Aggiungi atleta…</option>
-                {team.availableAthletes.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                disabled={!addingId || busyAdd}
-                className="rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-2 disabled:opacity-50"
-              >
-                {busyAdd ? "…" : "Aggiungi"}
-              </button>
-            </>
-          ) : (
-            <p className="text-xs text-muted">
-              Tutti i tuoi atleti di questo sport sono già in questa squadra. Crea un nuovo atleta dal tuo elenco per poterlo aggiungere qui.
-            </p>
-          )}
-        </form>
-      </div>
-
-      {/* Session history */}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Sessioni generate</h2>
-        {team.sessions.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-            Nessuna sessione generata ancora per questa squadra.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {team.sessions.map((s) => (
-              <a
-                key={s.id}
-                href={`/sessions/${s.id}`}
-                className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
-              >
-                <div>
-                  <p className="font-medium">{s.objective || "Sessione di allenamento"}</p>
-                  <p className="mt-0.5 text-xs text-muted">
-                    {formatDate(s.createdAt)} · {s.durationMinutes} min
-                  </p>
+              </>
+            ),
+          },
+          {
+            id: "development",
+            label: "Sviluppo",
+            content: (
+              <>
+                <ObjectivesSection basePath={`/api/teams/${team.id}/objectives`} initialGoals={team.goals} />
+                <EvaluationsSection basePath={`/api/teams/${team.id}`} />
+              </>
+            ),
+          },
+          {
+            id: "competitions",
+            label: "Competizioni",
+            content: <CompetitionsSection basePath={`/api/teams/${team.id}`} />,
+          },
+          {
+            id: "history",
+            label: "Storico",
+            content:
+              team.sessions.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                  Nessuna sessione generata ancora per questa squadra.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {team.sessions.map((s) => (
+                    <a
+                      key={s.id}
+                      href={`/sessions/${s.id}`}
+                      className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
+                    >
+                      <div>
+                        <p className="font-medium">{s.objective || "Sessione di allenamento"}</p>
+                        <p className="mt-0.5 text-xs text-muted">
+                          {formatDate(s.createdAt)} · {s.durationMinutes} min
+                        </p>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
+              ),
+          },
+        ]}
+      />
     </div>
   );
 }

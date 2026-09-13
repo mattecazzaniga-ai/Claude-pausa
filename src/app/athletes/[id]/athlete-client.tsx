@@ -8,6 +8,7 @@ import type { AthleteData, SessionNoteData } from "./types";
 import { ObjectivesSection } from "@/components/objectives-section";
 import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
+import { Tabs } from "@/components/tabs";
 
 const SENTIMENT_STYLE: Record<string, string> = {
   POSITIVE: "bg-positive/15 text-positive",
@@ -114,134 +115,153 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
         </div>
       )}
 
-      <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
-
-      <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
-
-      <CompetitionsSection basePath={`/api/athletes/${athlete.id}`} />
-
-      {/* AI summary / priorities */}
-      <div className="mb-6 rounded-xl border border-border bg-surface p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Sintesi AI</h2>
-          {athlete.aiSummaryUpdatedAt && (
-            <span className="text-xs text-muted">Aggiornata {formatRelativeDate(athlete.aiSummaryUpdatedAt)}</span>
-          )}
-        </div>
-        {athlete.aiSummary ? (
-          <>
-            <p className="text-sm text-foreground/90">{athlete.aiSummary}</p>
-            {athlete.aiPriorities.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {athlete.aiPriorities.map((p, i) => (
-                  <div key={i} className="rounded-lg bg-surface-2 p-3">
-                    <p className="text-sm font-medium text-accent">{p.skill}</p>
-                    <p className="mt-0.5 text-xs text-muted">{p.reason}</p>
+      <Tabs
+        tabs={[
+          {
+            id: "overview",
+            label: "Panoramica",
+            content: (
+              <>
+                {/* AI summary / priorities */}
+                <div className="mb-6 rounded-xl border border-border bg-surface p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Sintesi AI</h2>
+                    {athlete.aiSummaryUpdatedAt && (
+                      <span className="text-xs text-muted">Aggiornata {formatRelativeDate(athlete.aiSummaryUpdatedAt)}</span>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-muted">
-            {aiConfigured
-              ? "Aggiungi la prima nota di sessione per vedere qui la sintesi e le priorità."
-              : "Configura l'AI per vedere qui sintesi e priorità basate sullo storico."}
-          </p>
-        )}
-      </div>
+                  {athlete.aiSummary ? (
+                    <>
+                      <p className="text-sm text-foreground/90">{athlete.aiSummary}</p>
+                      {athlete.aiPriorities.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          {athlete.aiPriorities.map((p, i) => (
+                            <div key={i} className="rounded-lg bg-surface-2 p-3">
+                              <p className="text-sm font-medium text-accent">{p.skill}</p>
+                              <p className="mt-0.5 text-xs text-muted">{p.reason}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted">
+                      {aiConfigured
+                        ? "Aggiungi la prima nota di sessione per vedere qui la sintesi e le priorità."
+                        : "Configura l'AI per vedere qui sintesi e priorità basate sullo storico."}
+                    </p>
+                  )}
+                </div>
 
-      {/* Session generator — the core "wow moment": priorities + exercise library -> a real session plan */}
-      {aiConfigured && (
-        <form onSubmit={generateSession} className="mb-8 rounded-xl border border-border bg-surface p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Genera sessione</h2>
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted">Durata (min)</label>
-              <input
-                type="number"
-                min={10}
-                max={240}
-                value={sessionDuration}
-                onChange={(e) => setSessionDuration(e.target.value)}
-                className="w-24 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="mb-1.5 block text-xs font-medium text-muted">Obiettivo specifico (opzionale)</label>
-              <input
-                value={sessionObjective}
-                onChange={(e) => setSessionObjective(e.target.value)}
-                placeholder="Es. lavoro sulla difesa in pressione"
-                className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={generatingSession}
-              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {generatingSession ? "Generazione…" : "Genera con AI"}
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            Usa prima la tua libreria esercizi, genera nuovi esercizi solo se necessario.
-          </p>
-        </form>
-      )}
+                {/* Session generator — the core "wow moment": priorities + exercise library -> a real session plan */}
+                {aiConfigured && (
+                  <form onSubmit={generateSession} className="mb-6 rounded-xl border border-border bg-surface p-5">
+                    <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Genera sessione</h2>
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-muted">Durata (min)</label>
+                        <input
+                          type="number"
+                          min={10}
+                          max={240}
+                          value={sessionDuration}
+                          onChange={(e) => setSessionDuration(e.target.value)}
+                          className="w-24 rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[200px]">
+                        <label className="mb-1.5 block text-xs font-medium text-muted">Obiettivo specifico (opzionale)</label>
+                        <input
+                          value={sessionObjective}
+                          onChange={(e) => setSessionObjective(e.target.value)}
+                          placeholder="Es. lavoro sulla difesa in pressione"
+                          className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={generatingSession}
+                        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+                      >
+                        {generatingSession ? "Generazione…" : "Genera con AI"}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-muted">Usa prima la tua libreria esercizi, genera nuovi esercizi solo se necessario.</p>
+                  </form>
+                )}
 
-      {/* Quick note capture */}
-      <form onSubmit={submitNote} className="mb-8 rounded-xl border border-border bg-surface p-5">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Nuova nota di sessione</h2>
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          rows={3}
-          placeholder="Es. Oggi buona esecuzione in attacco, ma arriva in ritardo sulle palle profonde…"
-          className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
-        />
-        {error && <p className="mt-2 text-sm text-negative">{error}</p>}
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-xs text-muted">Scrivi come parleresti a un collega — l&apos;AI struttura il resto.</p>
-          <button
-            type="submit"
-            disabled={saving || !noteText.trim()}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? "Analisi in corso…" : "Salva nota"}
-          </button>
-        </div>
-      </form>
-
-      {/* Timeline */}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Storico sessioni</h2>
-        {athlete.notes.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-            Nessuna sessione registrata ancora.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {athlete.notes.map((note) => (
-              <div key={note.id} className="rounded-xl border border-border bg-surface p-4">
-                <p className="text-xs text-muted">{formatDate(note.sessionDate)}</p>
-                <p className="mt-1.5 text-sm text-foreground/90">{note.rawText}</p>
-                {note.tags.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {note.tags.map((t, i) => (
-                      <span key={i} className={`rounded-full px-2.5 py-1 text-xs ${SENTIMENT_STYLE[t.sentiment]}`}>
-                        {t.skillName} · {SENTIMENT_LABEL[t.sentiment]}
-                      </span>
-                    ))}
+                {/* Quick note capture */}
+                <form onSubmit={submitNote} className="rounded-xl border border-border bg-surface p-5">
+                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Nuova nota di sessione</h2>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    rows={3}
+                    placeholder="Es. Oggi buona esecuzione in attacco, ma arriva in ritardo sulle palle profonde…"
+                    className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+                  />
+                  {error && <p className="mt-2 text-sm text-negative">{error}</p>}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-muted">Scrivi come parleresti a un collega — l&apos;AI struttura il resto.</p>
+                    <button
+                      type="submit"
+                      disabled={saving || !noteText.trim()}
+                      className="shrink-0 whitespace-nowrap rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
+                    >
+                      {saving ? "Analisi in corso…" : "Salva nota"}
+                    </button>
                   </div>
-                ) : !note.aiProcessed && aiConfigured ? (
-                  <p className="mt-2 text-xs text-muted">In elaborazione…</p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                </form>
+              </>
+            ),
+          },
+          {
+            id: "development",
+            label: "Sviluppo",
+            content: (
+              <>
+                <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
+                <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
+              </>
+            ),
+          },
+          {
+            id: "competitions",
+            label: "Competizioni",
+            content: <CompetitionsSection basePath={`/api/athletes/${athlete.id}`} />,
+          },
+          {
+            id: "history",
+            label: "Storico",
+            content:
+              athlete.notes.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                  Nessuna sessione registrata ancora.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {athlete.notes.map((note) => (
+                    <div key={note.id} className="rounded-xl border border-border bg-surface p-4">
+                      <p className="text-xs text-muted">{formatDate(note.sessionDate)}</p>
+                      <p className="mt-1.5 text-sm text-foreground/90">{note.rawText}</p>
+                      {note.tags.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {note.tags.map((t, i) => (
+                            <span key={i} className={`rounded-full px-2.5 py-1 text-xs ${SENTIMENT_STYLE[t.sentiment]}`}>
+                              {t.skillName} · {SENTIMENT_LABEL[t.sentiment]}
+                            </span>
+                          ))}
+                        </div>
+                      ) : !note.aiProcessed && aiConfigured ? (
+                        <p className="mt-2 text-xs text-muted">In elaborazione…</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ),
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { formatRelativeDate } from "@/lib/format";
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Buongiorno";
+  if (hour < 18) return "Buon pomeriggio";
+  return "Buonasera";
+}
 
 type Priority = { skill: string; reason: string };
 
@@ -27,6 +35,7 @@ type TeamListItem = {
 
 export function DashboardClient({ aiConfigured }: { aiConfigured: boolean }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [athletes, setAthletes] = useState<AthleteListItem[] | null>(null);
   const [teams, setTeams] = useState<TeamListItem[] | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -43,16 +52,22 @@ export function DashboardClient({ aiConfigured }: { aiConfigured: boolean }) {
     load();
   }, []);
 
+  const firstName = session?.user?.name?.split(" ")[0];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <SportProfileCard />
-
-      <UpcomingEventsCard />
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">
+        {greeting()}{firstName ? `, ${firstName}` : ""}
+      </h1>
 
       {aiConfigured && athletes && teams && <TodayFocusCard athletes={athletes} teams={teams} />}
 
+      <UpcomingEventsCard />
+
+      <SportProfileCard />
+
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">I tuoi atleti</h1>
+        <h2 className="text-lg font-semibold">I tuoi atleti</h2>
         <button
           onClick={() => setShowForm(true)}
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
