@@ -58,7 +58,7 @@ export function Nav() {
                 href="/register"
                 className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-black transition-opacity hover:opacity-90"
               >
-                Inizia gratis
+                Inizia ad allenare
               </Link>
             </>
           )}
@@ -106,7 +106,7 @@ export function Nav() {
                 Accedi
               </Link>
               <Link href="/register" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                Inizia gratis
+                Inizia ad allenare
               </Link>
             </>
           )}

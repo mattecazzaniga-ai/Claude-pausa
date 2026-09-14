@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CoachBrain — Il secondo cervello per allenatori",
+  title: "CoachBrain — Tu alleni. Noi ricordiamo.",
   description:
-    "Scrivi due righe dopo ogni sessione. CoachBrain ricorda lo storico di ogni atleta e ti dice su cosa lavorare dopo.",
+    "Il tuo sport, i tuoi atleti, il tuo allenamento e la tua attività in un unico sistema di coaching intelligente.",
 };
 
 export default function RootLayout({
