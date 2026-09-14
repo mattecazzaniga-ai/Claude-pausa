@@ -33,7 +33,10 @@ export type AnalyticsEventName =
   | "evaluation_criteria_imported"
   | "evaluation_criteria_bulk_saved"
   | "session_feedback_recorded"
-  | "training_mode_started";
+  | "training_mode_started"
+  | "next_action_generated"
+  | "recommendation_feedback_recorded"
+  | "bottleneck_diagnosed";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

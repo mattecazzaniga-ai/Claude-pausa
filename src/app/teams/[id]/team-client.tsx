@@ -9,6 +9,7 @@ import { ObjectivesSection } from "@/components/objectives-section";
 import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
 import { Tabs } from "@/components/tabs";
+import { NextBestActionCard } from "@/components/next-best-action-card";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
   const router = useRouter();
@@ -112,6 +113,8 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
             label: "Panoramica",
             content: (
               <>
+                {aiConfigured && <NextBestActionCard basePath={`/api/teams/${team.id}`} />}
+
                 {/* Session generator — one plan for the whole team, aggregating member priorities */}
                 {aiConfigured && (
                   <form onSubmit={generateSession} className="mb-6 rounded-xl border border-border bg-surface p-5">

@@ -125,6 +125,32 @@ enum CalendarEventType {
   OTHER
 }
 
+enum CoachingActionType {
+  TRAIN_SKILL
+  CHANGE_EXERCISE
+  PROGRESS_EXERCISE
+  REGRESS_EXERCISE
+  CHANGE_SESSION_STRUCTURE
+  CHANGE_INTENSITY
+  REASSESS
+  CREATE_OBJECTIVE
+  PREPARE_COMPETITION
+  REVIEW_COMPETITION
+  CHANGE_PRIORITY
+  MAINTAIN_CURRENT_FOCUS
+}
+
+enum RecommendationConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum RecommendationFeedback {
+  USEFUL
+  NOT_USEFUL
+}
+
 model Coach {
   id             String   @id @default(cuid())
   name           String
@@ -145,6 +171,7 @@ model Coach {
   customCriteria   EvaluationCriterion[]
   competitions     Competition[]
   calendarEvents   CalendarEvent[]
+  recommendations  CoachingRecommendation[]
   analytics        AnalyticsEvent[]
 }
 
@@ -232,6 +259,7 @@ model Athlete {
   evaluations      Evaluation[]
   competitions     Competition[]
   calendarEvents   CalendarEvent[]
+  recommendations  CoachingRecommendation[]
 
   @@index([coachId])
 }
@@ -256,6 +284,7 @@ model Team {
   evaluations      Evaluation[]
   competitions     Competition[]
   calendarEvents   CalendarEvent[]
+  recommendations  CoachingRecommendation[]
 
   @@index([coachId])
 }
@@ -584,6 +613,38 @@ model CalendarEvent {
 
   @@index([coachId])
   @@index([startAt])
+}
+
+/// Master prompt §5-9,26-27 (Coaching Intelligence Engine): a generated
+/// Next Best Action, stored with its evidence so the recommendation can be
+/// explained later and the coach's 👍/👎 becomes a real signal instead of a
+/// UI interaction that vanishes — the minimum provenance needed for future
+/// Coach Brain learning, without building the full preference system yet.
+model CoachingRecommendation {
+  id                       String                    @id @default(cuid())
+  coachId                  String
+  athleteId                String?
+  teamId                   String?
+  actionType               CoachingActionType
+  priorityLabel            String
+  facts                    Json
+  pattern                  String
+  recommendation           String
+  confidence               RecommendationConfidence
+  missingData              Json?
+  suggestedObjective       String?
+  suggestedDurationMinutes Int?
+  feedback                 RecommendationFeedback?
+  feedbackReason           String?
+  createdAt                DateTime                  @default(now())
+
+  coach   Coach    @relation(fields: [coachId], references: [id])
+  athlete Athlete? @relation(fields: [athleteId], references: [id])
+  team    Team?    @relation(fields: [teamId], references: [id])
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([teamId])
 }
 
 model AnalyticsEvent {

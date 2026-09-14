@@ -10,6 +10,7 @@ import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { Tabs } from "@/components/tabs";
+import { NextBestActionCard } from "@/components/next-best-action-card";
 
 const SENTIMENT_STYLE: Record<string, string> = {
   POSITIVE: "bg-positive/15 text-positive",
@@ -123,6 +124,8 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
             label: "Panoramica",
             content: (
               <>
+                {aiConfigured && <NextBestActionCard basePath={`/api/athletes/${athlete.id}`} showDiagnose />}
+
                 {/* AI summary / priorities */}
                 <div className="mb-6 rounded-xl border border-border bg-surface p-5">
                   <div className="mb-3 flex items-center justify-between">

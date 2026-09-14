@@ -149,6 +149,11 @@ export const updateCalendarEventSchema = z.object({
   trainingSessionId: z.string().optional(),
 });
 
+export const recommendationFeedbackSchema = z.object({
+  feedback: z.enum(["USEFUL", "NOT_USEFUL"]),
+  feedbackReason: z.string().trim().max(300).optional().nullable(),
+});
+
 export const sessionFeedbackSchema = z.object({
   rating: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "NEEDS_WORK"]),
   note: z.string().trim().max(1500).optional().nullable(),
