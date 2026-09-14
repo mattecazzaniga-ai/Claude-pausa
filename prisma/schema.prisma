@@ -173,6 +173,13 @@ model Coach {
   calendarEvents   CalendarEvent[]
   recommendations  CoachingRecommendation[]
   analytics        AnalyticsEvent[]
+  feedbackSignals  CoachFeedbackSignal[]
+
+  /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
+  /// observed preferences ({insight, evidenceCount, category}[]), refreshed
+  /// periodically from feedbackSignals. Null until enough signals exist.
+  learnedPreferences          Json?
+  learnedPreferencesUpdatedAt DateTime?
 }
 
 /// A sport defines its own skill taxonomy. The full list of common sports is
@@ -645,6 +652,29 @@ model CoachingRecommendation {
   @@index([coachId])
   @@index([athleteId])
   @@index([teamId])
+}
+
+enum CoachFeedbackSignalType {
+  RECOMMENDATION_FEEDBACK
+  SESSION_FEEDBACK
+  EXERCISE_REPLACED
+}
+
+/// Master prompt §10-11 (Coach Brain foundation): an append-only log of every
+/// moment a coach accepted, rejected, or adjusted something the AI proposed.
+/// Coach Brain periodically reads this log to synthesize Coach.learnedPreferences —
+/// the log itself is the ground truth and is never overwritten or pruned.
+model CoachFeedbackSignal {
+  id        String                  @id @default(cuid())
+  coachId   String
+  type      CoachFeedbackSignalType
+  summary   String
+  detail    Json?
+  createdAt DateTime                @default(now())
+
+  coach Coach @relation(fields: [coachId], references: [id])
+
+  @@index([coachId, createdAt])
 }
 
 model AnalyticsEvent {

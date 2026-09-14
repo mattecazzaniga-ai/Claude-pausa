@@ -78,6 +78,9 @@ export function NextBestActionCard({ basePath, showDiagnose = false }: { basePat
   const [error, setError] = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [diagnosing, setDiagnosing] = useState(false);
+  const [showReasonInput, setShowReasonInput] = useState(false);
+  const [reasonText, setReasonText] = useState("");
+  const [reasonSaved, setReasonSaved] = useState(false);
 
   useEffect(() => {
     fetch(`${basePath}/next-action`)
@@ -90,6 +93,9 @@ export function NextBestActionCard({ basePath, showDiagnose = false }: { basePat
     setGenerating(true);
     setError(null);
     setDiagnosis(null);
+    setShowReasonInput(false);
+    setReasonSaved(false);
+    setReasonText("");
     const res = await fetch(`${basePath}/next-action`, { method: "POST" });
     const data = await res.json();
     setGenerating(false);
@@ -111,6 +117,20 @@ export function NextBestActionCard({ basePath, showDiagnose = false }: { basePat
     if (res.ok) {
       setRecommendation((prev) => (prev ? { ...prev, feedback } : prev));
       trackClient("recommendation_feedback_recorded", { feedback });
+      if (feedback === "NOT_USEFUL") setShowReasonInput(true);
+    }
+  }
+
+  async function submitReason() {
+    if (!recommendation || !reasonText.trim()) return;
+    const res = await fetch(`${basePath}/next-action/${recommendation.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ feedback: "NOT_USEFUL", feedbackReason: reasonText.trim() }),
+    });
+    if (res.ok) {
+      setReasonSaved(true);
+      setShowReasonInput(false);
     }
   }
 
@@ -248,6 +268,29 @@ export function NextBestActionCard({ basePath, showDiagnose = false }: { basePat
               </button>
             </div>
           </div>
+
+          {showReasonInput && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border p-2.5">
+              <input
+                value={reasonText}
+                onChange={(e) => setReasonText(e.target.value)}
+                placeholder="Perché non è utile? (opzionale, aiuta l&apos;AI a imparare)"
+                maxLength={300}
+                className="min-w-[220px] flex-1 rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs outline-none focus:border-accent"
+              />
+              <button
+                onClick={submitReason}
+                disabled={!reasonText.trim()}
+                className="rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-surface disabled:opacity-40"
+              >
+                Salva
+              </button>
+              <button onClick={() => setShowReasonInput(false)} className="text-xs text-muted hover:underline">
+                Salta
+              </button>
+            </div>
+          )}
+          {reasonSaved && <p className="text-xs text-muted">Motivo salvato, grazie — aiuterà le prossime raccomandazioni.</p>}
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sessionFeedbackSchema } from "@/lib/validation";
 import { track } from "@/lib/analytics";
+import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
 
 /** Master prompt §33: end-of-session feedback, minimum effort — a quick rating plus an optional note. */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -27,6 +28,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   });
 
   track("session_feedback_recorded", session.user.id, { sessionId: trainingSession.id, rating: parsed.data.rating });
+
+  const RATING_LABEL: Record<string, string> = {
+    EXCELLENT: "eccellente",
+    GOOD: "buona",
+    AVERAGE: "nella media",
+    NEEDS_WORK: "da migliorare",
+  };
+  await recordCoachFeedbackSignal(
+    session.user.id,
+    "SESSION_FEEDBACK",
+    `Ha valutato una sessione di allenamento come "${RATING_LABEL[parsed.data.rating] ?? parsed.data.rating}"` +
+      (parsed.data.note ? `, con nota: "${parsed.data.note}"` : "."),
+    { rating: parsed.data.rating, note: parsed.data.note ?? null },
+  );
 
   return NextResponse.json({ session: updated });
 }

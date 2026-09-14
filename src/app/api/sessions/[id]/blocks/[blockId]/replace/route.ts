@@ -7,6 +7,7 @@ import { generateReplacementExercise, type LibraryExercise } from "@/lib/ai-sess
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
 import type { $Enums } from "@prisma/client";
 
 const BLOCK_TYPE_TO_EXERCISE_CATEGORY: Record<string, $Enums.ExerciseCategory> = {
@@ -100,6 +101,13 @@ export async function POST(_req: Request, { params }: { params: { id: string; bl
   });
 
   track("session_block_replaced", session.user.id, { sessionId: params.id, blockId: block.id });
+
+  await recordCoachFeedbackSignal(
+    session.user.id,
+    "EXERCISE_REPLACED",
+    `Ha sostituito l'esercizio suggerito dall'AI per un blocco di tipo ${block.type} ("${block.exercise?.name ?? "esercizio corrente"}").`,
+    { blockType: block.type, previousExerciseId: block.exerciseId ?? null },
+  );
 
   return NextResponse.json({ block: updated });
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { buildTeamIntelligenceContext } from "@/lib/intelligence/context";
 import { generateNextBestAction } from "@/lib/intelligence/next-best-action";
+import { refreshCoachBrainIfStale, getCoachBrainPromptText } from "@/lib/intelligence/coach-brain";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 
@@ -37,8 +38,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!team || team.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const context = await buildTeamIntelligenceContext(team.id);
-    const action = await generateNextBestAction(context);
+    await refreshCoachBrainIfStale(session.user.id);
+    const [context, coachBrainText] = await Promise.all([
+      buildTeamIntelligenceContext(team.id),
+      getCoachBrainPromptText(session.user.id),
+    ]);
+    const action = await generateNextBestAction(context, coachBrainText);
 
     const recommendation = await prisma.coachingRecommendation.create({
       data: {

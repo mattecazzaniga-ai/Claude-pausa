@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recommendationFeedbackSchema } from "@/lib/validation";
 import { track } from "@/lib/analytics";
+import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
 
 export async function PATCH(req: Request, { params }: { params: { id: string; recommendationId: string } }) {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string; re
   });
 
   track("recommendation_feedback_recorded", session.user.id, { recommendationId: recommendation.id, feedback: parsed.data.feedback });
+
+  const feedbackLabel = parsed.data.feedback === "USEFUL" ? "utile" : "non utile";
+  await recordCoachFeedbackSignal(
+    session.user.id,
+    "RECOMMENDATION_FEEDBACK",
+    `Ha segnato come ${feedbackLabel} una raccomandazione di tipo ${recommendation.actionType} ("${recommendation.priorityLabel}")` +
+      (parsed.data.feedbackReason ? `: motivo indicato "${parsed.data.feedbackReason}"` : "."),
+    { actionType: recommendation.actionType, feedback: parsed.data.feedback, feedbackReason: parsed.data.feedbackReason ?? null },
+  );
 
   return NextResponse.json({ recommendation: updated });
 }
