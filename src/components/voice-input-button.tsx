@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Web Speech API has no official TS lib types; this is the minimal shape we use.
 type SpeechRecognitionResultLike = { transcript: string };
@@ -32,7 +32,15 @@ function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
 export function VoiceInputButton({ onResult, lang = "it-IT" }: { onResult: (text: string) => void; lang?: string }) {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const supported = getSpeechRecognitionCtor() !== null;
+  // Whether the API exists is a browser fact, unknowable during SSR — always
+  // false on the server and on the client's first render (matching it), then
+  // corrected in an effect. Computing it inline instead caused a real
+  // client/server hydration mismatch in any browser that supports it.
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    setSupported(getSpeechRecognitionCtor() !== null);
+  }, []);
 
   function toggle() {
     if (listening) {

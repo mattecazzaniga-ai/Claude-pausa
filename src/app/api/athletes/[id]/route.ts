@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAthleteSchema } from "@/lib/validation";
+import { deleteAthleteCascade } from "@/lib/cascade-delete";
+import { track } from "@/lib/analytics";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -52,4 +54,26 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   });
 
   return NextResponse.json({ athlete: updated });
+}
+
+/**
+ * Removes the athlete and every record that exists only because of them
+ * (notes, sessions, evaluations, objectives, competitions, calendar events,
+ * purchases/payments). This is destructive and irreversible — the coach
+ * confirms explicitly in the UI before this is ever called.
+ */
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const athlete = await prisma.athlete.findUnique({ where: { id: params.id } });
+  if (!athlete || athlete.coachId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.$transaction((tx) => deleteAthleteCascade(tx, athlete.id));
+
+  track("athlete_deleted", session.user.id, { athleteId: athlete.id });
+
+  return NextResponse.json({ ok: true });
 }

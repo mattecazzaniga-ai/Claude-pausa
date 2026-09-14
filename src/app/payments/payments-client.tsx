@@ -16,11 +16,14 @@ type RecentPayment = {
   createdAt: string;
 };
 
+type MonthlyRevenue = { month: string; cents: number };
+
 type Overview = {
   revenueThisMonthCents: number;
   upcomingCents: number;
   outstandingCents: number;
   activePackages: number;
+  monthlyRevenue: MonthlyRevenue[];
   recentPayments: RecentPayment[];
 };
 
@@ -79,6 +82,8 @@ export function PaymentsClient() {
             <StatCard label="Pacchetti attivi" value={String(overview.activePackages)} />
           </div>
 
+          <RevenueChart data={overview.monthlyRevenue} />
+
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Pagamenti recenti</h2>
           {overview.recentPayments.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
@@ -108,6 +113,38 @@ export function PaymentsClient() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+/** Real revenue by month, computed from actual PAID payments — never a mockup series. */
+function RevenueChart({ data }: { data: MonthlyRevenue[] }) {
+  const hasAny = data.some((d) => d.cents > 0);
+  if (!hasAny) return null;
+
+  const max = Math.max(...data.map((d) => d.cents), 1);
+  const chartHeightPx = 96;
+
+  return (
+    <div className="mb-8 rounded-xl border border-border bg-surface p-4">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Entrate per mese</p>
+      <div className="flex items-end gap-3" style={{ height: chartHeightPx }}>
+        {data.map((d) => (
+          <div
+            key={d.month}
+            className="w-full rounded-t-sm bg-accent/70 transition-colors hover:bg-accent"
+            style={{ height: Math.max(4, (d.cents / max) * chartHeightPx) }}
+            title={formatMoney(d.cents)}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-3">
+        {data.map((d) => (
+          <span key={d.month} className="w-full text-center text-[11px] text-muted">
+            {d.month}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

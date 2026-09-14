@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trackClient } from "@/lib/track-client";
 
 export type ScoreType =
@@ -79,6 +79,19 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- basePath is fixed for the component's lifetime
   }, [basePath]);
 
+  async function deleteEvaluation(id: string) {
+    if (!confirm("Eliminare questa valutazione? L'azione non è reversibile.")) return;
+    setError(null);
+    const res = await fetch(`${basePath}/evaluations/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const result = await res.json().catch(() => ({}));
+      setError(result.error ?? "Errore durante l'eliminazione.");
+      return;
+    }
+    trackClient("evaluation_deleted", {});
+    load();
+  }
+
   return (
     <div className="mb-8 rounded-xl border border-border bg-surface p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -122,6 +135,8 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
         </div>
       )}
 
+      {criteria && evaluations && <EvaluationTrendChart criteria={criteria} evaluations={evaluations} />}
+
       {evaluations === null ? (
         <p className="text-sm text-muted">Caricamento…</p>
       ) : evaluations.length === 0 ? (
@@ -130,10 +145,19 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
         <div className="space-y-2">
           {evaluations.map((ev) => (
             <div key={ev.id} className="rounded-lg bg-surface-2 p-3 text-sm">
-              <p className="text-xs text-muted">
-                {ev.kind === "INITIAL" ? "Valutazione iniziale" : "Valutazione periodica"} ·{" "}
-                {new Date(ev.evaluatedAt).toLocaleDateString("it-IT")}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-muted">
+                  {ev.kind === "INITIAL" ? "Valutazione iniziale" : "Valutazione periodica"} ·{" "}
+                  {new Date(ev.evaluatedAt).toLocaleDateString("it-IT")}
+                </p>
+                <button
+                  onClick={() => deleteEvaluation(ev.id)}
+                  className="shrink-0 text-[11px] text-muted transition-colors hover:text-negative"
+                  aria-label="Elimina valutazione"
+                >
+                  Elimina
+                </button>
+              </div>
               {ev.notes && <p className="mt-1 text-foreground/80">{ev.notes}</p>}
               {ev.aiAnalysis && <p className="mt-2 rounded-md bg-surface p-2 text-xs text-muted">{ev.aiAnalysis}</p>}
             </div>
@@ -579,6 +603,92 @@ function AddCriterionInline({ onAdded }: { onAdded: (c: Criterion) => void }) {
         </button>
       </div>
       {error && <p className="mt-1 text-xs text-negative">{error}</p>}
+    </div>
+  );
+}
+
+/**
+ * A real trend chart from the athlete/team's own evaluation history — not a
+ * marketing mockup. Only SCALE/PERCENTAGE/SUCCESS_RATE criteria are
+ * chartable: TIME_SECONDS/DISTANCE_METERS/REPETITIONS have no fixed
+ * direction or ceiling, and QUALITATIVE isn't numeric, so none of those are
+ * offered rather than plotting a misleading line.
+ */
+const CHARTABLE_TYPES: ScoreType[] = ["SCALE_1_5", "SCALE_1_10", "PERCENTAGE", "SUCCESS_RATE"];
+
+function EvaluationTrendChart({ criteria, evaluations }: { criteria: Criterion[]; evaluations: EvaluationItem[] }) {
+  const chartableCriteria = useMemo(() => {
+    return criteria.filter((c) => {
+      if (!CHARTABLE_TYPES.includes(c.scoreType)) return false;
+      const points = evaluations.filter((ev) => ev.scores.some((s) => s.criterionId === c.id && Number.isFinite(Number(s.value.replace(",", ".")))));
+      return points.length >= 2;
+    });
+  }, [criteria, evaluations]);
+
+  const [criterionId, setCriterionId] = useState<string>(chartableCriteria[0]?.id ?? "");
+  const activeCriterionId = chartableCriteria.some((c) => c.id === criterionId) ? criterionId : chartableCriteria[0]?.id ?? "";
+  const activeCriterion = chartableCriteria.find((c) => c.id === activeCriterionId);
+
+  const points = useMemo(() => {
+    if (!activeCriterion) return [];
+    return evaluations
+      .slice()
+      .sort((a, b) => +new Date(a.evaluatedAt) - +new Date(b.evaluatedAt))
+      .map((ev) => {
+        const score = ev.scores.find((s) => s.criterionId === activeCriterion.id);
+        const value = score ? Number(score.value.replace(",", ".")) : NaN;
+        return { date: ev.evaluatedAt, value };
+      })
+      .filter((p) => Number.isFinite(p.value));
+  }, [activeCriterion, evaluations]);
+
+  if (chartableCriteria.length === 0 || points.length < 2 || !activeCriterion) return null;
+
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 100;
+  const h = 32;
+  const coords = points.map((p, i) => {
+    const x = points.length === 1 ? 0 : (i / (points.length - 1)) * w;
+    const y = h - ((p.value - min) / range) * h;
+    return `${x},${y}`;
+  });
+
+  const last = points[points.length - 1].value;
+  const prev = points[points.length - 2].value;
+  const trend = last > prev ? "up" : last < prev ? "down" : "flat";
+  const suffix = SCORE_TYPE_SUFFIX[activeCriterion.scoreType];
+
+  return (
+    <div className="mb-4 rounded-lg bg-surface-2 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        {chartableCriteria.length > 1 ? (
+          <select
+            value={activeCriterionId}
+            onChange={(e) => setCriterionId(e.target.value)}
+            className="rounded-md border border-border bg-surface px-2 py-1 text-xs outline-none focus:border-accent"
+          >
+            {chartableCriteria.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.category} · {c.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-xs font-medium text-muted">
+            {activeCriterion.category} · {activeCriterion.name}
+          </p>
+        )}
+        <span className={`text-xs font-medium ${trend === "up" ? "text-improving" : trend === "down" ? "text-negative" : "text-muted"}`}>
+          {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"} {last}
+          {suffix}
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-14 w-full text-accent">
+        <polyline points={coords.join(" ")} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
     </div>
   );
 }

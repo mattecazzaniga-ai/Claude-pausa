@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteTeamCascade } from "@/lib/cascade-delete";
+import { track } from "@/lib/analytics";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -28,4 +30,19 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       sessions: team.trainingSessions,
     },
   });
+}
+
+/** Removes the team and every record that exists only because of it (roster, sessions, evaluations, objectives, competitions, calendar events). */
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const team = await prisma.team.findUnique({ where: { id: params.id } });
+  if (!team || team.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await prisma.$transaction((tx) => deleteTeamCascade(tx, team.id));
+
+  track("team_deleted", session.user.id, { teamId: team.id });
+
+  return NextResponse.json({ ok: true });
 }

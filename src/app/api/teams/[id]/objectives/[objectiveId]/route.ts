@@ -32,3 +32,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string; ob
 
   return NextResponse.json({ objective: updated });
 }
+
+export async function DELETE(_req: Request, { params }: { params: { id: string; objectiveId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const objective = await prisma.objective.findUnique({ where: { id: params.objectiveId } });
+  if (!objective || objective.coachId !== session.user.id || objective.teamId !== params.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.objective.delete({ where: { id: objective.id } });
+
+  track("objective_deleted", session.user.id, { objectiveId: objective.id });
+
+  return NextResponse.json({ ok: true });
+}

@@ -68,3 +68,23 @@ export async function PATCH(req: Request, { params }: { params: { id: string; co
     return NextResponse.json({ competition: updated, aiError: "L'analisi AI non è riuscita, ma il risultato è salvato." });
   }
 }
+
+/** Also removes the linked calendar entry, if any — a Competition and its CalendarEvent are one thing to the coach. */
+export async function DELETE(_req: Request, { params }: { params: { id: string; competitionId: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const competition = await prisma.competition.findUnique({ where: { id: params.competitionId } });
+  if (!competition || competition.coachId !== session.user.id || competition.athleteId !== params.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.$transaction([
+    prisma.calendarEvent.deleteMany({ where: { competitionId: competition.id } }),
+    prisma.competition.delete({ where: { id: competition.id } }),
+  ]);
+
+  track("competition_deleted", session.user.id, { competitionId: competition.id });
+
+  return NextResponse.json({ ok: true });
+}

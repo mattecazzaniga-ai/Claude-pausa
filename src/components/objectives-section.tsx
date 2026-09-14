@@ -76,6 +76,19 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
     trackClient("objective_updated", { objectiveId: id });
   }
 
+  async function deleteGoal(id: string) {
+    if (!confirm("Eliminare questo obiettivo? L'azione non è reversibile.")) return;
+    setError(null);
+    const res = await fetch(`${basePath}/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const result = await res.json().catch(() => ({}));
+      setError(result.error ?? "Errore durante l'eliminazione.");
+      return;
+    }
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+    trackClient("objective_deleted", { objectiveId: id });
+  }
+
   return (
     <div className="mb-8 rounded-xl border border-border bg-surface p-5">
       <div className="mb-3 flex items-center justify-between">
@@ -103,9 +116,18 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
                       {g.deadline ? ` · scadenza ${new Date(g.deadline).toLocaleDateString("it-IT")}` : ""}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLE[g.status]}`}>
-                    {STATUS_LABEL[g.status]}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_STYLE[g.status]}`}>
+                      {STATUS_LABEL[g.status]}
+                    </span>
+                    <button
+                      onClick={() => deleteGoal(g.id)}
+                      className="text-[11px] text-muted transition-colors hover:text-negative"
+                      aria-label="Elimina obiettivo"
+                    >
+                      Elimina
+                    </button>
+                  </div>
                 </div>
 
                 {g.description && <p className="mt-2 text-xs text-foreground/80">{g.description}</p>}

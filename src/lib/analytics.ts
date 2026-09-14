@@ -43,7 +43,14 @@ export type AnalyticsEventName =
   | "payment_status_updated"
   | "checkout_session_created"
   | "stripe_webhook_processed"
-  | "session_status_updated";
+  | "session_status_updated"
+  | "athlete_deleted"
+  | "team_deleted"
+  | "objective_deleted"
+  | "evaluation_deleted"
+  | "competition_deleted"
+  | "training_session_deleted"
+  | "exercise_deleted";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

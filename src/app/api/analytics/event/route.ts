@@ -38,6 +38,20 @@ const ALLOWED: AnalyticsEventName[] = [
   "next_action_generated",
   "recommendation_feedback_recorded",
   "bottleneck_diagnosed",
+  "offer_created",
+  "offer_updated",
+  "purchase_created",
+  "payment_status_updated",
+  "checkout_session_created",
+  "stripe_webhook_processed",
+  "session_status_updated",
+  "athlete_deleted",
+  "team_deleted",
+  "objective_deleted",
+  "evaluation_deleted",
+  "competition_deleted",
+  "training_session_deleted",
+  "exercise_deleted",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

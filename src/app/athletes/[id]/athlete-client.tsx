@@ -108,15 +108,37 @@ export function AthleteClient({
     trackClient("session_note_created", { athleteId: athlete.id });
   }
 
+  async function deleteAthlete() {
+    if (
+      !confirm(
+        `Eliminare definitivamente ${athlete.name}? Verranno rimossi anche note, sessioni, valutazioni, obiettivi, competizioni, eventi in calendario e acquisti collegati. L'azione non è reversibile.`
+      )
+    )
+      return;
+    const res = await fetch(`/api/athletes/${athlete.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Errore durante l'eliminazione.");
+      return;
+    }
+    trackClient("athlete_deleted", { athleteId: athlete.id });
+    router.push("/dashboard");
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{athlete.name}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {athlete.sportName}
-          {athlete.level ? ` · ${athlete.level}` : ""}
-        </p>
-        {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{athlete.name}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {athlete.sportName}
+            {athlete.level ? ` · ${athlete.level}` : ""}
+          </p>
+          {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
+        </div>
+        <button onClick={deleteAthlete} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+          Elimina atleta
+        </button>
       </div>
 
       {!aiConfigured && (

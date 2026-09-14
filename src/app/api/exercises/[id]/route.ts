@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createExerciseSchema } from "@/lib/validation";
+import { track } from "@/lib/analytics";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -64,6 +65,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   // Session blocks that reference this exercise keep the historical record but lose the live link.
   await prisma.sessionBlock.updateMany({ where: { exerciseId: params.id }, data: { exerciseId: null } });
   await prisma.exercise.delete({ where: { id: params.id } });
+
+  track("exercise_deleted", session.user.id, { exerciseId: params.id });
 
   return NextResponse.json({ ok: true });
 }

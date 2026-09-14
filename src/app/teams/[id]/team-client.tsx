@@ -89,13 +89,35 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
     trackClient("team_member_removed", { teamId: team.id, athleteId });
   }
 
+  async function deleteTeam() {
+    if (
+      !confirm(
+        `Eliminare definitivamente la squadra "${team.name}"? Verranno rimossi anche sessioni, valutazioni, obiettivi, competizioni ed eventi in calendario collegati (gli atleti della rosa non vengono eliminati). L'azione non è reversibile.`
+      )
+    )
+      return;
+    const res = await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Errore durante l'eliminazione.");
+      return;
+    }
+    trackClient("team_deleted", { teamId: team.id });
+    router.push("/teams");
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {team.sportName} · {team.members.length} {team.members.length === 1 ? "atleta" : "atleti"}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {team.sportName} · {team.members.length} {team.members.length === 1 ? "atleta" : "atleti"}
+          </p>
+        </div>
+        <button onClick={deleteTeam} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+          Elimina squadra
+        </button>
       </div>
 
       {!aiConfigured && (

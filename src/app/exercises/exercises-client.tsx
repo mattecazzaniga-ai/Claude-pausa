@@ -77,6 +77,15 @@ export function ExercisesClient() {
     setExercises(data.exercises ?? []);
   }
 
+  async function deleteExercise(id: string) {
+    if (!confirm("Eliminare questo esercizio dalla libreria? L'azione non è reversibile.")) return;
+    const res = await fetch(`/api/exercises/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setExercises((prev) => (prev ?? []).filter((ex) => ex.id !== id));
+      trackClient("exercise_deleted");
+    }
+  }
+
   useEffect(() => {
     load();
   }, []);
@@ -123,9 +132,14 @@ export function ExercisesClient() {
             <div key={ex.id} className="rounded-xl border border-border bg-surface p-4">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-medium">{ex.name}</h3>
-                {ex.source === "AI_GENERATED" && (
-                  <span className="shrink-0 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted">generato da AI</span>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                  {ex.source === "AI_GENERATED" && (
+                    <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted">generato da AI</span>
+                  )}
+                  <button onClick={() => deleteExercise(ex.id)} className="text-[11px] text-muted transition-colors hover:text-negative">
+                    Elimina
+                  </button>
+                </div>
               </div>
               {ex.description && <p className="mt-1 text-sm text-muted">{ex.description}</p>}
               <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">

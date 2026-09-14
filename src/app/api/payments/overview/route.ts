@@ -15,8 +15,9 @@ export async function GET() {
   const coachId = session.user.id;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const [revenueAgg, upcomingAgg, outstandingAgg, activePackages, recentPayments] = await Promise.all([
+  const [revenueAgg, upcomingAgg, outstandingAgg, activePackages, recentPayments, paidLast6Months] = await Promise.all([
     prisma.payment.aggregate({
       _sum: { amountCents: true },
       where: { status: "PAID", paidAt: { gte: monthStart }, purchase: { coachId } },
@@ -38,13 +39,29 @@ export async function GET() {
       take: 15,
       include: { purchase: { include: { athlete: { select: { id: true, name: true } }, offer: { select: { name: true } } } } },
     }),
+    prisma.payment.findMany({
+      where: { status: "PAID", paidAt: { gte: sixMonthsAgo }, purchase: { coachId } },
+      select: { amountCents: true, paidAt: true },
+    }),
   ]);
+
+  // Real revenue by month from actual PAID payments — not a mockup series.
+  const monthlyRevenue: { month: string; cents: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleDateString("it-IT", { month: "short" });
+    const cents = paidLast6Months
+      .filter((p) => p.paidAt && p.paidAt.getFullYear() === d.getFullYear() && p.paidAt.getMonth() === d.getMonth())
+      .reduce((sum, p) => sum + p.amountCents, 0);
+    monthlyRevenue.push({ month: label, cents });
+  }
 
   return NextResponse.json({
     revenueThisMonthCents: revenueAgg._sum.amountCents ?? 0,
     upcomingCents: upcomingAgg._sum.amountCents ?? 0,
     outstandingCents: outstandingAgg._sum.amountCents ?? 0,
     activePackages,
+    monthlyRevenue,
     recentPayments: recentPayments.map((p) => ({
       id: p.id,
       athleteName: p.purchase.athlete.name,

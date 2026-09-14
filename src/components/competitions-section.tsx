@@ -115,6 +115,22 @@ function CompetitionCard({
 }) {
   const [showResultForm, setShowResultForm] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function deleteCompetition() {
+    if (!confirm("Eliminare questa competizione? L'evento collegato nel calendario verrà rimosso. L'azione non è reversibile.")) return;
+    setDeleting(true);
+    onError(null);
+    const res = await fetch(`${basePath}/competitions/${competition.id}`, { method: "DELETE" });
+    setDeleting(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      onError(data.error ?? "Errore durante l'eliminazione.");
+      return;
+    }
+    trackClient("competition_deleted", {});
+    onUpdated();
+  }
 
   async function generatePreparation() {
     setPreparing(true);
@@ -180,6 +196,13 @@ function CompetitionCard({
             Registra risultato
           </button>
         )}
+        <button
+          onClick={deleteCompetition}
+          disabled={deleting}
+          className="rounded-md border border-border px-2 py-1 text-[11px] text-muted transition-colors hover:border-negative/40 hover:text-negative disabled:opacity-50"
+        >
+          {deleting ? "…" : "Elimina"}
+        </button>
       </div>
 
       {showResultForm && (
