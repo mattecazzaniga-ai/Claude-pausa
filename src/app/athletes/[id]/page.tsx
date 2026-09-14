@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
+import { isStripeConfigured } from "@/lib/stripe";
 import { Nav } from "@/components/nav";
 import { AthleteClient } from "./athlete-client";
 import type { AthleteData } from "./types";
@@ -65,7 +66,7 @@ export default async function AthletePage({ params }: { params: { id: string } }
           ← I miei atleti
         </Link>
       </div>
-      <AthleteClient initialData={data} aiConfigured={isAiConfigured} />
+      <AthleteClient initialData={data} aiConfigured={isAiConfigured} stripeConfigured={isStripeConfigured} />
     </main>
   );
 }

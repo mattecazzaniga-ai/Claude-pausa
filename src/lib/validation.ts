@@ -131,6 +131,7 @@ export const createCalendarEventSchema = z
     teamId: z.string().optional().nullable(),
     location: z.string().trim().max(150).optional().nullable(),
     notes: z.string().trim().max(1000).optional().nullable(),
+    purchaseId: z.string().optional().nullable(),
     repeat: z
       .object({
         daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1).max(7),
@@ -147,6 +148,12 @@ export const updateCalendarEventSchema = z.object({
   location: z.string().trim().max(150).optional().nullable(),
   notes: z.string().trim().max(1000).optional().nullable(),
   trainingSessionId: z.string().optional(),
+  purchaseId: z.string().optional().nullable(),
+});
+
+export const calendarEventStatusSchema = z.object({
+  status: z.enum(["COMPLETED", "CANCELLED", "NO_SHOW"]),
+  consumeCredit: z.boolean().optional(),
 });
 
 export const recommendationFeedbackSchema = z.object({
@@ -199,4 +206,54 @@ export const createExerciseSchema = z.object({
   regressionNote: z.string().trim().max(500).optional().nullable(),
   tags: z.array(z.string().trim().max(30)).max(10).optional(),
   skillIds: z.array(z.string()).max(15).optional(),
+});
+
+const offerTypeEnum = z.enum(["SINGLE_SESSION", "PACKAGE", "SUBSCRIPTION"]);
+const offerEligibilityEnum = z.enum(["INDIVIDUAL", "PAIR", "TEAM"]);
+
+export const createOfferSchema = z
+  .object({
+    name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
+    description: z.string().trim().max(500).optional().nullable(),
+    type: offerTypeEnum,
+    priceCents: z.number().int().min(0).max(100_000_00),
+    currency: z.string().trim().toUpperCase().length(3).default("EUR"),
+    sessionCount: z.number().int().min(1).max(365).optional().nullable(),
+    expirationDays: z.number().int().min(1).max(3650).optional().nullable(),
+    sessionDurationMinutes: z.number().int().min(10).max(240).optional().nullable(),
+    eligibility: offerEligibilityEnum.default("INDIVIDUAL"),
+    billingFrequency: z.enum(["WEEKLY", "MONTHLY"]).optional().nullable(),
+    active: z.boolean().optional(),
+  })
+  .refine((data) => data.type !== "SUBSCRIPTION" || Boolean(data.billingFrequency), {
+    message: "Indica la frequenza di fatturazione per un abbonamento",
+    path: ["billingFrequency"],
+  });
+
+export const updateOfferSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(500).optional().nullable(),
+  priceCents: z.number().int().min(0).max(100_000_00).optional(),
+  sessionCount: z.number().int().min(1).max(365).optional().nullable(),
+  expirationDays: z.number().int().min(1).max(3650).optional().nullable(),
+  sessionDurationMinutes: z.number().int().min(10).max(240).optional().nullable(),
+  eligibility: offerEligibilityEnum.optional(),
+  active: z.boolean().optional(),
+});
+
+const paymentMethodEnum = z.enum(["ONLINE", "OFFLINE_CASH", "OFFLINE_TRANSFER", "OFFLINE_OTHER"]);
+
+export const createPurchaseSchema = z.object({
+  offerId: z.string(),
+  method: paymentMethodEnum,
+  markPaidNow: z.boolean().optional(),
+});
+
+export const updatePaymentStatusSchema = z.object({
+  status: z.enum(["PENDING", "PAID", "PARTIALLY_PAID", "OVERDUE", "REFUNDED", "CANCELLED"]),
+});
+
+export const sessionStatusSchema = z.object({
+  status: z.enum(["CANCELLED", "NO_SHOW"]),
+  consumeCredit: z.boolean().optional(),
 });

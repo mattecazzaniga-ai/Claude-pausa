@@ -28,6 +28,7 @@
     "prisma": "6.19.3",
     "react": "^18",
     "react-dom": "^18",
+    "stripe": "^22.6.2",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.6.2"
   },

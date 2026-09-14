@@ -11,6 +11,7 @@ import { CompetitionsSection } from "@/components/competitions-section";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
+import { PaymentsSection } from "@/components/payments-section";
 
 const SENTIMENT_STYLE: Record<string, string> = {
   POSITIVE: "bg-positive/15 text-positive",
@@ -26,7 +27,15 @@ const SENTIMENT_LABEL: Record<string, string> = {
   NEUTRAL: "Osservazione",
 };
 
-export function AthleteClient({ initialData, aiConfigured }: { initialData: AthleteData; aiConfigured: boolean }) {
+export function AthleteClient({
+  initialData,
+  aiConfigured,
+  stripeConfigured,
+}: {
+  initialData: AthleteData;
+  aiConfigured: boolean;
+  stripeConfigured: boolean;
+}) {
   const router = useRouter();
   const [athlete, setAthlete] = useState(initialData);
   const [noteText, setNoteText] = useState("");
@@ -236,6 +245,11 @@ export function AthleteClient({ initialData, aiConfigured }: { initialData: Athl
             id: "competitions",
             label: "Competizioni",
             content: <CompetitionsSection basePath={`/api/athletes/${athlete.id}`} />,
+          },
+          {
+            id: "payments",
+            label: "Pagamenti",
+            content: <PaymentsSection basePath={`/api/athletes/${athlete.id}`} stripeConfigured={stripeConfigured} />,
           },
           {
             id: "history",

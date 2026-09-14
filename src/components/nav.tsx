@@ -31,6 +31,9 @@ export function Nav() {
               <Link href="/exercises" className="hover:text-foreground transition-colors">
                 Esercizi
               </Link>
+              <Link href="/payments" className="hover:text-foreground transition-colors">
+                Pagamenti
+              </Link>
             </>
           )}
         </nav>
@@ -89,6 +92,9 @@ export function Nav() {
               </Link>
               <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Esercizi
+              </Link>
+              <Link href="/payments" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                Pagamenti
               </Link>
               <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-md px-2 py-2 text-left text-sm hover:bg-surface-2">
                 Esci

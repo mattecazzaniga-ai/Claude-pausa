@@ -21,6 +21,7 @@ export async function GET(req: Request) {
       athlete: { select: { id: true, name: true } },
       team: { select: { id: true, name: true } },
       competition: { select: { id: true, type: true, result: true } },
+      purchase: { include: { offer: { select: { name: true, type: true } } } },
     },
     orderBy: { startAt: "asc" },
   });
@@ -46,6 +47,12 @@ export async function POST(req: Request) {
     const team = await prisma.team.findUnique({ where: { id: parsed.data.teamId } });
     if (!team || team.coachId !== session.user.id) return NextResponse.json({ error: "Squadra non valida." }, { status: 400 });
   }
+  if (parsed.data.purchaseId) {
+    const purchase = await prisma.purchase.findUnique({ where: { id: parsed.data.purchaseId } });
+    if (!purchase || purchase.coachId !== session.user.id || purchase.athleteId !== parsed.data.athleteId) {
+      return NextResponse.json({ error: "Pagamento non valido per questo atleta." }, { status: 400 });
+    }
+  }
 
   const baseData = {
     coachId: session.user.id,
@@ -55,6 +62,7 @@ export async function POST(req: Request) {
     teamId: parsed.data.teamId || undefined,
     location: parsed.data.location || undefined,
     notes: parsed.data.notes || undefined,
+    purchaseId: parsed.data.purchaseId || undefined,
   };
 
   if (parsed.data.repeat) {

@@ -2,6 +2,11 @@ export function formatDate(date: string | Date): string {
   return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", year: "numeric" }).format(new Date(date));
 }
 
+/** priceCents is always stored in the smallest currency unit (like Stripe itself). */
+export function formatMoney(cents: number, currency: string = "EUR"): string {
+  return new Intl.NumberFormat("it-IT", { style: "currency", currency }).format(cents / 100);
+}
+
 export function formatRelativeDate(date: string | Date): string {
   const d = new Date(date);
   const days = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));

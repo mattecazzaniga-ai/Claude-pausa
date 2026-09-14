@@ -174,6 +174,8 @@ model Coach {
   recommendations  CoachingRecommendation[]
   analytics        AnalyticsEvent[]
   feedbackSignals  CoachFeedbackSignal[]
+  offers           Offer[]
+  purchases        Purchase[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -213,6 +215,7 @@ model Sport {
   teams               Team[]
   evaluationCriteria  EvaluationCriterion[]
   competitions        Competition[]
+  offers              Offer[]
 }
 
 model SkillCategory {
@@ -267,6 +270,7 @@ model Athlete {
   competitions     Competition[]
   calendarEvents   CalendarEvent[]
   recommendations  CoachingRecommendation[]
+  purchases        Purchase[]
 
   @@index([coachId])
 }
@@ -612,14 +616,33 @@ model CalendarEvent {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  /// Master prompt PART 1 §11-15,38 (payments): the calendar event is the
+  /// unit the coach actually schedules and opens, whether or not an AI
+  /// session plan exists yet for it — so payment/credit lifecycle lives
+  /// here, not on TrainingSession. "Mark Complete" transitions
+  /// SCHEDULED -> COMPLETED and (if purchaseId is set) consumes one credit,
+  /// exactly once (creditConsumedAt is the idempotency guard, §43).
+  status           CalendarEventStatus @default(SCHEDULED)
+  purchaseId       String?
+  creditConsumedAt DateTime?
+
   coach           Coach            @relation(fields: [coachId], references: [id])
   athlete         Athlete?         @relation(fields: [athleteId], references: [id])
   team            Team?            @relation(fields: [teamId], references: [id])
   competition     Competition?     @relation(fields: [competitionId], references: [id])
   trainingSession TrainingSession? @relation(fields: [trainingSessionId], references: [id])
+  purchase        Purchase?        @relation(fields: [purchaseId], references: [id])
 
   @@index([coachId])
   @@index([startAt])
+  @@index([purchaseId])
+}
+
+enum CalendarEventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
 }
 
 /// Master prompt §5-9,26-27 (Coaching Intelligence Engine): a generated
@@ -675,6 +698,128 @@ model CoachFeedbackSignal {
   coach Coach @relation(fields: [coachId], references: [id])
 
   @@index([coachId, createdAt])
+}
+
+enum OfferType {
+  SINGLE_SESSION
+  PACKAGE
+  SUBSCRIPTION
+}
+
+enum OfferEligibility {
+  INDIVIDUAL
+  PAIR
+  TEAM
+}
+
+enum PaymentMethod {
+  ONLINE
+  OFFLINE_CASH
+  OFFLINE_TRANSFER
+  OFFLINE_OTHER
+}
+
+enum PurchaseStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  REFUNDED
+  CANCELLED
+}
+
+/// Master prompt PART 1 §4-8,21: what a coach sells. Money is stored in the
+/// smallest currency unit (cents) — the same convention Stripe itself uses —
+/// to avoid float rounding on prices. Offers are never hard-deleted (only
+/// deactivated) because Purchase snapshots reference them for history.
+model Offer {
+  id                     String           @id @default(cuid())
+  coachId                String
+  sportId                String?
+  name                   String
+  description            String?
+  type                   OfferType
+  priceCents             Int
+  currency               String           @default("EUR")
+  /// Session credits granted per purchase. Null for a SUBSCRIPTION with no
+  /// fixed included-session count.
+  sessionCount           Int?
+  /// Days after purchase before unused package credits expire. Null = never.
+  expirationDays         Int?
+  sessionDurationMinutes Int?
+  eligibility            OfferEligibility @default(INDIVIDUAL)
+  /// Only meaningful for SUBSCRIPTION offers, e.g. "MONTHLY" | "WEEKLY".
+  billingFrequency       String?
+  active                 Boolean          @default(true)
+  /// Cached Stripe Price id, created lazily on first online purchase so an
+  /// offer that's never sold online never touches the Stripe API.
+  stripePriceId          String?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  coach     Coach      @relation(fields: [coachId], references: [id])
+  sport     Sport?     @relation(fields: [sportId], references: [id])
+  purchases Purchase[]
+
+  @@index([coachId])
+}
+
+/// One athlete buying one offer — the credit-granting entity. sessionsPurchased
+/// /priceCents/currency are snapshotted from the Offer at purchase time so a
+/// later price or offer change never rewrites history.
+model Purchase {
+  id                String         @id @default(cuid())
+  coachId           String
+  athleteId         String
+  offerId           String
+  status            PurchaseStatus @default(PENDING)
+  sessionsPurchased Int?
+  sessionsUsed      Int            @default(0)
+  expiresAt         DateTime?
+  priceCents        Int
+  currency          String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  coach    Coach             @relation(fields: [coachId], references: [id])
+  athlete  Athlete           @relation(fields: [athleteId], references: [id])
+  offer    Offer             @relation(fields: [offerId], references: [id])
+  payments       Payment[]
+  calendarEvents CalendarEvent[]
+
+  @@index([coachId])
+  @@index([athleteId])
+}
+
+/// A money-movement record against a Purchase. Most purchases have exactly
+/// one Payment, but a subscription accrues one per billing period, and a
+/// refund is recorded as a status change rather than a new row so the
+/// original amount/date stay intact for audit.
+model Payment {
+  id                      String        @id @default(cuid())
+  purchaseId              String
+  method                  PaymentMethod
+  status                  PaymentStatus @default(PENDING)
+  amountCents             Int
+  currency                String
+  paidAt                  DateTime?
+  note                    String?
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?       @unique
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id])
+
+  @@index([purchaseId])
 }
 
 model AnalyticsEvent {

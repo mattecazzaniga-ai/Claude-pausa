@@ -4,8 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trackClient } from "@/lib/track-client";
+import { formatMoney } from "@/lib/format";
 
 type EventType = "TRAINING" | "EVALUATION" | "COMPETITION" | "OTHER";
+type EventStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+
+type EventPurchase = {
+  id: string;
+  sessionsPurchased: number | null;
+  sessionsUsed: number;
+  priceCents: number;
+  currency: string;
+  offer: { name: string; type: string };
+};
 
 type CalendarEvent = {
   id: string;
@@ -16,6 +27,9 @@ type CalendarEvent = {
   location: string | null;
   notes: string | null;
   trainingSessionId: string | null;
+  status: EventStatus;
+  purchaseId: string | null;
+  purchase: EventPurchase | null;
   athlete: { id: string; name: string } | null;
   team: { id: string; name: string } | null;
   competition: { id: string; type: string; result: string } | null;
@@ -23,10 +37,32 @@ type CalendarEvent = {
 
 type Option = { id: string; name: string };
 
+type AthletePurchase = {
+  id: string;
+  status: string;
+  sessionsPurchased: number | null;
+  sessionsUsed: number;
+  priceCents: number;
+  currency: string;
+  expiresAt: string | null;
+  offer: { name: string; type: string };
+};
+
 const TYPE_ICON: Record<EventType, string> = { TRAINING: "🏋️", EVALUATION: "📋", COMPETITION: "🏆", OTHER: "📌" };
 // Indexed like JS Date#getDay(): 0 = Sunday .. 6 = Saturday.
 const WEEKDAY_LABELS = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
 const TYPE_LABEL: Record<EventType, string> = { TRAINING: "Allenamento", EVALUATION: "Valutazione", COMPETITION: "Competizione", OTHER: "Altro" };
+
+/** Small, subtle payment indicator for a calendar row — never louder than the coaching info (§14). */
+function PaymentBadge({ event }: { event: CalendarEvent }) {
+  if (event.type !== "TRAINING" || !event.athlete) return null;
+  if (!event.purchase) return null;
+  if (event.purchase.offer.type === "SINGLE_SESSION") {
+    return <span className="text-positive">✓ Pagato</span>;
+  }
+  const remaining = event.purchase.sessionsPurchased != null ? event.purchase.sessionsPurchased - event.purchase.sessionsUsed : null;
+  return <span className="text-muted">● {remaining != null ? `${remaining} rimaste` : event.purchase.offer.name}</span>;
+}
 
 function startOfWeek(d: Date): Date {
   const date = new Date(d);
@@ -132,7 +168,12 @@ export function CalendarClient() {
                         <p className="font-medium">
                           {TYPE_ICON[ev.type]} {timeLabel(ev.startAt)} {ev.title}
                         </p>
-                        {(ev.athlete || ev.team) && <p className="mt-0.5 text-muted">{ev.athlete?.name ?? ev.team?.name}</p>}
+                        {(ev.athlete || ev.team) && (
+                          <p className="mt-0.5 flex items-center gap-1.5 text-muted">
+                            <span>{ev.athlete?.name ?? ev.team?.name}</span>
+                            <PaymentBadge event={ev} />
+                          </p>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -193,6 +234,21 @@ function NewEventForm({
   const [repeatUntil, setRepeatUntil] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [athletePurchases, setAthletePurchases] = useState<AthletePurchase[]>([]);
+  const [purchaseId, setPurchaseId] = useState("");
+
+  const [subjectKind, subjectId] = subject.split(":");
+
+  useEffect(() => {
+    setPurchaseId("");
+    if (subjectKind !== "athlete" || !subjectId) {
+      setAthletePurchases([]);
+      return;
+    }
+    fetch(`/api/athletes/${subjectId}/purchases`)
+      .then((r) => r.json())
+      .then((data) => setAthletePurchases((data.purchases ?? []).filter((p: AthletePurchase) => p.status === "ACTIVE")));
+  }, [subjectKind, subjectId]);
 
   function toggleDay(day: number) {
     setRepeatDays((prev) => {
@@ -228,6 +284,7 @@ function NewEventForm({
         teamId: kind === "team" ? id : undefined,
         location: location || undefined,
         notes: notes || undefined,
+        purchaseId: purchaseId || undefined,
         repeat: repeatEnabled
           ? { daysOfWeek: Array.from(repeatDays), until: new Date(`${repeatUntil}T23:59:59`).toISOString() }
           : undefined,
@@ -325,6 +382,24 @@ function NewEventForm({
             />
           </div>
         </div>
+        {type === "TRAINING" && subjectKind === "athlete" && athletePurchases.length > 0 && (
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Pagamento</label>
+            <select
+              value={purchaseId}
+              onChange={(e) => setPurchaseId(e.target.value)}
+              className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
+            >
+              <option value="">Nessuno / a parte</option>
+              {athletePurchases.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.offer.name}
+                  {p.sessionsPurchased != null ? ` · ${p.sessionsPurchased - p.sessionsUsed} rimaste` : ` · ${formatMoney(p.priceCents, p.currency)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <input
           value={location}
           onChange={(e) => setLocation(e.target.value)}
@@ -440,6 +515,24 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
     onChanged();
   }
 
+  async function setStatus(status: "COMPLETED" | "CANCELLED" | "NO_SHOW", consumeCredit?: boolean) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/calendar/${event.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, consumeCredit }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante l'aggiornamento.");
+      return;
+    }
+    trackClient("session_status_updated", { eventId: event.id, status });
+    onChanged();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm animate-scale-in space-y-3 rounded-xl border border-border bg-surface p-6">
@@ -452,7 +545,25 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
           {event.location && <p className="text-sm text-muted">{event.location}</p>}
           {(event.athlete || event.team) && <p className="mt-1 text-sm">{event.athlete?.name ?? event.team?.name}</p>}
           {event.notes && <p className="mt-2 text-sm text-foreground/80">{event.notes}</p>}
+          {event.status !== "SCHEDULED" && (
+            <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">
+              {event.status === "COMPLETED" ? "Completata" : event.status === "CANCELLED" ? "Annullata" : "No-show"}
+            </p>
+          )}
         </div>
+
+        {event.purchase && (
+          <div className="rounded-md border border-dashed border-border p-2.5 text-xs">
+            <p className="font-medium text-foreground/80">{event.purchase.offer.name}</p>
+            <p className="mt-0.5 text-muted">
+              {event.purchase.offer.type === "SINGLE_SESSION"
+                ? formatMoney(event.purchase.priceCents, event.purchase.currency)
+                : event.purchase.sessionsPurchased != null
+                  ? `${event.purchase.sessionsPurchased - event.purchase.sessionsUsed} sessioni rimaste dopo l'ultimo completamento`
+                  : null}
+            </p>
+          </div>
+        )}
 
         {error && <p className="text-sm text-negative">{error}</p>}
 
@@ -491,6 +602,34 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
             </button>
           )}
         </div>
+
+        {event.type === "TRAINING" && event.status === "SCHEDULED" && (
+          <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+            <button
+              onClick={() => setStatus("COMPLETED")}
+              disabled={busy}
+              className="rounded-md border border-positive/40 px-3 py-1.5 text-xs text-positive hover:bg-positive/10 disabled:opacity-50"
+            >
+              Segna completata
+            </button>
+            <button
+              onClick={() => setStatus("CANCELLED")}
+              disabled={busy}
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-50"
+            >
+              Annulla sessione
+            </button>
+            {event.purchase && (
+              <button
+                onClick={() => setStatus("NO_SHOW", confirm("Consumare comunque il credito per questo no-show?"))}
+                disabled={busy}
+                className="rounded-md border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-50"
+              >
+                No-show
+              </button>
+            )}
+          </div>
+        )}
 
         <button onClick={onClose} className="w-full rounded-md border border-border py-2 text-sm hover:bg-surface-2">
           Chiudi

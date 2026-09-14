@@ -18,6 +18,13 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dati non validi" }, { status: 400 });
   }
 
+  if (parsed.data.purchaseId) {
+    const purchase = await prisma.purchase.findUnique({ where: { id: parsed.data.purchaseId } });
+    if (!purchase || purchase.coachId !== session.user.id || purchase.athleteId !== event.athleteId) {
+      return NextResponse.json({ error: "Pagamento non valido per questo atleta." }, { status: 400 });
+    }
+  }
+
   const updated = await prisma.calendarEvent.update({
     where: { id: event.id },
     data: {
@@ -27,7 +34,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       location: parsed.data.location !== undefined ? parsed.data.location || null : undefined,
       notes: parsed.data.notes !== undefined ? parsed.data.notes || null : undefined,
       trainingSessionId: parsed.data.trainingSessionId,
+      purchaseId: parsed.data.purchaseId !== undefined ? parsed.data.purchaseId || null : undefined,
     },
+    include: { purchase: { include: { offer: { select: { name: true, type: true } } } } },
   });
 
   track("calendar_event_updated", session.user.id, { eventId: event.id });

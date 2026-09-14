@@ -36,7 +36,14 @@ export type AnalyticsEventName =
   | "training_mode_started"
   | "next_action_generated"
   | "recommendation_feedback_recorded"
-  | "bottleneck_diagnosed";
+  | "bottleneck_diagnosed"
+  | "offer_created"
+  | "offer_updated"
+  | "purchase_created"
+  | "payment_status_updated"
+  | "checkout_session_created"
+  | "stripe_webhook_processed"
+  | "session_status_updated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —
