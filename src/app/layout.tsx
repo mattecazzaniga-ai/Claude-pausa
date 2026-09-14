@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CoachBrain — Tu alleni. Noi ricordiamo.",
+  title: "CoachBrain — Il sistema operativo del tuo coaching",
   description:
-    "Il tuo sport, i tuoi atleti, il tuo allenamento e la tua attività in un unico sistema di coaching intelligente.",
+    "Gestisci atleti, allenamenti, calendario, progressi e pagamenti. CoachBrain porta l'AI dentro il lavoro quotidiano degli allenatori.",
 };
 
 export default function RootLayout({

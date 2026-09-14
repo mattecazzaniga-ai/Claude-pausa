@@ -25,6 +25,9 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "monospace"],
+        // Loaded only on the public landing page (see src/app/page.tsx) — the
+        // authenticated app keeps its plain sans-serif UI everywhere else.
+        serif: ["var(--font-landing-serif)", "Georgia", "ui-serif", "serif"],
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease-out",
