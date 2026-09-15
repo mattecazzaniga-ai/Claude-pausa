@@ -50,7 +50,8 @@ export type AnalyticsEventName =
   | "evaluation_deleted"
   | "competition_deleted"
   | "training_session_deleted"
-  | "exercise_deleted";
+  | "exercise_deleted"
+  | "athlete_chat_question_asked";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

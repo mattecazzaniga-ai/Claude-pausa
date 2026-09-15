@@ -11,6 +11,7 @@ import { CompetitionsSection } from "@/components/competitions-section";
 import { VoiceInputButton } from "@/components/voice-input-button";
 import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
+import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
 
 const SENTIMENT_STYLE: Record<string, string> = {
@@ -156,6 +157,7 @@ export function AthleteClient({
             content: (
               <>
                 {aiConfigured && <NextBestActionCard basePath={`/api/athletes/${athlete.id}`} showDiagnose />}
+                {aiConfigured && <AthleteChatCard basePath={`/api/athletes/${athlete.id}`} />}
 
                 {/* AI summary / priorities */}
                 <div className="mb-6 rounded-xl border border-border bg-surface p-5">
