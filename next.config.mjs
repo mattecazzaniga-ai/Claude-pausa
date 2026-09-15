@@ -10,6 +10,27 @@ const nextConfig = {
     serverComponentsExternalPackages: ["pdf-parse", "mammoth"],
     instrumentationHook: true,
   },
+
+  // Baseline hardening applied to every response. Deliberately not a full
+  // script/style-restricting Content-Security-Policy: getting that right
+  // needs per-page testing (hydration scripts, chart rendering, the Stripe
+  // redirect) that's worth doing as its own pass rather than risking a
+  // silent regression here — frame-ancestors alone still blocks clickjacking.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), geolocation=(), microphone=(self)" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none';" },
+        ],
+      },
+    ];
+  },
 };
 
 // Source map upload needs a Sentry auth token; without one (e.g. this repo's
