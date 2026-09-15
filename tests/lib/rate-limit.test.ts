@@ -51,4 +51,10 @@ describe("clientIp", () => {
     const req = new Request("http://localhost");
     expect(clientIp(req)).toBe("unknown");
   });
+
+  it("also reads a plain header map, the shape NextAuth's authorize() receives", () => {
+    expect(clientIp({ "x-forwarded-for": "9.9.9.9" })).toBe("9.9.9.9");
+    expect(clientIp(undefined)).toBe("unknown");
+    expect(clientIp(null)).toBe("unknown");
+  });
 });

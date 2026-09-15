@@ -20,8 +20,13 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   return true;
 }
 
-export function clientIp(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for");
+/**
+ * Accepts either a real Fetch Request (every plain API route) or the plain
+ * header map NextAuth's Credentials provider hands to authorize() — the
+ * only caller that doesn't have an actual Request to read.
+ */
+export function clientIp(source: Request | Record<string, string | undefined> | null | undefined): string {
+  const forwarded = source instanceof Request ? source.headers.get("x-forwarded-for") : source?.["x-forwarded-for"];
   if (forwarded) return forwarded.split(",")[0].trim();
   return "unknown";
 }
