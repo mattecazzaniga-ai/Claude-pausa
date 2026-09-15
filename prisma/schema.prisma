@@ -176,12 +176,29 @@ model Coach {
   feedbackSignals  CoachFeedbackSignal[]
   offers           Offer[]
   purchases        Purchase[]
+  passwordResetTokens PasswordResetToken[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
   /// periodically from feedbackSignals. Null until enough signals exist.
   learnedPreferences          Json?
   learnedPreferencesUpdatedAt DateTime?
+}
+
+/// Single-use, expiring token for the "forgot password" flow. Only a SHA-256
+/// hash of the token is stored — never the raw value the coach clicks — so a
+/// database leak alone can't be used to reset anyone's password.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  coachId   String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  coach Coach @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
 }
 
 /// A sport defines its own skill taxonomy. The full list of common sports is

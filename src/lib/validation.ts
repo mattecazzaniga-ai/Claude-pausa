@@ -6,6 +6,15 @@ export const registerSchema = z.object({
   password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(72),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Inserisci un'email valida"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token mancante"),
+  password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(72),
+});
+
 export const createAthleteSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(80),
   birthYear: z.number().int().min(1930).max(new Date().getFullYear()).optional().nullable(),

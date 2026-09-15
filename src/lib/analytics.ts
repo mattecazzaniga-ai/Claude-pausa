@@ -51,6 +51,8 @@ export type AnalyticsEventName =
   | "competition_deleted"
   | "training_session_deleted"
   | "exercise_deleted"
+  | "password_reset_requested"
+  | "password_reset_completed"
   | "athlete_chat_question_asked";
 
 /**
