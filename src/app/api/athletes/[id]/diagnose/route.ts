@@ -7,6 +7,7 @@ import { buildAthleteIntelligenceContext } from "@/lib/intelligence/context";
 import { diagnoseBottleneck } from "@/lib/intelligence/bottleneck";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /** Master prompt §9 — ephemeral by design: a hypothesis to discuss now, not a record to keep. */
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
@@ -30,7 +31,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json({ diagnosis });
   } catch (err) {
-    console.error("Bottleneck diagnosis failed", err);
+    captureError("Bottleneck diagnosis failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }

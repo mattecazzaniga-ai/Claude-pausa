@@ -9,6 +9,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { analyzeEvaluationProgress } from "@/lib/ai-evaluation";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -107,7 +108,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
       return NextResponse.json({ evaluation: { ...evaluation, aiAnalysis: analysis.narrative }, athleteSummary: analysis });
     } catch (err) {
-      console.error("AI evaluation analysis failed", err);
+      captureError("AI evaluation analysis failed", err);
       // The evaluation itself is already saved — analysis failing shouldn't lose the coach's work.
       return NextResponse.json({ evaluation, aiError: "L'analisi AI non è riuscita, ma la valutazione è salvata." });
     }

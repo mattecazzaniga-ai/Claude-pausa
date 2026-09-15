@@ -8,6 +8,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { getSportSkills, getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Parses a natural-language exercise description into a structured draft.
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   try {
     draft = await parseExerciseFromText(parsed.data.description, skills, sportContext);
   } catch (err) {
-    console.error("AI quick-create exercise parsing failed", err);
+    captureError("AI quick-create exercise parsing failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 

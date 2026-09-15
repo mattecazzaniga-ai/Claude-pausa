@@ -6,6 +6,7 @@ import { getSportProfile, regenerateSportProfile } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -38,7 +39,7 @@ export async function POST() {
   try {
     profile = await regenerateSportProfile(coach.primarySport.id);
   } catch (err) {
-    console.error("Sport profile regeneration failed", err);
+    captureError("Sport profile regeneration failed", err);
     return NextResponse.json({ error: "La rigenerazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 

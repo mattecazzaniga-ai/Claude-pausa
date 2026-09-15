@@ -7,6 +7,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { analyzeCompetitionPreparation } from "@/lib/ai-competition";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 export async function POST(_req: Request, { params }: { params: { id: string; competitionId: string } }) {
   const session = await getServerSession(authOptions);
@@ -62,7 +63,7 @@ export async function POST(_req: Request, { params }: { params: { id: string; co
 
     return NextResponse.json({ competition: updated });
   } catch (err) {
-    console.error("AI competition preparation failed", err);
+    captureError("AI competition preparation failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }

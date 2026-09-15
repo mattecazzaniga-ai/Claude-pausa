@@ -8,6 +8,7 @@ import { generateSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 import type { $Enums } from "@prisma/client";
 
 // SessionBlockType and ExerciseCategory are deliberately separate enums (a
@@ -92,7 +93,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       sportContext,
     });
   } catch (err) {
-    console.error("AI session generation failed", err);
+    captureError("AI session generation failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 

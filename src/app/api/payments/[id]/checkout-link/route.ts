@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isStripeConfigured, createCheckoutSessionForPurchase } from "@/lib/stripe";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * (Re)generates a shareable Stripe Checkout link for an existing pending
@@ -43,7 +44,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     });
     return NextResponse.json({ checkoutUrl: url });
   } catch (err) {
-    console.error("Checkout link regeneration failed", err);
+    captureError("Checkout link regeneration failed", err, { paymentId: payment.id });
     return NextResponse.json({ error: "Impossibile generare il link di pagamento. Riprova tra poco." }, { status: 502 });
   }
 }

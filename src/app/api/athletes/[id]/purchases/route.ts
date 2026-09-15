@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { createPurchaseSchema } from "@/lib/validation";
 import { isStripeConfigured, createCheckoutSessionForPurchase } from "@/lib/stripe";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -87,7 +88,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       track("checkout_session_created", session.user.id, { purchaseId: purchase.id });
       return NextResponse.json({ purchase, checkoutUrl: url });
     } catch (err) {
-      console.error("Stripe checkout session creation failed", err);
+      captureError("Stripe checkout session creation failed", err, { purchaseId: purchase.id });
       // No checkout session means no way for the athlete to ever pay this —
       // leaving it behind would be a phantom "pending" row with a dead end.
       await prisma.$transaction([

@@ -8,6 +8,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { analyzeCompetitionPerformance } from "@/lib/ai-competition";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 const RESULT_LABEL: Record<string, string> = { WIN: "Vittoria", LOSS: "Sconfitta", DRAW: "Pareggio", NOT_RECORDED: "Non registrato" };
 
@@ -60,7 +61,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string; co
 
     return NextResponse.json({ competition: withAnalysis, analysis });
   } catch (err) {
-    console.error("AI competition analysis failed", err);
+    captureError("AI competition analysis failed", err);
     return NextResponse.json({ competition: updated, aiError: "L'analisi AI non è riuscita, ma il risultato è salvato." });
   }
 }

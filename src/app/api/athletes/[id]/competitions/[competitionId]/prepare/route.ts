@@ -7,6 +7,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { analyzeCompetitionPreparation } from "@/lib/ai-competition";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /** Master prompt §18/25: on-demand pre-competition preparation advice, generated fresh each time so it reflects the athlete's current form as the date approaches. */
 export async function POST(_req: Request, { params }: { params: { id: string; competitionId: string } }) {
@@ -52,7 +53,7 @@ export async function POST(_req: Request, { params }: { params: { id: string; co
 
     return NextResponse.json({ competition: updated });
   } catch (err) {
-    console.error("AI competition preparation failed", err);
+    captureError("AI competition preparation failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }

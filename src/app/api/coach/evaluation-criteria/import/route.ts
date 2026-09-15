@@ -8,6 +8,7 @@ import { extractTextFromFile, SUPPORTED_IMAGE_MIME_TYPES, MAX_IMPORT_FILE_BYTES 
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Master prompt §3-4: upload/paste a coach's own evaluation sheet, AI reads
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ categories: parsed.categories });
   } catch (err) {
-    console.error("Evaluation document import failed", err);
+    captureError("Evaluation document import failed", err);
     return NextResponse.json({ error: "La lettura AI del documento non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }

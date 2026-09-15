@@ -7,6 +7,7 @@ import { isAiConfigured, extractTagsFromNote, generateAthleteSummary } from "@/l
 import { getSportSkills, getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 const HISTORY_WINDOW = 8; // how many recent notes feed the summary — small on purpose, see lib/ai.ts
 
@@ -92,7 +93,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json({ note: finalNote, aiConfigured: true, athleteSummary: summary });
   } catch (err) {
-    console.error("AI processing failed for note", note.id, err);
+    captureError("AI processing failed for note", err, { noteId: note.id });
     track("ai_extraction_failed", session.user.id, { athleteId: athlete.id, error: String(err) });
     // The note itself is already saved — AI enrichment failing shouldn't lose the coach's work.
     return NextResponse.json({ note, aiConfigured: true, aiError: "L'analisi AI non è riuscita, ma la nota è salvata." });

@@ -8,6 +8,7 @@ import { generateNextBestAction } from "@/lib/intelligence/next-best-action";
 import { refreshCoachBrainIfStale, getCoachBrainPromptText } from "@/lib/intelligence/coach-brain";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -65,7 +66,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
     return NextResponse.json({ recommendation });
   } catch (err) {
-    console.error("Next best action generation failed", err);
+    captureError("Next best action generation failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }

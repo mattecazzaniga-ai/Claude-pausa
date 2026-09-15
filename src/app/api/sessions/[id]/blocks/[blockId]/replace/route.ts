@@ -8,6 +8,7 @@ import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
+import { captureError } from "@/lib/monitoring";
 import type { $Enums } from "@prisma/client";
 
 const BLOCK_TYPE_TO_EXERCISE_CATEGORY: Record<string, $Enums.ExerciseCategory> = {
@@ -73,7 +74,7 @@ export async function POST(_req: Request, { params }: { params: { id: string; bl
       sportContext,
     });
   } catch (err) {
-    console.error("AI block replacement failed", err);
+    captureError("AI block replacement failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 

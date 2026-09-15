@@ -5,6 +5,7 @@ import { forgotPasswordSchema } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { isEmailConfigured, sendPasswordResetEmail } from "@/lib/email";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
       await sendPasswordResetEmail(coach.email, rawToken);
       track("password_reset_requested", coach.id);
     } catch (err) {
-      console.error("Password reset email failed to send", err);
+      captureError("Password reset email failed to send", err, { coachId: coach.id });
     }
   }
 

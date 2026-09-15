@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { constructWebhookEvent } from "@/lib/stripe";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * The only place a Payment is ever allowed to become PAID for an online
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   try {
     event = constructWebhookEvent(rawBody, signature);
   } catch (err) {
-    console.error("Stripe webhook signature verification failed", err);
+    captureError("Stripe webhook signature verification failed", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
         break;
     }
   } catch (err) {
-    console.error("Stripe webhook handler failed", event.type, err);
+    captureError("Stripe webhook handler failed", err, { eventType: event.type });
     return NextResponse.json({ error: "Webhook handler error" }, { status: 500 });
   }
 

@@ -7,6 +7,7 @@ import { buildAthleteIntelligenceContext } from "@/lib/intelligence/context";
 import { answerCoachQuestion, isValidQuestion, type ChatTurn } from "@/lib/intelligence/chat";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
+import { captureError } from "@/lib/monitoring";
 
 /**
  * Deliberately stateless server-side: the conversation lives in the
@@ -46,7 +47,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json({ answer });
   } catch (err) {
-    console.error("Athlete chat failed", err);
+    captureError("Athlete chat failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
 }
