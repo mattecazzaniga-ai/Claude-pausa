@@ -88,6 +88,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ purchase, checkoutUrl: url });
     } catch (err) {
       console.error("Stripe checkout session creation failed", err);
+      // No checkout session means no way for the athlete to ever pay this —
+      // leaving it behind would be a phantom "pending" row with a dead end.
+      await prisma.$transaction([
+        prisma.payment.deleteMany({ where: { purchaseId: purchase.id } }),
+        prisma.purchase.delete({ where: { id: purchase.id } }),
+      ]);
       return NextResponse.json({ error: "Impossibile avviare il pagamento online. Riprova tra poco." }, { status: 502 });
     }
   }

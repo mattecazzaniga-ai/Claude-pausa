@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatMoney, formatDate } from "@/lib/format";
 import { trackClient } from "@/lib/track-client";
+
+const POLL_INTERVAL_MS = 6000;
 
 type Offer = {
   id: string;
@@ -70,11 +72,35 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
   const [markPaidNow, setMarkPaidNow] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newLink, setNewLink] = useState<{ paymentId: string; url: string } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [linkBusyId, setLinkBusyId] = useState<string | null>(null);
+  const [justPaid, setJustPaid] = useState<string | null>(null);
+  const previousPendingOnlineIds = useRef<Set<string>>(new Set());
 
   async function load() {
     const res = await fetch(`${basePath}/purchases`);
     const data = await res.json();
-    setPurchases(data.purchases ?? []);
+    const nextPurchases: Purchase[] = data.purchases ?? [];
+
+    const stillPendingIds = new Set(
+      nextPurchases.flatMap((p) => p.payments.filter((pay) => pay.method === "ONLINE" && pay.status === "PENDING").map((pay) => pay.id))
+    );
+    // A payment that was pending a moment ago and no longer is has either been paid
+    // (webhook fired) or expired/cancelled — either way, surface it once, quietly.
+    const resolved = Array.from(previousPendingOnlineIds.current).filter((id) => !stillPendingIds.has(id));
+    if (resolved.length > 0) {
+      const paidOne = nextPurchases
+        .flatMap((p) => p.payments)
+        .find((pay) => resolved.includes(pay.id) && pay.status === "PAID");
+      if (paidOne) {
+        setJustPaid(paidOne.id);
+        setTimeout(() => setJustPaid((cur) => (cur === paidOne.id ? null : cur)), 6000);
+      }
+    }
+    previousPendingOnlineIds.current = stillPendingIds;
+
+    setPurchases(nextPurchases);
   }
 
   useEffect(() => {
@@ -84,6 +110,16 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
       .then((data) => setOffers(data.offers ?? []));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- basePath is fixed for the component's lifetime
   }, [basePath]);
+
+  // While an athlete might be paying an online link right now, poll so the
+  // coach sees it flip to "Pagato" on its own — never because they hit reload.
+  const hasPendingOnline = (purchases ?? []).some((p) => p.payments.some((pay) => pay.method === "ONLINE" && pay.status === "PENDING"));
+  useEffect(() => {
+    if (!hasPendingOnline) return;
+    const interval = setInterval(load, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- basePath is fixed for the component's lifetime
+  }, [hasPendingOnline]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -106,14 +142,37 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
 
     trackClient("purchase_created", { method });
 
-    if (data.checkoutUrl) {
-      window.location.href = data.checkoutUrl;
-      return;
-    }
-
     setShowForm(false);
     setOfferId("");
     await load();
+
+    if (data.checkoutUrl && data.purchase?.payments?.[0]?.id) {
+      setNewLink({ paymentId: data.purchase.payments[0].id, url: data.checkoutUrl });
+    }
+  }
+
+  async function copyLink(paymentId: string, url: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // clipboard access can fail (permissions, non-secure context) — the link is still shown to copy by hand.
+    }
+    setCopiedId(paymentId);
+    setTimeout(() => setCopiedId((cur) => (cur === paymentId ? null : cur)), 2000);
+  }
+
+  async function getAndCopyLink(paymentId: string) {
+    setLinkBusyId(paymentId);
+    setError(null);
+    const res = await fetch(`/api/payments/${paymentId}/checkout-link`, { method: "POST" });
+    const data = await res.json();
+    setLinkBusyId(null);
+    if (!res.ok) {
+      setError(data.error ?? "Errore durante la generazione del link.");
+      return;
+    }
+    setNewLink({ paymentId, url: data.checkoutUrl });
+    await copyLink(paymentId, data.checkoutUrl);
   }
 
   async function markPaid(paymentId: string) {
@@ -132,6 +191,9 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
   const pendingOfflinePayments = (purchases ?? []).flatMap((p) =>
     p.payments.filter((pay) => pay.method !== "ONLINE" && pay.status === "PENDING").map((pay) => ({ purchase: p, payment: pay }))
   );
+  const pendingOnlinePayments = (purchases ?? []).flatMap((p) =>
+    p.payments.filter((pay) => pay.method === "ONLINE" && pay.status === "PENDING").map((pay) => ({ purchase: p, payment: pay }))
+  );
 
   return (
     <div>
@@ -144,6 +206,35 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
           + Nuovo acquisto
         </button>
       </div>
+
+      {justPaid && (
+        <div className="mb-4 rounded-md border border-positive/30 bg-positive/10 px-3.5 py-2.5 text-sm text-positive">
+          ✓ Pagamento ricevuto — l&apos;atleta ha appena pagato il link inviato.
+        </div>
+      )}
+
+      {newLink && (
+        <div className="mb-4 rounded-md border border-accent/30 bg-accent/10 p-3.5">
+          <p className="mb-2 text-xs font-medium text-accent">Link di pagamento pronto — copialo e inviaglielo</p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              readOnly
+              value={newLink.url}
+              onFocus={(e) => e.target.select()}
+              className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs outline-none"
+            />
+            <button
+              onClick={() => copyLink(newLink.paymentId, newLink.url)}
+              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-black hover:opacity-90"
+            >
+              {copiedId === newLink.paymentId ? "Copiato ✓" : "Copia link"}
+            </button>
+            <button onClick={() => setNewLink(null)} className="shrink-0 text-xs text-muted hover:text-foreground">
+              Chiudi
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={submit} className="mb-6 space-y-3 rounded-xl border border-border bg-surface p-4">
@@ -186,6 +277,12 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
               <option value="OFFLINE_OTHER">Altro</option>
             </select>
           </div>
+          {method === "ONLINE" && (
+            <p className="text-xs text-muted">
+              Genera un link di pagamento sicuro da copiare e inviare all&apos;atleta (WhatsApp, email, SMS…). Quando
+              paga, lo stato si aggiorna qui automaticamente.
+            </p>
+          )}
           {method !== "ONLINE" && (
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={markPaidNow} onChange={(e) => setMarkPaidNow(e.target.checked)} className="accent-accent" />
@@ -198,13 +295,33 @@ export function PaymentsSection({ basePath, stripeConfigured }: { basePath: stri
               disabled={busy || !offerId}
               className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? "…" : method === "ONLINE" ? "Vai al pagamento" : "Registra acquisto"}
+              {busy ? "…" : method === "ONLINE" ? "Genera link di pagamento" : "Registra acquisto"}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="rounded-md border border-border px-4 py-2 text-sm hover:bg-surface-2">
               Annulla
             </button>
           </div>
         </form>
+      )}
+
+      {pendingOnlinePayments.length > 0 && (
+        <div className="mb-6 space-y-2">
+          <p className="text-xs font-medium text-muted">In attesa che l&apos;atleta paghi il link</p>
+          {pendingOnlinePayments.map(({ purchase, payment }) => (
+            <div key={payment.id} className="flex items-center justify-between rounded-md border border-dashed border-border p-2.5 text-sm">
+              <span>
+                {purchase.offer.name} · {formatMoney(payment.amountCents, payment.currency)}
+              </span>
+              <button
+                onClick={() => getAndCopyLink(payment.id)}
+                disabled={linkBusyId === payment.id}
+                className="rounded-md border border-border px-2.5 py-1 text-xs hover:bg-surface-2 disabled:opacity-50"
+              >
+                {linkBusyId === payment.id ? "…" : copiedId === payment.id ? "Copiato ✓" : "Copia link"}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
       {pendingOfflinePayments.length > 0 && (
