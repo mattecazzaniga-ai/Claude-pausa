@@ -7,7 +7,8 @@ import { track } from "@/lib/analytics";
 import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
 
 /** Master prompt §33: end-of-session feedback, minimum effort — a quick rating plus an optional note. */
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -5,7 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { updateObjectiveSchema } from "@/lib/validation";
 import { track } from "@/lib/analytics";
 
-export async function PATCH(req: Request, { params }: { params: { id: string; objectiveId: string } }) {
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string; objectiveId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -33,7 +37,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string; ob
   return NextResponse.json({ objective: updated });
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string; objectiveId: string } }) {
+export async function DELETE(
+  _req: Request,
+  props: { params: Promise<{ id: string; objectiveId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

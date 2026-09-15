@@ -6,7 +6,8 @@ import { getTrainingSessionData } from "@/lib/session-data";
 import { Nav } from "@/components/nav";
 import { SessionClient } from "./session-client";
 
-export default async function SessionPage({ params }: { params: { id: string } }) {
+export default async function SessionPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect(`/login?callbackUrl=/sessions/${params.id}`);
 

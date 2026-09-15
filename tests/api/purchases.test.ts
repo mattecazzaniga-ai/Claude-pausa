@@ -47,7 +47,7 @@ describe("POST /api/athletes/[id]/purchases", () => {
     vi.mocked(createCheckoutSessionForPurchase).mockRejectedValue(new Error("Stripe is down"));
 
     const { POST } = await import("@/app/api/athletes/[id]/purchases/route");
-    const res = await POST(jsonRequest({ offerId, method: "ONLINE" }), { params: { id: athleteId } });
+    const res = await POST(jsonRequest({ offerId, method: "ONLINE" }), { params: Promise.resolve({ id: athleteId }) });
 
     expect(res.status).toBe(502);
 
@@ -63,7 +63,7 @@ describe("POST /api/athletes/[id]/purchases", () => {
     vi.mocked(createCheckoutSessionForPurchase).mockResolvedValue({ url: "https://checkout.stripe.com/test-session" });
 
     const { POST } = await import("@/app/api/athletes/[id]/purchases/route");
-    const res = await POST(jsonRequest({ offerId, method: "ONLINE" }), { params: { id: athleteId } });
+    const res = await POST(jsonRequest({ offerId, method: "ONLINE" }), { params: Promise.resolve({ id: athleteId }) });
 
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -76,7 +76,7 @@ describe("POST /api/athletes/[id]/purchases", () => {
 
   it("marks an offline purchase paid immediately when markPaidNow is set", async () => {
     const { POST } = await import("@/app/api/athletes/[id]/purchases/route");
-    const res = await POST(jsonRequest({ offerId, method: "OFFLINE_CASH", markPaidNow: true }), { params: { id: athleteId } });
+    const res = await POST(jsonRequest({ offerId, method: "OFFLINE_CASH", markPaidNow: true }), { params: Promise.resolve({ id: athleteId }) });
 
     expect(res.status).toBe(200);
     const purchases = await prisma.purchase.findMany({ where: { athleteId, offerId }, include: { payments: true } });
@@ -91,7 +91,7 @@ describe("POST /api/athletes/[id]/purchases", () => {
       const otherOffer = await createTestOffer(otherCoach.id);
 
       const { POST } = await import("@/app/api/athletes/[id]/purchases/route");
-      const res = await POST(jsonRequest({ offerId: otherOffer.id, method: "OFFLINE_CASH" }), { params: { id: athleteId } });
+      const res = await POST(jsonRequest({ offerId: otherOffer.id, method: "OFFLINE_CASH" }), { params: Promise.resolve({ id: athleteId }) });
 
       expect(res.status).toBe(404);
     } finally {

@@ -12,7 +12,11 @@ import { captureError } from "@/lib/monitoring";
 
 const RESULT_LABEL: Record<string, string> = { WIN: "Vittoria", LOSS: "Sconfitta", DRAW: "Pareggio", NOT_RECORDED: "Non registrato" };
 
-export async function PATCH(req: Request, { params }: { params: { id: string; competitionId: string } }) {
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string; competitionId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -66,7 +70,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string; co
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string; competitionId: string } }) {
+export async function DELETE(
+  _req: Request,
+  props: { params: Promise<{ id: string; competitionId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

@@ -10,7 +10,8 @@ import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
 
 /** Master prompt §9 — ephemeral by design: a hypothesis to discuss now, not a record to keep. */
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

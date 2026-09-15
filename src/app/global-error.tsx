@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
+import Link from "next/link";
 import "./globals.css";
 
 // Only fires when the root layout itself crashes, so it has to render the
@@ -20,12 +21,12 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
             <p className="mt-2 text-sm text-muted">
               Si è verificato un errore imprevisto a livello dell&apos;applicazione. Il problema è già stato segnalato.
             </p>
-            <a
+            <Link
               href="/"
               className="mt-6 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
             >
               Torna alla home
-            </a>
+            </Link>
           </div>
         </main>
       </body>

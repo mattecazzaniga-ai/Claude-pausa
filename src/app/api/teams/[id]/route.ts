@@ -6,7 +6,8 @@ import { deleteTeamCascade } from "@/lib/cascade-delete";
 import { forgetTeamMemory } from "@/lib/intelligence/coach-brain";
 import { track } from "@/lib/analytics";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -34,7 +35,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 /** Removes the team and every record that exists only because of it (roster, sessions, evaluations, objectives, competitions, calendar events). */
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

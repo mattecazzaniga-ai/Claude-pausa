@@ -7,7 +7,11 @@ import { track } from "@/lib/analytics";
 import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
 
 /** Master prompt §27: 👍/👎 on a recommendation — the minimum signal for future Coach Brain learning. */
-export async function PATCH(req: Request, { params }: { params: { id: string; recommendationId: string } }) {
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string; recommendationId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

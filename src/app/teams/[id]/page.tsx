@@ -8,7 +8,8 @@ import { Nav } from "@/components/nav";
 import { TeamClient } from "./team-client";
 import type { TeamData } from "./types";
 
-export default async function TeamPage({ params }: { params: { id: string } }) {
+export default async function TeamPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect(`/login?callbackUrl=/teams/${params.id}`);
 

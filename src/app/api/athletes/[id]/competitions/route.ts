@@ -7,7 +7,8 @@ import { track } from "@/lib/analytics";
 
 const DEFAULT_DURATION_MS = 2 * 60 * 60 * 1000;
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -22,7 +23,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ competitions });
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

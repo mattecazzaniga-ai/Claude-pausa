@@ -15,7 +15,8 @@ import { captureError } from "@/lib/monitoring";
  * master prompt's own "AI chat foundation, not a full build" scoping),
  * not a chat history product yet.
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

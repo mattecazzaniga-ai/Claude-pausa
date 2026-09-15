@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { getTrainingSessionData } from "@/lib/session-data";
 import { TrainingModeClient } from "./training-mode-client";
 
-export default async function TrainingModePage({ params }: { params: { id: string } }) {
+export default async function TrainingModePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect(`/login?callbackUrl=/sessions/${params.id}/train`);
 

@@ -7,7 +7,8 @@ import { deleteAthleteCascade } from "@/lib/cascade-delete";
 import { forgetAthleteMemory } from "@/lib/intelligence/coach-brain";
 import { track } from "@/lib/analytics";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -29,7 +30,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ athlete });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -63,7 +65,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
  * purchases/payments). This is destructive and irreversible — the coach
  * confirms explicitly in the UI before this is ever called.
  */
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

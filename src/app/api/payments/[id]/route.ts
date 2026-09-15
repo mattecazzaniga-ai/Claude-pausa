@@ -12,7 +12,8 @@ import { track } from "@/lib/analytics";
  * frontend says so"). This endpoint is the coach recording something that
  * already happened off-platform (cash handed over, a bank transfer seen).
  */
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

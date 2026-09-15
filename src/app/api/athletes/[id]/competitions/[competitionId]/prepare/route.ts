@@ -10,7 +10,11 @@ import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
 
 /** Master prompt §18/25: on-demand pre-competition preparation advice, generated fresh each time so it reflects the athlete's current form as the date approaches. */
-export async function POST(_req: Request, { params }: { params: { id: string; competitionId: string } }) {
+export async function POST(
+  _req: Request,
+  props: { params: Promise<{ id: string; competitionId: string }> }
+) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

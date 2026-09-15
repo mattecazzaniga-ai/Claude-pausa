@@ -9,7 +9,8 @@ import { Nav } from "@/components/nav";
 import { AthleteClient } from "./athlete-client";
 import type { AthleteData } from "./types";
 
-export default async function AthletePage({ params }: { params: { id: string } }) {
+export default async function AthletePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect(`/login?callbackUrl=/athletes/${params.id}`);
 

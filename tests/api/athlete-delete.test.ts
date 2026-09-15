@@ -38,7 +38,7 @@ describe("DELETE /api/athletes/[id]", () => {
     await recordCoachFeedbackSignal(coachId, "EXERCISE_REPLACED", "test", undefined, { athleteId: athlete.id });
 
     const { DELETE } = await import("@/app/api/athletes/[id]/route");
-    const res = await DELETE(deleteRequest(false), { params: { id: athlete.id } });
+    const res = await DELETE(deleteRequest(false), { params: Promise.resolve({ id: athlete.id }) });
     expect(res.status).toBe(200);
 
     const signals = await prisma.coachFeedbackSignal.findMany({ where: { coachId } });
@@ -52,7 +52,7 @@ describe("DELETE /api/athletes/[id]", () => {
     await recordCoachFeedbackSignal(coachId, "EXERCISE_REPLACED", "test", undefined, { athleteId: athlete.id });
 
     const { DELETE } = await import("@/app/api/athletes/[id]/route");
-    const res = await DELETE(deleteRequest(true), { params: { id: athlete.id } });
+    const res = await DELETE(deleteRequest(true), { params: Promise.resolve({ id: athlete.id }) });
     expect(res.status).toBe(200);
 
     const signals = await prisma.coachFeedbackSignal.findMany({ where: { coachId } });
@@ -64,7 +64,7 @@ describe("DELETE /api/athletes/[id]", () => {
     await recordCoachFeedbackSignal(coachId, "EXERCISE_REPLACED", "test", undefined, { athleteId: athlete.id });
 
     const { DELETE } = await import("@/app/api/athletes/[id]/route");
-    const res = await DELETE(deleteRequest(undefined), { params: { id: athlete.id } });
+    const res = await DELETE(deleteRequest(undefined), { params: Promise.resolve({ id: athlete.id }) });
     expect(res.status).toBe(200);
 
     const signals = await prisma.coachFeedbackSignal.findMany({ where: { coachId } });

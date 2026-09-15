@@ -11,7 +11,8 @@ import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
 
 /** Returns the most recently generated recommendation, if any — no AI call, just what's cached. */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -27,7 +28,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 /** Master prompt §5-6: generates a fresh Next Best Action from everything currently known about this athlete. */
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
