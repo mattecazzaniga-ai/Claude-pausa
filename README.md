@@ -1,5 +1,7 @@
 # CoachBrain
 
+[![CI](https://github.com/mattecazzaniga-ai/Claude-pausa/actions/workflows/ci.yml/badge.svg)](https://github.com/mattecazzaniga-ai/Claude-pausa/actions/workflows/ci.yml)
+
 > Il secondo cervello per il tuo coaching. Scrivi due righe dopo ogni sessione — CoachBrain ricorda lo storico di ogni atleta e ti dice su cosa lavorare dopo, e perché.
 
 MVP funzionante: un coach registra atleti, scrive una nota libera dopo ogni sessione, l'AI la trasforma in osservazioni strutturate collegate a una tassonomia di competenze configurabile per sport, e mantiene una sintesi/priorità sempre aggiornata per ogni atleta. Lancia con **Beach Tennis** come primo sport; l'architettura è sport-agnostica fin dall'inizio.
