@@ -13,6 +13,7 @@ import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
 import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const SENTIMENT_STYLE: Record<string, string> = {
   POSITIVE: "bg-positive/15 text-positive",
@@ -45,6 +46,8 @@ export function AthleteClient({
   const [sessionDuration, setSessionDuration] = useState("60");
   const [sessionObjective, setSessionObjective] = useState("");
   const [generatingSession, setGeneratingSession] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function generateSession(e: React.FormEvent) {
     e.preventDefault();
@@ -109,20 +112,21 @@ export function AthleteClient({
     trackClient("session_note_created", { athleteId: athlete.id });
   }
 
-  async function deleteAthlete() {
-    if (
-      !confirm(
-        `Eliminare definitivamente ${athlete.name}? Verranno rimossi anche note, sessioni, valutazioni, obiettivi, competizioni, eventi in calendario e acquisti collegati. L'azione non è reversibile.`
-      )
-    )
-      return;
-    const res = await fetch(`/api/athletes/${athlete.id}`, { method: "DELETE" });
+  async function deleteAthlete(forgetAiMemory: boolean) {
+    setDeleting(true);
+    const res = await fetch(`/api/athletes/${athlete.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ forgetAiMemory }),
+    });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      setDeleting(false);
+      setShowDeleteDialog(false);
       setError(data.error ?? "Errore durante l'eliminazione.");
       return;
     }
-    trackClient("athlete_deleted", { athleteId: athlete.id });
+    trackClient("athlete_deleted", { athleteId: athlete.id, forgetAiMemory });
     router.push("/dashboard");
   }
 
@@ -137,10 +141,21 @@ export function AthleteClient({
           </p>
           {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
         </div>
-        <button onClick={deleteAthlete} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+        <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
           Elimina atleta
         </button>
       </div>
+
+      {showDeleteDialog && (
+        <DeleteConfirmDialog
+          title={`Eliminare ${athlete.name}?`}
+          description="Verranno rimossi anche note, sessioni, valutazioni, obiettivi, competizioni, eventi in calendario e acquisti collegati. L'azione non è reversibile."
+          memoryLabel={`Elimina anche ciò che l'AI ha imparato osservando le tue interazioni con ${athlete.name} (esercizi sostituiti, sessioni valutate, raccomandazioni giudicate utili o meno). Se non selezioni questa opzione, quelle osservazioni continueranno a contribuire ai suggerimenti futuri.`}
+          busy={deleting}
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={deleteAthlete}
+        />
+      )}
 
       {!aiConfigured && (
         <div className="mb-6 rounded-lg border border-improving/30 bg-improving/10 px-4 py-3 text-sm text-improving">

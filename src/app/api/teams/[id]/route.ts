@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteTeamCascade } from "@/lib/cascade-delete";
+import { forgetTeamMemory } from "@/lib/intelligence/coach-brain";
 import { track } from "@/lib/analytics";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -33,16 +34,26 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 /** Removes the team and every record that exists only because of it (roster, sessions, evaluations, objectives, competitions, calendar events). */
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const team = await prisma.team.findUnique({ where: { id: params.id } });
   if (!team || team.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const body = await req.json().catch(() => null);
+  const forgetAiMemory = body?.forgetAiMemory === true;
+
+  // Must run before the cascade delete: once the team is gone, the
+  // now-orphaned signals get their teamId nulled out by the DB and can no
+  // longer be found by it.
+  if (forgetAiMemory) {
+    await forgetTeamMemory(session.user.id, team.id);
+  }
+
   await prisma.$transaction((tx) => deleteTeamCascade(tx, team.id));
 
-  track("team_deleted", session.user.id, { teamId: team.id });
+  track("team_deleted", session.user.id, { teamId: team.id, forgetAiMemory });
 
   return NextResponse.json({ ok: true });
 }

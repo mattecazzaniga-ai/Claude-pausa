@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import type { Prisma, CoachFeedbackSignalType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { CoachFeedbackSignalType } from "@prisma/client";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
@@ -15,21 +16,71 @@ type LearnedPreference = { insight: string; evidenceCount: number; category: str
 /**
  * Master prompt §10-11: log one moment a coach accepted, rejected, or
  * adjusted something the AI proposed. Fire-and-forget by design — a failure
- * here must never break the feature that produced the signal.
+ * here must never break the feature that produced the signal. athleteId/
+ * teamId are tagged when the signal came from working with a specific one,
+ * so it can later be found and removed if that athlete/team is deleted and
+ * the coach asks to forget it (see forgetAthleteMemory/forgetTeamMemory).
  */
 export async function recordCoachFeedbackSignal(
   coachId: string,
   type: CoachFeedbackSignalType,
   summary: string,
   detail?: Record<string, unknown>,
+  scope?: { athleteId?: string; teamId?: string },
 ) {
   try {
     await prisma.coachFeedbackSignal.create({
-      data: { coachId, type, summary, detail: (detail as Prisma.InputJsonValue) ?? undefined },
+      data: {
+        coachId,
+        type,
+        summary,
+        detail: (detail as Prisma.InputJsonValue) ?? undefined,
+        athleteId: scope?.athleteId,
+        teamId: scope?.teamId,
+      },
     });
   } catch (err) {
     console.error("Failed to record coach feedback signal", err);
   }
+}
+
+/**
+ * If too few signals are left to support any pattern, clear the cached
+ * synthesis outright rather than let a stale (possibly now-invalid) one
+ * linger — refreshCoachBrainIfStale on its own only ever recomputes, it
+ * never clears. Otherwise just invalidate the cache so the next real use
+ * (Next Best Action generation) recomputes it lazily, same as everywhere
+ * else in this app — this never blocks on an AI call.
+ */
+async function invalidateCoachBrain(coachId: string): Promise<void> {
+  const signalCount = await prisma.coachFeedbackSignal.count({ where: { coachId } });
+
+  if (signalCount < MIN_SIGNALS_FOR_SYNTHESIS) {
+    await prisma.coach.update({
+      where: { id: coachId },
+      data: { learnedPreferences: Prisma.JsonNull, learnedPreferencesUpdatedAt: null },
+    });
+    return;
+  }
+
+  await prisma.coach.update({ where: { id: coachId }, data: { learnedPreferencesUpdatedAt: null } });
+}
+
+/**
+ * Called when a coach deletes an athlete/team and explicitly asks to also
+ * forget what the Coach Brain learned from them. Removes only the signals
+ * tagged to it — signals recorded before this tagging existed aren't
+ * attributable to any one athlete/team and are left alone — then
+ * invalidates the synthesis so future recommendations stop reflecting it.
+ */
+export async function forgetAthleteMemory(coachId: string, athleteId: string): Promise<void> {
+  await prisma.coachFeedbackSignal.deleteMany({ where: { coachId, athleteId } });
+  await invalidateCoachBrain(coachId);
+}
+
+export async function forgetTeamMemory(coachId: string, teamId: string): Promise<void> {
+  await prisma.coachFeedbackSignal.deleteMany({ where: { coachId, teamId } });
+  await invalidateCoachBrain(coachId);
 }
 
 /**

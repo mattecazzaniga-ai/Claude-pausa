@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAthleteSchema } from "@/lib/validation";
 import { deleteAthleteCascade } from "@/lib/cascade-delete";
+import { forgetAthleteMemory } from "@/lib/intelligence/coach-brain";
 import { track } from "@/lib/analytics";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -62,7 +63,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
  * purchases/payments). This is destructive and irreversible — the coach
  * confirms explicitly in the UI before this is ever called.
  */
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -71,9 +72,19 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const body = await req.json().catch(() => null);
+  const forgetAiMemory = body?.forgetAiMemory === true;
+
+  // Must run before the cascade delete: once the athlete is gone, the
+  // now-orphaned signals get their athleteId nulled out by the DB and can
+  // no longer be found by it.
+  if (forgetAiMemory) {
+    await forgetAthleteMemory(session.user.id, athlete.id);
+  }
+
   await prisma.$transaction((tx) => deleteAthleteCascade(tx, athlete.id));
 
-  track("athlete_deleted", session.user.id, { athleteId: athlete.id });
+  track("athlete_deleted", session.user.id, { athleteId: athlete.id, forgetAiMemory });
 
   return NextResponse.json({ ok: true });
 }

@@ -36,6 +36,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string; re
     `Ha segnato come ${feedbackLabel} una raccomandazione di tipo ${recommendation.actionType} ("${recommendation.priorityLabel}")` +
       (parsed.data.feedbackReason ? `: motivo indicato "${parsed.data.feedbackReason}"` : "."),
     { actionType: recommendation.actionType, feedback: parsed.data.feedback, feedbackReason: parsed.data.feedbackReason ?? null },
+    { athleteId: recommendation.athleteId ?? undefined },
   );
 
   return NextResponse.json({ recommendation: updated });

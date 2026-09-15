@@ -41,6 +41,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     `Ha valutato una sessione di allenamento come "${RATING_LABEL[parsed.data.rating] ?? parsed.data.rating}"` +
       (parsed.data.note ? `, con nota: "${parsed.data.note}"` : "."),
     { rating: parsed.data.rating, note: parsed.data.note ?? null },
+    { athleteId: trainingSession.athleteId ?? undefined, teamId: trainingSession.teamId ?? undefined },
   );
 
   return NextResponse.json({ session: updated });

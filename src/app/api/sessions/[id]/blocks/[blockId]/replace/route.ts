@@ -108,6 +108,7 @@ export async function POST(_req: Request, { params }: { params: { id: string; bl
     "EXERCISE_REPLACED",
     `Ha sostituito l'esercizio suggerito dall'AI per un blocco di tipo ${block.type} ("${block.exercise?.name ?? "esercizio corrente"}").`,
     { blockType: block.type, previousExerciseId: block.exerciseId ?? null },
+    { athleteId: trainingSession.athleteId ?? undefined, teamId: trainingSession.teamId ?? undefined },
   );
 
   return NextResponse.json({ block: updated });

@@ -288,6 +288,7 @@ model Athlete {
   calendarEvents   CalendarEvent[]
   recommendations  CoachingRecommendation[]
   purchases        Purchase[]
+  feedbackSignals  CoachFeedbackSignal[]
 
   @@index([coachId])
 }
@@ -313,6 +314,7 @@ model Team {
   competitions     Competition[]
   calendarEvents   CalendarEvent[]
   recommendations  CoachingRecommendation[]
+  feedbackSignals  CoachFeedbackSignal[]
 
   @@index([coachId])
 }
@@ -707,14 +709,25 @@ enum CoachFeedbackSignalType {
 model CoachFeedbackSignal {
   id        String                  @id @default(cuid())
   coachId   String
+  /// Which athlete/team this signal was observed from, when known — lets a
+  /// coach "forget" everything the Coach Brain learned from one of them on
+  /// deletion (see forgetAthleteMemory/forgetTeamMemory). Optional because
+  /// not every signal is tied to one (and signals recorded before this field
+  /// existed have no such link).
+  athleteId String?
+  teamId    String?
   type      CoachFeedbackSignalType
   summary   String
   detail    Json?
   createdAt DateTime                @default(now())
 
-  coach Coach @relation(fields: [coachId], references: [id])
+  coach   Coach    @relation(fields: [coachId], references: [id])
+  athlete Athlete? @relation(fields: [athleteId], references: [id])
+  team    Team?    @relation(fields: [teamId], references: [id])
 
   @@index([coachId, createdAt])
+  @@index([athleteId])
+  @@index([teamId])
 }
 
 enum OfferType {

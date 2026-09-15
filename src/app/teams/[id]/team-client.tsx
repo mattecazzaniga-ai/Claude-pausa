@@ -10,6 +10,7 @@ import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
 import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
   const router = useRouter();
@@ -21,6 +22,8 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
   const [busyAdd, setBusyAdd] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function generateSession(e: React.FormEvent) {
     e.preventDefault();
@@ -89,20 +92,21 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
     trackClient("team_member_removed", { teamId: team.id, athleteId });
   }
 
-  async function deleteTeam() {
-    if (
-      !confirm(
-        `Eliminare definitivamente la squadra "${team.name}"? Verranno rimossi anche sessioni, valutazioni, obiettivi, competizioni ed eventi in calendario collegati (gli atleti della rosa non vengono eliminati). L'azione non è reversibile.`
-      )
-    )
-      return;
-    const res = await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
+  async function deleteTeam(forgetAiMemory: boolean) {
+    setDeleting(true);
+    const res = await fetch(`/api/teams/${team.id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ forgetAiMemory }),
+    });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      setDeleting(false);
+      setShowDeleteDialog(false);
       setError(data.error ?? "Errore durante l'eliminazione.");
       return;
     }
-    trackClient("team_deleted", { teamId: team.id });
+    trackClient("team_deleted", { teamId: team.id, forgetAiMemory });
     router.push("/teams");
   }
 
@@ -115,10 +119,21 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
             {team.sportName} · {team.members.length} {team.members.length === 1 ? "atleta" : "atleti"}
           </p>
         </div>
-        <button onClick={deleteTeam} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+        <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
           Elimina squadra
         </button>
       </div>
+
+      {showDeleteDialog && (
+        <DeleteConfirmDialog
+          title={`Eliminare la squadra "${team.name}"?`}
+          description="Verranno rimossi anche sessioni, valutazioni, obiettivi, competizioni ed eventi in calendario collegati (gli atleti della rosa non vengono eliminati). L'azione non è reversibile."
+          memoryLabel={`Elimina anche ciò che l'AI ha imparato osservando le tue interazioni con "${team.name}" (esercizi sostituiti, sessioni valutate, raccomandazioni giudicate utili o meno). Se non selezioni questa opzione, quelle osservazioni continueranno a contribuire ai suggerimenti futuri.`}
+          busy={deleting}
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={deleteTeam}
+        />
+      )}
 
       {!aiConfigured && (
         <div className="mb-6 rounded-lg border border-improving/30 bg-improving/10 px-4 py-3 text-sm text-improving">
