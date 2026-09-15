@@ -6,10 +6,10 @@ const nextConfig = {
   // it into the server/RSC layer (top-level Object.defineProperty on a
   // non-object during module init) — keep it a real CJS require at runtime
   // instead. mammoth has the same class of native/dynamic-require issues.
-  experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "mammoth"],
-    instrumentationHook: true,
-  },
+  // Moved out of `experimental` in Next.js 15: serverComponentsExternalPackages
+  // is now serverExternalPackages at the top level, and instrumentationHook
+  // is stable (no flag needed) now that instrumentation.ts is always loaded.
+  serverExternalPackages: ["pdf-parse", "mammoth"],
 
   // Baseline hardening applied to every response. Deliberately not a full
   // script/style-restricting Content-Security-Policy: getting that right
