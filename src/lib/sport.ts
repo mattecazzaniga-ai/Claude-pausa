@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generateSportTaxonomy } from "@/lib/ai-taxonomy";
-import { generateSportProfile } from "@/lib/ai-sport-profile";
+import { generateSportProfile, type GeneratedSportProfile } from "@/lib/ai-sport-profile";
+import { generateSportMetrics } from "@/lib/ai-sport-metrics";
 import { isAiConfigured } from "@/lib/ai";
 
 export function slugify(name: string): string {
@@ -47,7 +48,7 @@ export async function ensureSportTaxonomy(sportId: string): Promise<void> {
   }
   for (let i = 0; i < taxonomy.categories.length; i++) {
     const cat = taxonomy.categories[i];
-    const category = await prisma.skillCategory.create({ data: { sportId, name: cat.name, order: i } });
+    const category = await prisma.skillCategory.create({ data: { sportId, name: cat.name, type: cat.type, order: i } });
     for (let j = 0; j < cat.skills.length; j++) {
       await prisma.skill.create({ data: { categoryId: category.id, name: cat.skills[j], order: j } });
     }
@@ -71,12 +72,38 @@ export type SportProfileContext = {
   scoringSystem: string;
   keyRules: string;
   terminology: string;
+  positions: string;
+  movementPatterns: string;
+  gameSituations: string;
+  trainingMethods: string;
+  commonProblems: string;
+  progressions: string;
+  safetyNotes: string;
 };
+
+/** Shared field list so ensure/regenerate/get can't drift from each other by missing a field in one of the three spots. */
+function profileToDbData(profile: GeneratedSportProfile) {
+  return {
+    formats: profile.formats,
+    environment: profile.environment,
+    equipment: profile.equipment,
+    scoringSystem: profile.scoringSystem,
+    keyRules: profile.keyRules,
+    terminology: profile.terminology,
+    positions: profile.positions,
+    movementPatterns: profile.movementPatterns,
+    gameSituations: profile.gameSituations,
+    trainingMethods: profile.trainingMethods,
+    commonProblems: profile.commonProblems,
+    progressions: profile.progressions,
+    safetyNotes: profile.safetyNotes,
+  };
+}
 
 /**
  * Ensures a sport has a Sport Profile (environment/equipment/scoring/rules/
- * terminology), generating one via AI on first real use if it doesn't. Same
- * lazy/cached pattern as ensureSportTaxonomy — a no-op once generated.
+ * terminology/...), generating one via AI on first real use if it doesn't.
+ * Same lazy/cached pattern as ensureSportTaxonomy — a no-op once generated.
  */
 export async function ensureSportProfile(sportId: string): Promise<void> {
   const sport = await prisma.sport.findUnique({ where: { id: sportId } });
@@ -95,15 +122,7 @@ export async function ensureSportProfile(sportId: string): Promise<void> {
   }
   await prisma.sport.update({
     where: { id: sportId },
-    data: {
-      formats: profile.formats,
-      environment: profile.environment,
-      equipment: profile.equipment,
-      scoringSystem: profile.scoringSystem,
-      keyRules: profile.keyRules,
-      terminology: profile.terminology,
-      profileGeneratedAt: new Date(),
-    },
+    data: { ...profileToDbData(profile), profileGeneratedAt: new Date() },
   });
 }
 
@@ -124,25 +143,18 @@ export async function regenerateSportProfile(sportId: string): Promise<SportProf
   const profile = await generateSportProfile(sport.name);
   await prisma.sport.update({
     where: { id: sportId },
-    data: {
-      formats: profile.formats,
-      environment: profile.environment,
-      equipment: profile.equipment,
-      scoringSystem: profile.scoringSystem,
-      keyRules: profile.keyRules,
-      terminology: profile.terminology,
-      profileGeneratedAt: new Date(),
-    },
+    data: { ...profileToDbData(profile), profileGeneratedAt: new Date() },
   });
 
-  return {
-    formats: profile.formats,
-    environment: profile.environment,
-    equipment: profile.equipment,
-    scoringSystem: profile.scoringSystem,
-    keyRules: profile.keyRules,
-    terminology: profile.terminology,
-  };
+  // Metrics are a data-quality companion to the profile, not required for
+  // it to be usable — a failure here must never break the regenerate action.
+  try {
+    await ensureSportMetrics(sportId, { force: true });
+  } catch (err) {
+    console.error("Sport metrics regeneration failed", sportId, err);
+  }
+
+  return profileToDbData(profile);
 }
 
 /**
@@ -160,7 +172,54 @@ export async function getSportProfile(sportId: string): Promise<SportProfileCont
     scoringSystem: sport?.scoringSystem ?? "",
     keyRules: sport?.keyRules ?? "",
     terminology: sport?.terminology ?? "",
+    positions: sport?.positions ?? "",
+    movementPatterns: sport?.movementPatterns ?? "",
+    gameSituations: sport?.gameSituations ?? "",
+    trainingMethods: sport?.trainingMethods ?? "",
+    commonProblems: sport?.commonProblems ?? "",
+    progressions: sport?.progressions ?? "",
+    safetyNotes: sport?.safetyNotes ?? "",
   };
+}
+
+export type SportMetricData = { id: string; name: string; unit: string | null; description: string | null };
+
+/**
+ * Ensures a sport has performance metrics (master prompt §22), generating
+ * them via AI on first real use — same lazy/cached pattern as the taxonomy
+ * and profile. `force` re-generates and replaces the existing set (used when
+ * the coach regenerates the whole Sport Profile after spotting bad output).
+ */
+export async function ensureSportMetrics(sportId: string, opts?: { force?: boolean }): Promise<void> {
+  const existingCount = await prisma.sportMetric.count({ where: { sportId } });
+  if (existingCount > 0 && !opts?.force) return;
+  if (!isAiConfigured) return;
+
+  const sport = await prisma.sport.findUnique({ where: { id: sportId } });
+  if (!sport) return;
+
+  const sportContext = formatSportProfileForPrompt(sport.name, await getSportProfile(sportId));
+
+  let generated;
+  try {
+    generated = await generateSportMetrics(sport.name, sportContext);
+  } catch (err) {
+    console.error("Sport metrics generation failed", sportId, err);
+    return;
+  }
+  if (generated.metrics.length === 0) return;
+
+  await prisma.$transaction([
+    prisma.sportMetric.deleteMany({ where: { sportId } }),
+    prisma.sportMetric.createMany({
+      data: generated.metrics.map((m, i) => ({ sportId, name: m.name, unit: m.unit || null, description: m.description || null, order: i })),
+    }),
+  ]);
+}
+
+export async function getSportMetrics(sportId: string): Promise<SportMetricData[]> {
+  await ensureSportMetrics(sportId);
+  return prisma.sportMetric.findMany({ where: { sportId }, orderBy: { order: "asc" } });
 }
 
 /** Renders a Sport Profile as prompt text — shared by every AI call site so the framing stays consistent. */
@@ -168,12 +227,21 @@ export function formatSportProfileForPrompt(sportName: string, profile: SportPro
   const hasContent = profile.environment || profile.equipment || profile.scoringSystem || profile.keyRules || profile.terminology;
   if (!hasContent) return `Sport: ${sportName}`;
 
-  return (
-    `Sport: ${sportName}${profile.formats.length ? ` (formato: ${profile.formats.join("/")})` : ""}\n` +
-    `Campo/ambiente: ${profile.environment || "N/D"}\n` +
-    `Attrezzatura: ${profile.equipment || "N/D"}\n` +
-    `Punteggio: ${profile.scoringSystem || "N/D"}\n` +
-    `Regole chiave rilevanti per l'allenamento: ${profile.keyRules || "N/D"}\n` +
-    `Terminologia tecnica da usare: ${profile.terminology || "N/D"}`
-  );
+  const lines = [
+    `Sport: ${sportName}${profile.formats.length ? ` (formato: ${profile.formats.join("/")})` : ""}`,
+    `Campo/ambiente: ${profile.environment || "N/D"}`,
+    `Attrezzatura: ${profile.equipment || "N/D"}`,
+    `Punteggio: ${profile.scoringSystem || "N/D"}`,
+    `Regole chiave rilevanti per l'allenamento: ${profile.keyRules || "N/D"}`,
+    `Terminologia tecnica da usare: ${profile.terminology || "N/D"}`,
+  ];
+  if (profile.positions) lines.push(`Ruoli/posizioni: ${profile.positions}`);
+  if (profile.movementPatterns) lines.push(`Pattern di movimento specifici: ${profile.movementPatterns}`);
+  if (profile.gameSituations) lines.push(`Situazioni di gioco/allenamento: ${profile.gameSituations}`);
+  if (profile.trainingMethods) lines.push(`Metodologie di allenamento: ${profile.trainingMethods}`);
+  if (profile.commonProblems) lines.push(`Problemi tecnici/tattici comuni: ${profile.commonProblems}`);
+  if (profile.progressions) lines.push(`Progressioni didattiche: ${profile.progressions}`);
+  if (profile.safetyNotes) lines.push(`Sicurezza/infortuni tipici: ${profile.safetyNotes}`);
+
+  return lines.join("\n");
 }

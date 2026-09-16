@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getSportProfile, regenerateSportProfile } from "@/lib/sport";
+import { getSportProfile, getSportMetrics, regenerateSportProfile } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
@@ -15,8 +15,8 @@ export async function GET() {
   const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySport: true } });
   if (!coach?.primarySport) return NextResponse.json({ error: "Nessuno sport selezionato." }, { status: 409 });
 
-  const profile = await getSportProfile(coach.primarySport.id);
-  return NextResponse.json({ sportName: coach.primarySport.name, profile });
+  const [profile, metrics] = await Promise.all([getSportProfile(coach.primarySport.id), getSportMetrics(coach.primarySport.id)]);
+  return NextResponse.json({ sportName: coach.primarySport.name, profile, metrics });
 }
 
 /** Force-regenerates the shared Sport Profile — use when it looks wrong (e.g. terms borrowed from a similar sport). */
@@ -45,5 +45,6 @@ export async function POST() {
 
   track("sport_profile_regenerated", session.user.id, { sportId: coach.primarySport.id });
 
-  return NextResponse.json({ sportName: coach.primarySport.name, profile });
+  const metrics = await getSportMetrics(coach.primarySport.id);
+  return NextResponse.json({ sportName: coach.primarySport.name, profile, metrics });
 }

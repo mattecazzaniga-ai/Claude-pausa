@@ -222,10 +222,20 @@ model Sport {
   scoringSystem      String?
   keyRules           String?
   terminology        String?
+  /// Roles/positions specific to this sport (e.g. goalkeeper/defender for
+  /// football). Null/empty for sports with no positional structure.
+  positions          String?
+  movementPatterns   String?
+  gameSituations     String?
+  trainingMethods    String?
+  commonProblems     String?
+  progressions       String?
+  safetyNotes        String?
   profileGeneratedAt DateTime?
 
   coaches             Coach[]
   skillCategories     SkillCategory[]
+  metrics             SportMetric[]
   athletes            Athlete[]
   exercises           Exercise[]
   trainingSessions    TrainingSession[]
@@ -235,14 +245,41 @@ model Sport {
   offers              Offer[]
 }
 
+enum SkillCategoryType {
+  TECHNICAL
+  TACTICAL
+  PHYSICAL
+  MENTAL
+  OTHER
+}
+
 model SkillCategory {
-  id      String @id @default(cuid())
+  id      String            @id @default(cuid())
   sportId String
   name    String
-  order   Int    @default(0)
+  type    SkillCategoryType @default(OTHER)
+  order   Int               @default(0)
 
   sport  Sport   @relation(fields: [sportId], references: [id])
   skills Skill[]
+
+  @@index([sportId])
+}
+
+/// Sport-specific performance metrics (master prompt §22, "Smart Metrics
+/// Engine") — e.g. pace/distance for running, first-serve % for tennis.
+/// Generated lazily via AI on first real use, same pattern as the skill
+/// taxonomy and Sport Profile. Deliberately just name/unit/description: no
+/// invented thresholds or "scores" without a real statistical basis.
+model SportMetric {
+  id          String  @id @default(cuid())
+  sportId     String
+  name        String
+  unit        String?
+  description String?
+  order       Int     @default(0)
+
+  sport Sport @relation(fields: [sportId], references: [id])
 
   @@index([sportId])
 }

@@ -227,11 +227,21 @@ type SportProfile = {
   scoringSystem: string;
   keyRules: string;
   terminology: string;
+  positions: string;
+  movementPatterns: string;
+  gameSituations: string;
+  trainingMethods: string;
+  commonProblems: string;
+  progressions: string;
+  safetyNotes: string;
 };
+
+type SportMetric = { id: string; name: string; unit: string | null; description: string | null };
 
 function SportProfileCard() {
   const [sportName, setSportName] = useState<string | null>(null);
   const [profile, setProfile] = useState<SportProfile | null>(null);
+  const [metrics, setMetrics] = useState<SportMetric[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -243,6 +253,7 @@ function SportProfileCard() {
         if (data) {
           setSportName(data.sportName);
           setProfile(data.profile);
+          setMetrics(data.metrics ?? []);
         }
       });
   }, []);
@@ -259,6 +270,7 @@ function SportProfileCard() {
     }
     setSportName(data.sportName);
     setProfile(data.profile);
+    setMetrics(data.metrics ?? []);
   }
 
   if (!profile) return null;
@@ -282,6 +294,27 @@ function SportProfileCard() {
               <p><span className="text-muted">Punteggio:</span> {profile.scoringSystem || "N/D"}</p>
               <p><span className="text-muted">Regole chiave:</span> {profile.keyRules || "N/D"}</p>
               <p><span className="text-muted">Terminologia:</span> {profile.terminology || "N/D"}</p>
+              {profile.positions && <p><span className="text-muted">Ruoli/posizioni:</span> {profile.positions}</p>}
+              {profile.movementPatterns && <p><span className="text-muted">Pattern di movimento:</span> {profile.movementPatterns}</p>}
+              {profile.gameSituations && <p><span className="text-muted">Situazioni di gioco:</span> {profile.gameSituations}</p>}
+              {profile.trainingMethods && <p><span className="text-muted">Metodologie di allenamento:</span> {profile.trainingMethods}</p>}
+              {profile.commonProblems && <p><span className="text-muted">Problemi comuni:</span> {profile.commonProblems}</p>}
+              {profile.progressions && <p><span className="text-muted">Progressioni:</span> {profile.progressions}</p>}
+              {profile.safetyNotes && <p><span className="text-muted">Sicurezza:</span> {profile.safetyNotes}</p>}
+              {metrics.length > 0 && (
+                <div>
+                  <span className="text-muted">Metriche di performance:</span>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {metrics.map((m) => (
+                      <li key={m.id}>
+                        {m.name}
+                        {m.unit ? ` (${m.unit})` : ""}
+                        {m.description ? ` — ${m.description}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           ) : (
             <p className="text-muted">Profilo non ancora generato (verrà creato alla prima nota/esercizio/sessione).</p>

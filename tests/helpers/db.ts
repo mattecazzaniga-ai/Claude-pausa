@@ -83,5 +83,8 @@ export async function deleteTestCoach(coachId: string) {
 
 /** Sport is shared reference data — delete it explicitly once nothing references it anymore. */
 export async function deleteTestSport(sportId: string) {
+  await prisma.sportMetric.deleteMany({ where: { sportId } });
+  await prisma.skill.deleteMany({ where: { category: { sportId } } });
+  await prisma.skillCategory.deleteMany({ where: { sportId } });
   await prisma.sport.delete({ where: { id: sportId } });
 }

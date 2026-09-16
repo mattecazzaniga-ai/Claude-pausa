@@ -4,7 +4,8 @@ const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 const MODEL = "gemini-3.6-flash";
 
-export type GeneratedTaxonomy = { categories: { name: string; skills: string[] }[] };
+export type SkillCategoryType = "TECHNICAL" | "TACTICAL" | "PHYSICAL" | "MENTAL" | "OTHER";
+export type GeneratedTaxonomy = { categories: { name: string; type: SkillCategoryType; skills: string[] }[] };
 
 /**
  * Generates a skill taxonomy (Tecnica/Tattica/Fisico/... -> specific skills)
@@ -21,7 +22,10 @@ export async function generateSportTaxonomy(sportName: string): Promise<Generate
     contents:
       `Sei un esperto di metodologia dell'allenamento per molti sport. Crea una tassonomia di valutazione per il seguente sport, ` +
       `pensata per un allenatore che vuole valutare e sviluppare i propri atleti. Usa terminologia tecnica corretta e specifica per questo sport ` +
-      `(non generica). Includi normalmente categorie come Tecnica, Tattica, Fisico, e se rilevante per lo sport anche Mentale o altre categorie sport-specifiche. ` +
+      `(non generica). Organizza le competenze in categorie classificate per tipo: TECHNICAL (gesti/colpi/fondamentali), TACTICAL ` +
+      `(posizionamento, lettura del gioco, decisioni), PHYSICAL (qualità atletiche specifiche per questo sport, non generiche), e se ` +
+      `rilevante MENTAL o OTHER per aspetti sport-specifici che non rientrano nelle prime tre. Crea 2-4 categorie per ciascun tipo rilevante ` +
+      `per questo sport (non tutti i tipi sono sempre rilevanti). ` +
       `Ogni categoria deve avere 4-8 competenze specifiche, concrete, osservabili durante un allenamento. ` +
       `Attenzione a non confondere questo sport con sport simili (es. Beach Tennis vs Padel vs Tennis): usa solo nomi di colpi/competenze che ` +
       `appartengono davvero a questo sport, mai presi in prestito da uno sport affine.\n\n` +
@@ -37,9 +41,10 @@ export async function generateSportTaxonomy(sportName: string): Promise<Generate
               type: "object",
               properties: {
                 name: { type: "string" },
+                type: { type: "string", enum: ["TECHNICAL", "TACTICAL", "PHYSICAL", "MENTAL", "OTHER"] },
                 skills: { type: "array", items: { type: "string" } },
               },
-              required: ["name", "skills"],
+              required: ["name", "type", "skills"],
             },
           },
         },
