@@ -6,6 +6,7 @@ const RECENT_NOTES_LIMIT = 6;
 const RECENT_COMPETITIONS_LIMIT = 3;
 const RECENT_SESSIONS_LIMIT = 5;
 const RECENT_CHECKINS_LIMIT = 5;
+const RECENT_METRIC_VALUES_LIMIT = 40;
 
 export type IntelligenceContext = {
   subjectName: string;
@@ -31,6 +32,7 @@ export type IntelligenceContext = {
   recentSessions: { createdAt: string; objective: string | null; feedbackRating: string | null; feedbackNote: string | null }[];
   daysSinceLastSession: number | null;
   recentCheckins: { date: string; readiness: number | null; rpe: number | null; feeling: string | null; sleepHours: number | null; soreness: number | null; notes: string | null }[];
+  recentMetrics: { name: string; unit: string | null; latestValue: number; latestDate: string; trend: "up" | "down" | "flat" | null }[];
 };
 
 /**
@@ -48,7 +50,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
   });
   if (!athlete) throw new Error("Athlete not found");
 
-  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins] = await Promise.all([
+  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins, recentMetricValues] = await Promise.all([
     getSportProfile(athlete.sportId),
     getEvaluationCriteria(athlete.sportId, athlete.coachId),
     prisma.evaluation.findMany({ where: { athleteId }, orderBy: { evaluatedAt: "asc" }, include: { scores: true } }),
@@ -72,6 +74,12 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       select: { createdAt: true, objective: true, feedbackRating: true, feedbackNote: true },
     }),
     prisma.athleteCheckin.findMany({ where: { athleteId }, orderBy: { date: "desc" }, take: RECENT_CHECKINS_LIMIT }),
+    prisma.athleteMetricValue.findMany({
+      where: { athleteId },
+      orderBy: { recordedAt: "desc" },
+      take: RECENT_METRIC_VALUES_LIMIT,
+      include: { sportMetric: { select: { name: true, unit: true } } },
+    }),
   ]);
 
   const lastEvaluation = evaluations[evaluations.length - 1];
@@ -127,7 +135,25 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       soreness: c.soreness,
       notes: c.notes,
     })),
+    recentMetrics: summarizeMetricValues(recentMetricValues),
   };
+}
+
+/** Groups a desc-ordered value list by metric and keeps only latest value + trend vs the previous one — a compact prompt block, not the whole history. */
+export function summarizeMetricValues(
+  values: { value: number; recordedAt: Date; sportMetric: { name: string; unit: string | null } }[]
+): { name: string; unit: string | null; latestValue: number; latestDate: string; trend: "up" | "down" | "flat" | null }[] {
+  const byMetric = new Map<string, { value: number; recordedAt: Date; unit: string | null }[]>();
+  for (const v of values) {
+    const list = byMetric.get(v.sportMetric.name) ?? [];
+    list.push({ value: v.value, recordedAt: v.recordedAt, unit: v.sportMetric.unit });
+    byMetric.set(v.sportMetric.name, list);
+  }
+  return Array.from(byMetric.entries()).map(([name, points]) => {
+    const [latest, prev] = points; // already desc-ordered
+    const trend = prev ? (latest.value > prev.value ? "up" : latest.value < prev.value ? "down" : "flat") : null;
+    return { name, unit: latest.unit, latestValue: latest.value, latestDate: latest.recordedAt.toISOString(), trend };
+  });
 }
 
 export async function buildTeamIntelligenceContext(teamId: string): Promise<IntelligenceContext> {
@@ -209,6 +235,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
     })),
     daysSinceLastSession: recentSessions[0] ? daysBetween(recentSessions[0].createdAt, new Date()) : null,
     recentCheckins: [],
+    recentMetrics: [],
   };
 }
 
@@ -265,6 +292,14 @@ export function formatContextForPrompt(ctx: IntelligenceContext): string {
       if (c.soreness != null) parts.push(`indolenzimento ${c.soreness}/10`);
       if (c.notes) parts.push(`nota: "${c.notes}"`);
       lines.push(`- ${parts.join(" — ")}`);
+    });
+  }
+
+  if (ctx.recentMetrics.length) {
+    lines.push("Metriche sport-specifiche (ultimo valore registrato):");
+    ctx.recentMetrics.forEach((m) => {
+      const trendArrow = m.trend === "up" ? "↑" : m.trend === "down" ? "↓" : m.trend === "flat" ? "→" : "";
+      lines.push(`- ${m.name}: ${m.latestValue}${m.unit ?? ""} ${trendArrow} (${new Date(m.latestDate).toLocaleDateString("it-IT")})`);
     });
   }
 

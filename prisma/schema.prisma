@@ -185,6 +185,7 @@ model Coach {
   purchases           Purchase[]
   passwordResetTokens PasswordResetToken[]
   checkins            AthleteCheckin[]
+  metricValues        AthleteMetricValue[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -287,9 +288,31 @@ model SportMetric {
   description String?
   order       Int     @default(0)
 
-  sport Sport @relation(fields: [sportId], references: [id])
+  sport  Sport                @relation(fields: [sportId], references: [id])
+  values AthleteMetricValue[]
 
   @@index([sportId])
+}
+
+/// Closes the loop on the Smart Metrics Engine (master prompt §22): Phase 1
+/// only generated the metric *definitions* (name/unit/description) — this is
+/// where a coach actually records an athlete's real value over time, so the
+/// metric becomes a trend rather than a label nobody fills in.
+model AthleteMetricValue {
+  id            String   @id @default(cuid())
+  athleteId     String
+  coachId       String
+  sportMetricId String
+  value         Float
+  recordedAt    DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  athlete     Athlete     @relation(fields: [athleteId], references: [id])
+  coach       Coach       @relation(fields: [coachId], references: [id])
+  sportMetric SportMetric @relation(fields: [sportMetricId], references: [id])
+
+  @@index([athleteId, sportMetricId])
 }
 
 model Skill {
@@ -340,6 +363,7 @@ model Athlete {
   purchases        Purchase[]
   feedbackSignals  CoachFeedbackSignal[]
   checkins         AthleteCheckin[]
+  metricValues     AthleteMetricValue[]
 
   @@index([coachId])
 }

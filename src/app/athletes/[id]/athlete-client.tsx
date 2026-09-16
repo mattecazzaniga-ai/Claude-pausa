@@ -14,6 +14,7 @@ import { NextBestActionCard } from "@/components/next-best-action-card";
 import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
 import { CheckinSection } from "@/components/checkin-section";
+import { MetricsSection } from "@/components/metrics-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const SENTIMENT_STYLE: Record<string, string> = {
@@ -279,6 +280,7 @@ export function AthleteClient({
             content: (
               <>
                 <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
+                <MetricsSection basePath={`/api/athletes/${athlete.id}`} />
                 <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
               </>
             ),

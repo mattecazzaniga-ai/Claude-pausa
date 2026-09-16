@@ -59,6 +59,7 @@ export async function createTestOffer(coachId: string, overrides?: Partial<{ pri
 export async function deleteTestCoach(coachId: string) {
   await prisma.$transaction([
     prisma.athleteCheckin.deleteMany({ where: { coachId } }),
+    prisma.athleteMetricValue.deleteMany({ where: { coachId } }),
     prisma.payment.deleteMany({ where: { purchase: { coachId } } }),
     prisma.purchase.deleteMany({ where: { coachId } }),
     prisma.calendarEvent.deleteMany({ where: { coachId } }),

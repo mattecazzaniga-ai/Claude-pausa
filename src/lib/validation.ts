@@ -268,6 +268,13 @@ export const sessionStatusSchema = z.object({
   consumeCredit: z.boolean().optional(),
 });
 
+export const createMetricValueSchema = z.object({
+  sportMetricId: z.string().min(1),
+  value: z.number().finite(),
+  recordedAt: z.string().datetime().optional(),
+  notes: z.string().trim().max(300).optional().nullable(),
+});
+
 const checkinFeelingEnum = z.enum(["GREAT", "GOOD", "OK", "TIRED", "UNWELL"]);
 
 export const createCheckinSchema = z
