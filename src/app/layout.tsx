@@ -15,9 +15,9 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CoachBrain — Il sistema operativo del tuo coaching",
+  title: "Mentathlos — Il sistema operativo del tuo coaching",
   description:
-    "Gestisci atleti, allenamenti, calendario, progressi e pagamenti. CoachBrain porta l'AI dentro il lavoro quotidiano degli allenatori.",
+    "Gestisci atleti, allenamenti, calendario, progressi e pagamenti. Mentathlos porta l'AI dentro il lavoro quotidiano degli allenatori.",
 };
 
 export default function RootLayout({

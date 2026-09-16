@@ -65,7 +65,7 @@ const SPORT_LIST: { slug: string; name: string }[] = [
 ];
 
 async function main() {
-  console.log("Seeding CoachBrain...");
+  console.log("Seeding Mentathlos...");
 
   for (const s of SPORT_LIST) {
     await prisma.sport.upsert({ where: { slug: s.slug }, update: {}, create: s });

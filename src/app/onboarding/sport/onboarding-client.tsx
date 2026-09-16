@@ -61,7 +61,7 @@ export function OnboardingSportClient({ sports }: { sports: { id: string; name: 
         <span className="inline-block h-2 w-2 rounded-full bg-accent" />
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">Seleziona il tuo sport</h1>
         <p className="mt-1 text-sm text-muted">
-          CoachBrain adatta competenze, esercizi e sessioni al tuo sport specifico.
+          Mentathlos adatta competenze, esercizi e sessioni al tuo sport specifico.
         </p>
       </div>
 

@@ -26,8 +26,8 @@ export function LandingNav() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="inline-block h-2 w-2 rounded-full bg-accent" />
-          CoachBrain
+          <img src="/logo.png" alt="" className="h-7 w-7" />
+          Mentathlos
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm text-muted md:flex">

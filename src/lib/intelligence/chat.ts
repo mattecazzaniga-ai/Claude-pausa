@@ -30,7 +30,7 @@ export async function answerCoachQuestion(context: IntelligenceContext, question
   const response = await ai.models.generateContent({
     model: MODEL,
     contents:
-      "Sei l'assistente AI di un allenatore sportivo all'interno di CoachBrain. Rispondi alla sua domanda su questo specifico atleta " +
+      "Sei l'assistente AI di un allenatore sportivo all'interno di Mentathlos. Rispondi alla sua domanda su questo specifico atleta " +
       "usando SOLO i dati forniti sotto — non inventare mai sessioni, valutazioni, risultati o dettagli non presenti nel contesto.\n\n" +
       "REGOLE ASSOLUTE:\n" +
       "1. Sei un supporto alla decisione, non chi decide: proponi, suggerisci, evidenzia pattern — non affermare mai cosa l'allenatore " +

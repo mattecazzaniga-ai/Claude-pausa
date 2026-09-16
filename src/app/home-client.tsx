@@ -44,7 +44,7 @@ function Hero() {
           In un unico posto.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-balance text-lg text-muted">
-          Gestisci atleti, allenamenti, calendario, progressi e pagamenti. CoachBrain organizza tutto il tuo lavoro e
+          Gestisci atleti, allenamenti, calendario, progressi e pagamenti. Mentathlos organizza tutto il tuo lavoro e
           usa l&apos;AI per aiutarti a decidere cosa fare dopo.
         </p>
 
@@ -89,8 +89,8 @@ function ProductPreview() {
         <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
           <div className="flex items-center justify-between border-b border-border px-5 py-3">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <span className="inline-block h-2 w-2 rounded-full bg-accent" />
-              CoachBrain
+              <img src="/logo.png" alt="" className="h-4 w-4" />
+              Mentathlos
             </div>
             <div className="flex gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
@@ -171,7 +171,7 @@ const FEATURES = [
   {
     icon: AiIcon,
     title: "Un assistente che conosce il tuo lavoro.",
-    text: "CoachBrain usa lo storico degli atleti e delle sessioni per aiutarti a capire cosa monitorare e come impostare il prossimo allenamento.",
+    text: "Mentathlos usa lo storico degli atleti e delle sessioni per aiutarti a capire cosa monitorare e come impostare il prossimo allenamento.",
   },
 ];
 
@@ -218,7 +218,7 @@ function HowItWorks() {
         <Reveal className="text-center">
           <h2 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Dal primo allenamento al prossimo.</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted">
-            CoachBrain conserva il contesto del tuo lavoro, così ogni sessione parte da ciò che è successo prima.
+            Mentathlos conserva il contesto del tuo lavoro, così ogni sessione parte da ciò che è successo prima.
           </p>
         </Reveal>
 
@@ -259,11 +259,11 @@ function AiSection() {
           <h2 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
             Non devi ricordarti tutto.
             <br />
-            CoachBrain sì.
+            Mentathlos sì.
           </h2>
           <p className="mt-4 text-muted">
             Dopo settimane di allenamenti, decine di atleti e centinaia di note, le informazioni iniziano a
-            perdersi. CoachBrain costruisce uno storico del tuo lavoro e lo trasforma in informazioni utili.
+            perdersi. Mentathlos costruisce uno storico del tuo lavoro e lo trasforma in informazioni utili.
           </p>
           <p className="mt-4 text-sm text-muted">
             L&apos;AI supporta le tue decisioni — non alleni al posto tuo, ti aiuta a vedere ciò che i dati raccontano.
@@ -460,7 +460,7 @@ function DifferentiationSection() {
           Più di un assistente AI.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-muted">
-          CoachBrain unisce la gestione quotidiana del coach con un livello di intelligenza costruito attorno al suo
+          Mentathlos unisce la gestione quotidiana del coach con un livello di intelligenza costruito attorno al suo
           lavoro.
         </p>
       </Reveal>
@@ -491,7 +491,7 @@ function DifferentiationSection() {
         <span className="text-xl text-muted">=</span>
 
         <div className="flex h-full w-full items-center justify-center rounded-xl bg-accent px-5 py-8 text-center sm:w-40">
-          <p className="font-serif text-lg font-semibold text-black">CoachBrain</p>
+          <p className="font-serif text-lg font-semibold text-black">Mentathlos</p>
         </div>
       </Reveal>
     </section>
@@ -603,13 +603,13 @@ function PricingCard({
 /* ----------------------------------- FAQ ------------------------------------ */
 
 const FAQS = [
-  { q: "CoachBrain è solo per personal trainer?", a: "No. È pensato per chiunque alleni: personal coach, allenatori sportivi, tecnici di squadra e società con più atleti." },
+  { q: "Mentathlos è solo per personal trainer?", a: "No. È pensato per chiunque alleni: personal coach, allenatori sportivi, tecnici di squadra e società con più atleti." },
   { q: "Posso gestire più atleti?", a: "Sì, puoi creare e seguire tutti gli atleti che vuoi, ognuno con il proprio profilo, storico e calendario." },
   { q: "Posso creare pacchetti di allenamenti?", a: "Sì. Puoi creare offerte a sessione singola, pacchetti con un numero di lezioni e, in forma base, abbonamenti ricorrenti." },
   { q: "Posso registrare i pagamenti?", a: "Sì, sia online sia manualmente (contanti o bonifico), con lo storico completo di ogni acquisto." },
   { q: "Come funziona l'AI?", a: "Analizza lo storico reale di note, valutazioni e sessioni di un atleta e ti propone una priorità e un'azione concreta per la prossima sessione." },
   { q: "L'AI sostituisce il coach?", a: "No. L'AI supporta le tue decisioni, non le prende al posto tuo: la conferma finale è sempre tua." },
-  { q: "Posso usare CoachBrain con il mio sport?", a: "Sì, il sistema si adatta al tuo sport specifico, terminologia inclusa, e non è limitato a una sola disciplina." },
+  { q: "Posso usare Mentathlos con il mio sport?", a: "Sì, il sistema si adatta al tuo sport specifico, terminologia inclusa, e non è limitato a una sola disciplina." },
 ];
 
 function FaqSection() {
@@ -684,8 +684,8 @@ function Footer() {
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 text-center sm:flex-row sm:items-start sm:justify-between sm:text-left">
         <div>
           <div className="flex items-center justify-center gap-2 font-semibold tracking-tight sm:justify-start">
-            <span className="inline-block h-2 w-2 rounded-full bg-accent" />
-            CoachBrain
+            <img src="/logo.png" alt="" className="h-6 w-6" />
+            Mentathlos
           </div>
           <p className="mt-2 max-w-xs text-sm text-muted">Il sistema operativo del tuo coaching.</p>
         </div>

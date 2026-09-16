@@ -67,7 +67,7 @@ function ResetPasswordForm() {
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
-            ← CoachBrain
+            ← Mentathlos
           </Link>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Scegli una nuova password</h1>
         </div>

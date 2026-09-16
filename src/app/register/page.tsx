@@ -49,7 +49,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
-            ← CoachBrain
+            ← Mentathlos
           </Link>
           <h1 className="mt-4 text-2xl font-semibold tracking-tight">Crea il tuo account</h1>
           <p className="mt-1 text-sm text-muted">Gratis per iniziare, nessuna carta richiesta.</p>
