@@ -42,6 +42,7 @@ export const authOptions: AuthOptions = {
           id: coach.id,
           email: coach.email,
           name: coach.name,
+          selfCoaching: coach.selfCoaching,
         };
       },
     }),
@@ -51,6 +52,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.name = user.name ?? "";
+        token.selfCoaching = user.selfCoaching;
       }
       return token;
     },
@@ -58,6 +60,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
+        session.user.selfCoaching = Boolean(token.selfCoaching);
       }
       return session;
     },

@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selfCoaching, setSelfCoaching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,7 +23,7 @@ export default function RegisterPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ name, email, password, selfCoaching }),
     });
     const data = await res.json();
 
@@ -91,6 +92,21 @@ export default function RegisterPage() {
               placeholder="Almeno 8 caratteri"
             />
           </div>
+
+          <label className="flex items-start gap-2 rounded-md border border-border bg-surface-2 p-3 text-sm">
+            <input
+              type="checkbox"
+              checked={selfCoaching}
+              onChange={(e) => setSelfCoaching(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Mi alleno da solo</span>
+              <span className="block text-xs text-muted">
+                Niente gestione di altri atleti o squadre: solo il tuo allenamento personale, con check-in di prontezza e sforzo percepito.
+              </span>
+            </span>
+          </label>
 
           {error && <p className="text-sm text-negative">{error}</p>}
 

@@ -57,16 +57,19 @@ export default async function AthletePage(props: { params: Promise<{ id: string 
       deadline: g.deadline?.toISOString() ?? null,
       status: g.status,
     })),
+    isSelf: athlete.isSelf,
   };
 
   return (
     <main className="min-h-screen">
       <Nav />
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-          ← I miei atleti
-        </Link>
-      </div>
+      {!athlete.isSelf && (
+        <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+          <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
+            ← I miei atleti
+          </Link>
+        </div>
+      )}
       <AthleteClient initialData={data} aiConfigured={isAiConfigured} stripeConfigured={isStripeConfigured} />
     </main>
   );

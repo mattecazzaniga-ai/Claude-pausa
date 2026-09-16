@@ -160,6 +160,13 @@ model Coach {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  /// Set once at registration. A self-coaching account trains only itself:
+  /// onboarding auto-provisions one Athlete (isSelf: true) for the coach's
+  /// own name, and the dashboard/nav route straight to it instead of the
+  /// multi-athlete/team management UI. Reuses the existing Coach/Athlete
+  /// structure rather than a separate identity system — see Phase 2 scope.
+  selfCoaching Boolean @default(false)
+
   primarySport     Sport?            @relation(fields: [primarySportId], references: [id])
   athletes         Athlete[]
   sessionNotes     SessionNote[]
@@ -177,6 +184,7 @@ model Coach {
   offers           Offer[]
   purchases        Purchase[]
   passwordResetTokens PasswordResetToken[]
+  checkins         AthleteCheckin[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -314,6 +322,11 @@ model Athlete {
   aiPriorities       Json?
   aiSummaryUpdatedAt DateTime?
 
+  /// True for the one Athlete record auto-created for a self-coaching Coach
+  /// to represent themselves (see Coach.selfCoaching). Regular athletes a
+  /// coach manages for other people are always false.
+  isSelf Boolean @default(false)
+
   coach            Coach             @relation(fields: [coachId], references: [id])
   sport            Sport             @relation(fields: [sportId], references: [id])
   sessionNotes     SessionNote[]
@@ -326,6 +339,7 @@ model Athlete {
   recommendations  CoachingRecommendation[]
   purchases        Purchase[]
   feedbackSignals  CoachFeedbackSignal[]
+  checkins         AthleteCheckin[]
 
   @@index([coachId])
 }
@@ -765,6 +779,40 @@ model CoachFeedbackSignal {
   @@index([coachId, createdAt])
   @@index([athleteId])
   @@index([teamId])
+}
+
+enum CheckinFeeling {
+  GREAT
+  GOOD
+  OK
+  TIRED
+  UNWELL
+}
+
+/// Quick self-assessment an athlete (or a self-coaching Coach logging their
+/// own training) fills in themselves — readiness before a session, perceived
+/// exertion (Borg CR10, 0-10) after one, sleep and soreness. Deliberately
+/// just these well-established fields, not an invented composite "score" —
+/// see master prompt §22's warning against fabricating unvalidated metrics.
+/// Fed into buildAthleteIntelligenceContext so Next Best Action can factor
+/// in how the athlete actually feels, not just what the coach observed.
+model AthleteCheckin {
+  id         String          @id @default(cuid())
+  athleteId  String
+  coachId    String
+  date       DateTime        @default(now())
+  readiness  Int?
+  rpe        Int?
+  feeling    CheckinFeeling?
+  sleepHours Float?
+  soreness   Int?
+  notes      String?
+  createdAt  DateTime        @default(now())
+
+  athlete Athlete @relation(fields: [athleteId], references: [id])
+  coach   Coach   @relation(fields: [coachId], references: [id])
+
+  @@index([athleteId, date])
 }
 
 enum OfferType {

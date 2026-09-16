@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dati non validi" }, { status: 400 });
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, selfCoaching } = parsed.data;
 
   const existing = await prisma.coach.findUnique({ where: { email }, select: { id: true } });
   if (existing) {
@@ -26,11 +26,11 @@ export async function POST(req: Request) {
 
   const passwordHash = await bcrypt.hash(password, 10);
   const coach = await prisma.coach.create({
-    data: { name, email, passwordHash },
+    data: { name, email, passwordHash, selfCoaching: Boolean(selfCoaching) },
     select: { id: true, name: true, email: true },
   });
 
-  track("signup", coach.id, { name: coach.name });
+  track("signup", coach.id, { name: coach.name, selfCoaching: Boolean(selfCoaching) });
 
   return NextResponse.json({ coach });
 }

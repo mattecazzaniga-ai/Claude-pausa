@@ -28,7 +28,23 @@ export async function POST(req: Request) {
 
   if (!sport) return NextResponse.json({ error: "Sport non trovato." }, { status: 404 });
 
-  await prisma.coach.update({ where: { id: session.user.id }, data: { primarySportId: sport.id } });
+  const coach = await prisma.coach.update({
+    where: { id: session.user.id },
+    data: { primarySportId: sport.id },
+    select: { name: true, selfCoaching: true },
+  });
+
+  // Self-coaching accounts train only themselves — provision their own
+  // Athlete record once the sport is known, instead of asking them to create
+  // "an athlete" for themselves in the normal multi-athlete flow.
+  if (coach.selfCoaching) {
+    const existingSelf = await prisma.athlete.findFirst({ where: { coachId: session.user.id, isSelf: true } });
+    if (!existingSelf) {
+      await prisma.athlete.create({
+        data: { coachId: session.user.id, sportId: sport.id, name: coach.name, isSelf: true },
+      });
+    }
+  }
 
   track("sport_onboarded", session.user.id, { sportId: sport.id, sportName: sport.name });
 

@@ -53,7 +53,8 @@ export type AnalyticsEventName =
   | "exercise_deleted"
   | "password_reset_requested"
   | "password_reset_completed"
-  | "athlete_chat_question_asked";
+  | "athlete_chat_question_asked"
+  | "checkin_created";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

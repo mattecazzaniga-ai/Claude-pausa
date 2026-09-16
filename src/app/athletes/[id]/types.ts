@@ -22,4 +22,5 @@ export type AthleteData = {
   aiSummaryUpdatedAt: string | null;
   notes: SessionNoteData[];
   goals: GoalData[];
+  isSelf: boolean;
 };

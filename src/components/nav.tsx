@@ -20,20 +20,24 @@ export function Nav() {
           {session?.user && (
             <>
               <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                I miei atleti
+                {session.user.selfCoaching ? "Il mio allenamento" : "I miei atleti"}
               </Link>
-              <Link href="/teams" className="hover:text-foreground transition-colors">
-                Squadre
-              </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/teams" className="hover:text-foreground transition-colors">
+                  Squadre
+                </Link>
+              )}
               <Link href="/calendar" className="hover:text-foreground transition-colors">
                 Calendario
               </Link>
               <Link href="/exercises" className="hover:text-foreground transition-colors">
                 Esercizi
               </Link>
-              <Link href="/payments" className="hover:text-foreground transition-colors">
-                Pagamenti
-              </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/payments" className="hover:text-foreground transition-colors">
+                  Pagamenti
+                </Link>
+              )}
             </>
           )}
         </nav>
@@ -82,20 +86,24 @@ export function Nav() {
           {session?.user ? (
             <>
               <Link href="/dashboard" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                I miei atleti
+                {session.user.selfCoaching ? "Il mio allenamento" : "I miei atleti"}
               </Link>
-              <Link href="/teams" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                Squadre
-              </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/teams" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                  Squadre
+                </Link>
+              )}
               <Link href="/calendar" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Calendario
               </Link>
               <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Esercizi
               </Link>
-              <Link href="/payments" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                Pagamenti
-              </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/payments" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                  Pagamenti
+                </Link>
+              )}
               <button onClick={() => signOut({ callbackUrl: "/" })} className="rounded-md px-2 py-2 text-left text-sm hover:bg-surface-2">
                 Esci
               </button>

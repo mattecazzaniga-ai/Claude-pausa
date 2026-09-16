@@ -4,6 +4,7 @@ export const registerSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(60),
   email: z.string().trim().toLowerCase().email("Inserisci un'email valida"),
   password: z.string().min(8, "La password deve avere almeno 8 caratteri").max(72),
+  selfCoaching: z.boolean().optional(),
 });
 
 export const forgotPasswordSchema = z.object({
@@ -266,3 +267,18 @@ export const sessionStatusSchema = z.object({
   status: z.enum(["CANCELLED", "NO_SHOW"]),
   consumeCredit: z.boolean().optional(),
 });
+
+const checkinFeelingEnum = z.enum(["GREAT", "GOOD", "OK", "TIRED", "UNWELL"]);
+
+export const createCheckinSchema = z
+  .object({
+    readiness: z.number().int().min(1).max(10).optional().nullable(),
+    rpe: z.number().int().min(0).max(10).optional().nullable(),
+    feeling: checkinFeelingEnum.optional().nullable(),
+    sleepHours: z.number().min(0).max(24).optional().nullable(),
+    soreness: z.number().int().min(1).max(10).optional().nullable(),
+    notes: z.string().trim().max(500).optional().nullable(),
+  })
+  .refine((data) => data.readiness != null || data.rpe != null || data.feeling != null || data.sleepHours != null || data.soreness != null || Boolean(data.notes), {
+    message: "Compila almeno un campo del check-in.",
+  });

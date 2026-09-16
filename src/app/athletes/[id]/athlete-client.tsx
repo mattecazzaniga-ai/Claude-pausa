@@ -13,6 +13,7 @@ import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
 import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
+import { CheckinSection } from "@/components/checkin-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const SENTIMENT_STYLE: Record<string, string> = {
@@ -141,9 +142,11 @@ export function AthleteClient({
           </p>
           {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
         </div>
-        <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
-          Elimina atleta
-        </button>
+        {!athlete.isSelf && (
+          <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+            Elimina atleta
+          </button>
+        )}
       </div>
 
       {showDeleteDialog && (
@@ -281,15 +284,24 @@ export function AthleteClient({
             ),
           },
           {
+            id: "checkin",
+            label: "Check-in",
+            content: <CheckinSection basePath={`/api/athletes/${athlete.id}`} />,
+          },
+          {
             id: "competitions",
             label: "Competizioni",
             content: <CompetitionsSection basePath={`/api/athletes/${athlete.id}`} />,
           },
-          {
-            id: "payments",
-            label: "Pagamenti",
-            content: <PaymentsSection basePath={`/api/athletes/${athlete.id}`} stripeConfigured={stripeConfigured} />,
-          },
+          ...(athlete.isSelf
+            ? []
+            : [
+                {
+                  id: "payments",
+                  label: "Pagamenti",
+                  content: <PaymentsSection basePath={`/api/athletes/${athlete.id}`} stripeConfigured={stripeConfigured} />,
+                },
+              ]),
           {
             id: "history",
             label: "Storico",

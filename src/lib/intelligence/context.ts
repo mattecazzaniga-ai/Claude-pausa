@@ -5,6 +5,7 @@ import { getEvaluationCriteria, buildComparison, type ComparisonRow } from "@/li
 const RECENT_NOTES_LIMIT = 6;
 const RECENT_COMPETITIONS_LIMIT = 3;
 const RECENT_SESSIONS_LIMIT = 5;
+const RECENT_CHECKINS_LIMIT = 5;
 
 export type IntelligenceContext = {
   subjectName: string;
@@ -29,6 +30,7 @@ export type IntelligenceContext = {
   upcomingCompetition: { name: string; scheduledAt: string; daysUntil: number } | null;
   recentSessions: { createdAt: string; objective: string | null; feedbackRating: string | null; feedbackNote: string | null }[];
   daysSinceLastSession: number | null;
+  recentCheckins: { date: string; readiness: number | null; rpe: number | null; feeling: string | null; sleepHours: number | null; soreness: number | null; notes: string | null }[];
 };
 
 /**
@@ -46,7 +48,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
   });
   if (!athlete) throw new Error("Athlete not found");
 
-  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions] = await Promise.all([
+  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins] = await Promise.all([
     getSportProfile(athlete.sportId),
     getEvaluationCriteria(athlete.sportId, athlete.coachId),
     prisma.evaluation.findMany({ where: { athleteId }, orderBy: { evaluatedAt: "asc" }, include: { scores: true } }),
@@ -69,6 +71,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       take: RECENT_SESSIONS_LIMIT,
       select: { createdAt: true, objective: true, feedbackRating: true, feedbackNote: true },
     }),
+    prisma.athleteCheckin.findMany({ where: { athleteId }, orderBy: { date: "desc" }, take: RECENT_CHECKINS_LIMIT }),
   ]);
 
   const lastEvaluation = evaluations[evaluations.length - 1];
@@ -115,6 +118,15 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       feedbackNote: s.feedbackNote,
     })),
     daysSinceLastSession: lastSessionNote ? daysBetween(lastSessionNote.sessionDate, new Date()) : null,
+    recentCheckins: recentCheckins.map((c) => ({
+      date: c.date.toISOString(),
+      readiness: c.readiness,
+      rpe: c.rpe,
+      feeling: c.feeling,
+      sleepHours: c.sleepHours,
+      soreness: c.soreness,
+      notes: c.notes,
+    })),
   };
 }
 
@@ -196,6 +208,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
       feedbackNote: s.feedbackNote,
     })),
     daysSinceLastSession: recentSessions[0] ? daysBetween(recentSessions[0].createdAt, new Date()) : null,
+    recentCheckins: [],
   };
 }
 
@@ -238,6 +251,20 @@ export function formatContextForPrompt(ctx: IntelligenceContext): string {
     ctx.recentNotes.forEach((n) => {
       const tagsText = n.tags.length ? ` [${n.tags.map((t) => `${t.skill}:${t.sentiment}`).join(", ")}]` : "";
       lines.push(`- ${new Date(n.date).toLocaleDateString("it-IT")}: "${n.text}"${tagsText}`);
+    });
+  }
+
+  if (ctx.recentCheckins.length) {
+    lines.push("Check-in di autovalutazione recenti (dal più recente):");
+    ctx.recentCheckins.forEach((c) => {
+      const parts = [new Date(c.date).toLocaleDateString("it-IT")];
+      if (c.readiness != null) parts.push(`prontezza ${c.readiness}/10`);
+      if (c.rpe != null) parts.push(`sforzo percepito ${c.rpe}/10`);
+      if (c.feeling) parts.push(`sensazione: ${c.feeling}`);
+      if (c.sleepHours != null) parts.push(`sonno ${c.sleepHours}h`);
+      if (c.soreness != null) parts.push(`indolenzimento ${c.soreness}/10`);
+      if (c.notes) parts.push(`nota: "${c.notes}"`);
+      lines.push(`- ${parts.join(" — ")}`);
     });
   }
 

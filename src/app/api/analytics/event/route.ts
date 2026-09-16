@@ -53,6 +53,7 @@ const ALLOWED: AnalyticsEventName[] = [
   "training_session_deleted",
   "exercise_deleted",
   "athlete_chat_question_asked",
+  "checkin_created",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

@@ -27,13 +27,14 @@ export async function createTestSport() {
   });
 }
 
-export async function createTestAthlete(coachId: string, sportId: string, overrides?: Partial<{ name: string }>) {
+export async function createTestAthlete(coachId: string, sportId: string, overrides?: Partial<{ name: string; isSelf: boolean }>) {
   const suffix = uniqueSuffix();
   return prisma.athlete.create({
     data: {
       coachId,
       sportId,
       name: overrides?.name ?? `Test Athlete ${suffix}`,
+      isSelf: overrides?.isSelf ?? false,
     },
   });
 }
@@ -57,6 +58,7 @@ export async function createTestOffer(coachId: string, overrides?: Partial<{ pri
 /** Deletes a coach and everything under it — the same cascade a real account deletion would need. */
 export async function deleteTestCoach(coachId: string) {
   await prisma.$transaction([
+    prisma.athleteCheckin.deleteMany({ where: { coachId } }),
     prisma.payment.deleteMany({ where: { purchase: { coachId } } }),
     prisma.purchase.deleteMany({ where: { coachId } }),
     prisma.calendarEvent.deleteMany({ where: { coachId } }),
