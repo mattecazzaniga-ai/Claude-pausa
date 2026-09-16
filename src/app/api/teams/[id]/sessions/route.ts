@@ -6,6 +6,7 @@ import { generateTeamSessionSchema } from "@/lib/validation";
 import { isAiConfigured } from "@/lib/ai";
 import { generateTeamSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
+import { computeTeamAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -66,6 +67,17 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const sportProfile = await getSportProfile(team.sportId);
   const sportContext = formatSportProfileForPrompt(team.sport.name, sportProfile);
 
+  const memberAthleteIds = team.members.map((m) => m.athleteId);
+  const recentCheckins = await prisma.athleteCheckin.findMany({
+    where: { athleteId: { in: memberAthleteIds } },
+    orderBy: { date: "desc" },
+  });
+  const latestCheckinByAthlete = new Map<string, (typeof recentCheckins)[number]>();
+  for (const c of recentCheckins) {
+    if (!latestCheckinByAthlete.has(c.athleteId)) latestCheckinByAthlete.set(c.athleteId, c);
+  }
+  const adaptation = computeTeamAdaptationSignal(memberAthleteIds.map((id) => latestCheckinByAthlete.get(id) ?? null));
+
   let plan;
   try {
     plan = await generateTeamSessionPlan({
@@ -80,6 +92,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       intensity: parsed.data.intensity,
       libraryExercises,
       sportContext,
+      adaptationDirective: adaptation ? formatAdaptationDirective(adaptation) : undefined,
     });
   } catch (err) {
     captureError("AI team session generation failed", err);
@@ -93,6 +106,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       sportId: team.sportId,
       objective: plan.objective,
       durationMinutes: parsed.data.durationMinutes,
+      adaptationNote: adaptation ? formatAdaptationNote(adaptation) : undefined,
     },
   });
 

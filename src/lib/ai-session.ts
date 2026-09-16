@@ -149,6 +149,7 @@ export async function generateTeamSessionPlan(params: {
   intensity?: string;
   libraryExercises: LibraryExercise[];
   sportContext?: string;
+  adaptationDirective?: string;
 }): Promise<GeneratedSessionPlan> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -181,6 +182,7 @@ export async function generateTeamSessionPlan(params: {
       "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport. " +
       "Non usare mai terminologia presa in prestito da uno sport simile ma diverso.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
+      `${params.adaptationDirective ? `${params.adaptationDirective}\n\n` : ""}` +
       `Squadra: ${params.teamName}\n` +
       `Priorità individuali dei membri (bilancia il lavoro comune con ciò che emerge più spesso):\n${membersText}\n\n` +
       `Durata sessione richiesta: ${params.durationMinutes} minuti\n` +

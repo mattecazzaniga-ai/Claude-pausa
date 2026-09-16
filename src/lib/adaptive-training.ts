@@ -118,3 +118,36 @@ export function formatAdaptationNote(signal: AdaptationSignal): string {
   const reasonsText = signal.reasons.join("; ");
   return signal.level === "REDUCE" ? `Carico ridotto automaticamente — ${reasonsText}.` : `Carico aumentato automaticamente — ${reasonsText}.`;
 }
+
+export function hasRecentCheckin(checkin: CheckinInput | null, now: Date = new Date()): boolean {
+  return checkin != null && hoursSince(checkin.date, now) <= CHECKIN_RECENCY_HOURS;
+}
+
+/**
+ * Team-level counterpart, deferred from the individual Adaptive Training
+ * Engine (aggregating several athletes' check-ins is a different problem —
+ * see the Phase 3 commit). Deliberately conservative in both directions:
+ * REDUCE needs at least half of the members who actually checked in
+ * recently to show fatigue (a single tired athlete shouldn't soften a whole
+ * team session); INCREASE needs every single one of them fully ready (a
+ * team session affects everyone, so it's the higher bar). Members with no
+ * recent check-in are excluded from the count rather than treated as
+ * neutral — no data isn't "fine".
+ */
+export function computeTeamAdaptationSignal(memberCheckins: (CheckinInput | null)[], now: Date = new Date()): AdaptationSignal | null {
+  const withData = memberCheckins.filter((c): c is CheckinInput => hasRecentCheckin(c, now));
+  if (withData.length === 0) return null;
+
+  const perMember = withData.map((c) => computeAdaptationSignal({ latestCheckin: c, recentSessions: [] }, now));
+  const reduceCount = perMember.filter((s) => s?.level === "REDUCE").length;
+  const increaseCount = perMember.filter((s) => s?.level === "INCREASE").length;
+  const total = withData.length;
+
+  if (reduceCount * 2 >= total) {
+    return { level: "REDUCE", reasons: [`${reduceCount} atleti su ${total} con check-in recente mostrano segnali di affaticamento`] };
+  }
+  if (increaseCount === total) {
+    return { level: "INCREASE", reasons: [`tutti i ${total} atleti con check-in recente sono pienamente pronti`] };
+  }
+  return null;
+}

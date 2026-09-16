@@ -39,6 +39,18 @@ export async function createTestAthlete(coachId: string, sportId: string, overri
   });
 }
 
+export async function createTestTeam(coachId: string, sportId: string, athleteIds: string[] = []) {
+  const suffix = uniqueSuffix();
+  return prisma.team.create({
+    data: {
+      coachId,
+      sportId,
+      name: `Test Team ${suffix}`,
+      members: { create: athleteIds.map((athleteId) => ({ athleteId })) },
+    },
+  });
+}
+
 export async function createTestOffer(coachId: string, overrides?: Partial<{ priceCents: number; sessionCount: number }>) {
   const suffix = uniqueSuffix();
   return prisma.offer.create({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
+import { computeAdaptationSignal, computeTeamAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
 
 const NOW = new Date("2026-09-16T12:00:00.000Z");
 
@@ -116,6 +116,65 @@ describe("computeAdaptationSignal", () => {
       NOW
     );
     expect(signal?.level).toBe("REDUCE");
+  });
+});
+
+describe("computeTeamAdaptationSignal", () => {
+  it("returns null when no member has a recent checkin", () => {
+    const signal = computeTeamAdaptationSignal([null, null], NOW);
+    expect(signal).toBeNull();
+  });
+
+  it("REDUCEs when at least half of the checked-in members show fatigue", () => {
+    const signal = computeTeamAdaptationSignal(
+      [
+        { date: hoursAgo(2), readiness: 2, rpe: null, soreness: null, sleepHours: null }, // reduce
+        { date: hoursAgo(2), readiness: 6, rpe: null, soreness: null, sleepHours: null }, // neutral
+        null, // no data, excluded from the count
+      ],
+      NOW
+    );
+    expect(signal?.level).toBe("REDUCE");
+    expect(signal?.reasons[0]).toContain("1 atleti su 2");
+  });
+
+  it("does not REDUCE when fewer than half show fatigue", () => {
+    const signal = computeTeamAdaptationSignal(
+      [
+        { date: hoursAgo(2), readiness: 2, rpe: null, soreness: null, sleepHours: null },
+        { date: hoursAgo(2), readiness: 6, rpe: null, soreness: null, sleepHours: null },
+        { date: hoursAgo(2), readiness: 7, rpe: null, soreness: null, sleepHours: null },
+      ],
+      NOW
+    );
+    expect(signal).toBeNull();
+  });
+
+  it("INCREASEs only when every checked-in member is fully ready", () => {
+    const signal = computeTeamAdaptationSignal(
+      [
+        { date: hoursAgo(2), readiness: 10, rpe: 2, soreness: 1, sleepHours: 8 },
+        { date: hoursAgo(2), readiness: 9, rpe: 3, soreness: 0, sleepHours: 8 },
+      ],
+      NOW
+    );
+    expect(signal?.level).toBe("INCREASE");
+  });
+
+  it("does not INCREASE when even one checked-in member is only neutral", () => {
+    const signal = computeTeamAdaptationSignal(
+      [
+        { date: hoursAgo(2), readiness: 10, rpe: 2, soreness: 1, sleepHours: 8 },
+        { date: hoursAgo(2), readiness: 6, rpe: 5, soreness: 4, sleepHours: 7 },
+      ],
+      NOW
+    );
+    expect(signal).toBeNull();
+  });
+
+  it("ignores members whose checkin is outside the recency window", () => {
+    const signal = computeTeamAdaptationSignal([{ date: hoursAgo(72), readiness: 2, rpe: null, soreness: null, sleepHours: null }], NOW);
+    expect(signal).toBeNull();
   });
 });
 
