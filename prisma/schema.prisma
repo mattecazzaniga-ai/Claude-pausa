@@ -167,24 +167,24 @@ model Coach {
   /// structure rather than a separate identity system — see Phase 2 scope.
   selfCoaching Boolean @default(false)
 
-  primarySport     Sport?            @relation(fields: [primarySportId], references: [id])
-  athletes         Athlete[]
-  sessionNotes     SessionNote[]
-  exercises        Exercise[]
-  trainingSessions TrainingSession[]
-  teams            Team[]
-  goals            Objective[]
-  evaluations      Evaluation[]
-  customCriteria   EvaluationCriterion[]
-  competitions     Competition[]
-  calendarEvents   CalendarEvent[]
-  recommendations  CoachingRecommendation[]
-  analytics        AnalyticsEvent[]
-  feedbackSignals  CoachFeedbackSignal[]
-  offers           Offer[]
-  purchases        Purchase[]
+  primarySport        Sport?                   @relation(fields: [primarySportId], references: [id])
+  athletes            Athlete[]
+  sessionNotes        SessionNote[]
+  exercises           Exercise[]
+  trainingSessions    TrainingSession[]
+  teams               Team[]
+  goals               Objective[]
+  evaluations         Evaluation[]
+  customCriteria      EvaluationCriterion[]
+  competitions        Competition[]
+  calendarEvents      CalendarEvent[]
+  recommendations     CoachingRecommendation[]
+  analytics           AnalyticsEvent[]
+  feedbackSignals     CoachFeedbackSignal[]
+  offers              Offer[]
+  purchases           Purchase[]
   passwordResetTokens PasswordResetToken[]
-  checkins         AthleteCheckin[]
+  checkins            AthleteCheckin[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -241,16 +241,16 @@ model Sport {
   safetyNotes        String?
   profileGeneratedAt DateTime?
 
-  coaches             Coach[]
-  skillCategories     SkillCategory[]
-  metrics             SportMetric[]
-  athletes            Athlete[]
-  exercises           Exercise[]
-  trainingSessions    TrainingSession[]
-  teams               Team[]
-  evaluationCriteria  EvaluationCriterion[]
-  competitions        Competition[]
-  offers              Offer[]
+  coaches            Coach[]
+  skillCategories    SkillCategory[]
+  metrics            SportMetric[]
+  athletes           Athlete[]
+  exercises          Exercise[]
+  trainingSessions   TrainingSession[]
+  teams              Team[]
+  evaluationCriteria EvaluationCriterion[]
+  competitions       Competition[]
+  offers             Offer[]
 }
 
 enum SkillCategoryType {
@@ -306,15 +306,15 @@ model Skill {
 }
 
 model Athlete {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   coachId    String
   sportId    String
   name       String
   birthYear  Int?
   level      String?
   objectives String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Cached AI output so the athlete page doesn't re-call the model on every
   // view — regenerated only when a new session note is added.
@@ -327,8 +327,8 @@ model Athlete {
   /// coach manages for other people are always false.
   isSelf Boolean @default(false)
 
-  coach            Coach             @relation(fields: [coachId], references: [id])
-  sport            Sport             @relation(fields: [sportId], references: [id])
+  coach            Coach                    @relation(fields: [coachId], references: [id])
+  sport            Sport                    @relation(fields: [sportId], references: [id])
   sessionNotes     SessionNote[]
   trainingSessions TrainingSession[]
   teamMemberships  TeamMember[]
@@ -356,8 +356,8 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  coach            Coach             @relation(fields: [coachId], references: [id])
-  sport            Sport             @relation(fields: [sportId], references: [id])
+  coach            Coach                    @relation(fields: [coachId], references: [id])
+  sport            Sport                    @relation(fields: [sportId], references: [id])
   members          TeamMember[]
   trainingSessions TrainingSession[]
   goals            Objective[]
@@ -416,35 +416,35 @@ model NoteTag {
 /// A coach's own exercise library — the core asset the AI session generator
 /// draws from before it ever invents something new (see lib/session.ts).
 model Exercise {
-  id       String @id @default(cuid())
-  coachId  String
-  sportId  String
-  name     String
+  id      String @id @default(cuid())
+  coachId String
+  sportId String
+  name    String
 
   description     String?
-  instructions     String?
-  category         ExerciseCategory
-  format           ExerciseFormat?
-  difficulty       ExerciseDifficulty?
-  durationMinutes  Int?
-  sets             Int?
-  reps             Int?
-  restSeconds      Int?
-  intensity        String?
-  equipment        String?
-  minAthletes      Int?
-  maxAthletes      Int?
-  spaceRequired    String?
-  coachingPoints   String?
-  commonMistakes   String?
-  progressionNote  String?
-  regressionNote   String?
-  tags             String[] @default([])
+  instructions    String?
+  category        ExerciseCategory
+  format          ExerciseFormat?
+  difficulty      ExerciseDifficulty?
+  durationMinutes Int?
+  sets            Int?
+  reps            Int?
+  restSeconds     Int?
+  intensity       String?
+  equipment       String?
+  minAthletes     Int?
+  maxAthletes     Int?
+  spaceRequired   String?
+  coachingPoints  String?
+  commonMistakes  String?
+  progressionNote String?
+  regressionNote  String?
+  tags            String[]            @default([])
   /// Never let an AI-generated exercise be mistaken for the coach's own —
   /// see the AI knowledge priority rules in lib/session.ts.
-  source           ExerciseSource @default(COACH_CREATED)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  source          ExerciseSource      @default(COACH_CREATED)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
   coach         Coach           @relation(fields: [coachId], references: [id])
   sport         Sport           @relation(fields: [sportId], references: [id])
@@ -495,12 +495,12 @@ model TrainingSession {
   /// the entire historical default for every session before this field.
   adaptationNote String?
 
-  coach   Coach          @relation(fields: [coachId], references: [id])
-  athlete Athlete?       @relation(fields: [athleteId], references: [id])
-  team    Team?          @relation(fields: [teamId], references: [id])
-  sport   Sport?         @relation(fields: [sportId], references: [id])
-  sportId String?
-  blocks  SessionBlock[]
+  coach         Coach          @relation(fields: [coachId], references: [id])
+  athlete       Athlete?       @relation(fields: [athleteId], references: [id])
+  team          Team?          @relation(fields: [teamId], references: [id])
+  sport         Sport?         @relation(fields: [sportId], references: [id])
+  sportId       String?
+  blocks        SessionBlock[]
   calendarEvent CalendarEvent?
 
   @@index([athleteId])
@@ -601,9 +601,9 @@ model Evaluation {
   aiAnalysis  String?
   createdAt   DateTime       @default(now())
 
-  coach   Coach              @relation(fields: [coachId], references: [id])
-  athlete Athlete?           @relation(fields: [athleteId], references: [id])
-  team    Team?              @relation(fields: [teamId], references: [id])
+  coach   Coach             @relation(fields: [coachId], references: [id])
+  athlete Athlete?          @relation(fields: [athleteId], references: [id])
+  team    Team?             @relation(fields: [teamId], references: [id])
   scores  EvaluationScore[]
 
   @@index([athleteId])
@@ -612,7 +612,7 @@ model Evaluation {
 }
 
 model EvaluationScore {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   evaluationId String
   criterionId  String
   /// Stored as text regardless of scoreType (a percentage, a time, a
@@ -727,7 +727,7 @@ enum CalendarEventStatus {
 /// UI interaction that vanishes — the minimum provenance needed for future
 /// Coach Brain learning, without building the full preference system yet.
 model CoachingRecommendation {
-  id                       String                    @id @default(cuid())
+  id                       String                   @id @default(cuid())
   coachId                  String
   athleteId                String?
   teamId                   String?
@@ -742,7 +742,7 @@ model CoachingRecommendation {
   suggestedDurationMinutes Int?
   feedback                 RecommendationFeedback?
   feedbackReason           String?
-  createdAt                DateTime                  @default(now())
+  createdAt                DateTime                 @default(now())
 
   coach   Coach    @relation(fields: [coachId], references: [id])
   athlete Athlete? @relation(fields: [athleteId], references: [id])
@@ -795,6 +795,16 @@ enum CheckinFeeling {
   UNWELL
 }
 
+/// SELF_REPORTED: the athlete/coach filled the check-in form by hand.
+/// WEARABLE_IMPORT: brought in via the CSV import (see lib/checkin-import.ts)
+/// from a wearable app's exported data. Same AthleteCheckin timeline either
+/// way — no separate "wearable" table (master prompt §32) — so the Adaptive
+/// Training Engine and readiness trend already read both uniformly.
+enum CheckinSource {
+  SELF_REPORTED
+  WEARABLE_IMPORT
+}
+
 /// Quick self-assessment an athlete (or a self-coaching Coach logging their
 /// own training) fills in themselves — readiness before a session, perceived
 /// exertion (Borg CR10, 0-10) after one, sleep and soreness. Deliberately
@@ -803,17 +813,23 @@ enum CheckinFeeling {
 /// Fed into buildAthleteIntelligenceContext so Next Best Action can factor
 /// in how the athlete actually feels, not just what the coach observed.
 model AthleteCheckin {
-  id         String          @id @default(cuid())
-  athleteId  String
-  coachId    String
-  date       DateTime        @default(now())
-  readiness  Int?
-  rpe        Int?
-  feeling    CheckinFeeling?
-  sleepHours Float?
-  soreness   Int?
-  notes      String?
-  createdAt  DateTime        @default(now())
+  id               String          @id @default(cuid())
+  athleteId        String
+  coachId          String
+  date             DateTime        @default(now())
+  readiness        Int?
+  rpe              Int?
+  feeling          CheckinFeeling?
+  sleepHours       Float?
+  soreness         Int?
+  notes            String?
+  /// Wearable-only fields — null for a self-reported check-in that didn't
+  /// come with device data.
+  restingHeartRate Int?
+  hrv              Float?
+  steps            Int?
+  source           CheckinSource   @default(SELF_REPORTED)
+  createdAt        DateTime        @default(now())
 
   athlete Athlete @relation(fields: [athleteId], references: [id])
   coach   Coach   @relation(fields: [coachId], references: [id])
@@ -910,9 +926,9 @@ model Purchase {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  coach    Coach             @relation(fields: [coachId], references: [id])
-  athlete  Athlete           @relation(fields: [athleteId], references: [id])
-  offer    Offer             @relation(fields: [offerId], references: [id])
+  coach          Coach           @relation(fields: [coachId], references: [id])
+  athlete        Athlete         @relation(fields: [athleteId], references: [id])
+  offer          Offer           @relation(fields: [offerId], references: [id])
   payments       Payment[]
   calendarEvents CalendarEvent[]
 

@@ -54,7 +54,8 @@ export type AnalyticsEventName =
   | "password_reset_requested"
   | "password_reset_completed"
   | "athlete_chat_question_asked"
-  | "checkin_created";
+  | "checkin_created"
+  | "checkin_imported";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —
