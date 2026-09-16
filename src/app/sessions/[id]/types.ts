@@ -26,4 +26,5 @@ export type TrainingSessionData = {
   blocks: SessionBlockData[];
   feedbackRating: "EXCELLENT" | "GOOD" | "AVERAGE" | "NEEDS_WORK" | null;
   feedbackNote: string | null;
+  adaptationNote: string | null;
 };

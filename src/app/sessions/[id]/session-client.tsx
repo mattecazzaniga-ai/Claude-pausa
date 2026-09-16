@@ -106,6 +106,11 @@ export function SessionClient({ initialData }: { initialData: TrainingSessionDat
         <p className="mt-1 text-xs text-muted">
           {data.blocks.length} blocchi · {totalPlanned} min pianificati
         </p>
+        {data.adaptationNote && (
+          <div className="mt-3 rounded-md border border-accent/30 bg-accent/10 px-3 py-2">
+            <p className="text-xs font-medium text-accent">⚡ {data.adaptationNote}</p>
+          </div>
+        )}
         {data.feedbackRating && (
           <div className="mt-3 rounded-md bg-surface-2 p-3">
             <p className="text-xs font-medium text-foreground/80">

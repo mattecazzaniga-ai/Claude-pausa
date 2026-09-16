@@ -6,6 +6,7 @@ import { generateSessionSchema } from "@/lib/validation";
 import { isAiConfigured } from "@/lib/ai";
 import { generateSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
+import { computeAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -80,6 +81,17 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const sportProfile = await getSportProfile(athlete.sportId);
   const sportContext = formatSportProfileForPrompt(athlete.sport.name, sportProfile);
 
+  const [latestCheckin, recentSessions] = await Promise.all([
+    prisma.athleteCheckin.findFirst({ where: { athleteId: athlete.id }, orderBy: { date: "desc" } }),
+    prisma.trainingSession.findMany({
+      where: { athleteId: athlete.id },
+      orderBy: { createdAt: "desc" },
+      take: 2,
+      select: { createdAt: true, feedbackRating: true },
+    }),
+  ]);
+  const adaptation = computeAdaptationSignal({ latestCheckin, recentSessions });
+
   let plan;
   try {
     plan = await generateSessionPlan({
@@ -93,6 +105,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       intensity: parsed.data.intensity,
       libraryExercises,
       sportContext,
+      adaptationDirective: adaptation ? formatAdaptationDirective(adaptation) : undefined,
     });
   } catch (err) {
     captureError("AI session generation failed", err);
@@ -106,6 +119,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       sportId: athlete.sportId,
       objective: plan.objective,
       durationMinutes: parsed.data.durationMinutes,
+      adaptationNote: adaptation ? formatAdaptationNote(adaptation) : undefined,
     },
   });
 

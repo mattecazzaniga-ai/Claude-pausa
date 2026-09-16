@@ -489,6 +489,12 @@ model TrainingSession {
   feedbackRating SessionFeedbackRating?
   feedbackNote   String?
 
+  /// Set by the Adaptive Training Engine (lib/adaptive-training.ts) when the
+  /// athlete's recent check-in/feedback data triggered an automatic load
+  /// adjustment. Null whenever no adaptation applied — the common case, and
+  /// the entire historical default for every session before this field.
+  adaptationNote String?
+
   coach   Coach          @relation(fields: [coachId], references: [id])
   athlete Athlete?       @relation(fields: [athleteId], references: [id])
   team    Team?          @relation(fields: [teamId], references: [id])

@@ -26,6 +26,7 @@ export async function getTrainingSessionData(id: string, coachId: string): Promi
     team: trainingSession.team,
     feedbackRating: trainingSession.feedbackRating,
     feedbackNote: trainingSession.feedbackNote,
+    adaptationNote: trainingSession.adaptationNote,
     blocks: trainingSession.blocks.map((b) => ({
       id: b.id,
       order: b.order,
