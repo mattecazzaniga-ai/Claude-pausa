@@ -157,14 +157,7 @@ export async function regenerateSportProfile(sportId: string): Promise<SportProf
   return profileToDbData(profile);
 }
 
-/**
- * Fetches (generating on-demand if needed) the Sport Profile in the shape
- * every AI prompt consumes. Call this instead of reading Sport fields
- * directly so callers never have to know about the lazy-generation dance.
- */
-export async function getSportProfile(sportId: string): Promise<SportProfileContext> {
-  await ensureSportProfile(sportId);
-  const sport = await prisma.sport.findUnique({ where: { id: sportId } });
+function sportRowToProfileContext(sport: { formats: string[]; environment: string | null; equipment: string | null; scoringSystem: string | null; keyRules: string | null; terminology: string | null; positions: string | null; movementPatterns: string | null; gameSituations: string | null; trainingMethods: string | null; commonProblems: string | null; progressions: string | null; safetyNotes: string | null } | null): SportProfileContext {
   return {
     formats: sport?.formats ?? [],
     environment: sport?.environment ?? "",
@@ -180,6 +173,31 @@ export async function getSportProfile(sportId: string): Promise<SportProfileCont
     progressions: sport?.progressions ?? "",
     safetyNotes: sport?.safetyNotes ?? "",
   };
+}
+
+/**
+ * Fetches (generating on-demand if needed) the Sport Profile in the shape
+ * every AI prompt consumes. Call this instead of reading Sport fields
+ * directly so callers never have to know about the lazy-generation dance.
+ */
+export async function getSportProfile(sportId: string): Promise<SportProfileContext> {
+  await ensureSportProfile(sportId);
+  const sport = await prisma.sport.findUnique({ where: { id: sportId } });
+  return sportRowToProfileContext(sport);
+}
+
+/**
+ * Reads the Sport Profile ONLY if it's already been generated — never
+ * triggers generation. For a latency-sensitive request path where a deep
+ * profile is a nice-to-have but not worth an extra synchronous AI call
+ * stacked in front of the caller's own generation (e.g. importing a coach's
+ * own evaluation sheet, which mainly needs the sport's name, not its full
+ * profile). Falls back to a name-only context exactly like a sport with no
+ * profile content at all.
+ */
+export async function getCachedSportProfile(sportId: string): Promise<SportProfileContext> {
+  const sport = await prisma.sport.findUnique({ where: { id: sportId } });
+  return sportRowToProfileContext(sport);
 }
 
 export type SportMetricData = { id: string; name: string; unit: string | null; description: string | null; direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER" | null };

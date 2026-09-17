@@ -100,6 +100,22 @@ describe("Sport Intelligence Phase 1", () => {
     expect(metrics.length).toBeGreaterThan(0);
   });
 
+  it("getCachedSportProfile never triggers generation, unlike getSportProfile", async () => {
+    const sport = await createTestSport();
+    sportId = sport.id;
+
+    const { getCachedSportProfile } = await import("@/lib/sport");
+    const { generateSportProfile } = await import("@/lib/ai-sport-profile");
+    vi.mocked(generateSportProfile).mockClear();
+
+    const profile = await getCachedSportProfile(sportId);
+    expect(generateSportProfile).not.toHaveBeenCalled();
+    expect(profile.environment).toBe("");
+
+    const freshSport = await prisma.sport.findUnique({ where: { id: sportId } });
+    expect(freshSport?.profileGeneratedAt).toBeNull();
+  });
+
   it("ensureSportTaxonomy persists the category type", async () => {
     const sport = await createTestSport();
     sportId = sport.id;

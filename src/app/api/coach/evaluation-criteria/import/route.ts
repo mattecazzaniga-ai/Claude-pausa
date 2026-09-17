@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { parseEvaluationDocument } from "@/lib/ai-evaluation-import";
 import { extractTextFromFile, SUPPORTED_IMAGE_MIME_TYPES, MAX_IMPORT_FILE_BYTES } from "@/lib/evaluation-import";
-import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
+import { getCachedSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -67,7 +67,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const sportProfile = await getSportProfile(coach.primarySport.id);
+    // Reading the coach's own document mainly needs the sport's name, not its
+    // full profile — using the cached-only read here means this import never
+    // waits on a separate, synchronous Sport Profile generation call before
+    // it can even start reading the file.
+    const sportProfile = await getCachedSportProfile(coach.primarySport.id);
     const sportContext = formatSportProfileForPrompt(coach.primarySport.name, sportProfile);
 
     const parsed = await parseEvaluationDocument({ sportName: coach.primarySport.name, sportContext, text, imageBase64, imageMimeType });

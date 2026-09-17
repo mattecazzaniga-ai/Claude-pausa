@@ -304,7 +304,7 @@ export function AthleteClient({
           },
           {
             id: "injuries",
-            label: "Infortuni & Fastidi",
+            label: "Infortuni",
             content: <InjuriesSection basePath={`/api/athletes/${athlete.id}`} />,
           },
           {
