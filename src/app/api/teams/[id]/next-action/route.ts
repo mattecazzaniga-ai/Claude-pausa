@@ -6,6 +6,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { buildTeamIntelligenceContext } from "@/lib/intelligence/context";
 import { generateNextBestAction } from "@/lib/intelligence/next-best-action";
 import { refreshCoachBrainIfStale, getCoachBrainPromptText } from "@/lib/intelligence/coach-brain";
+import { getMethodologyPromptText } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -42,11 +43,12 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
 
   try {
     await refreshCoachBrainIfStale(session.user.id);
-    const [context, coachBrainText] = await Promise.all([
+    const [context, coachBrainText, methodologyText] = await Promise.all([
       buildTeamIntelligenceContext(team.id),
       getCoachBrainPromptText(session.user.id),
+      getMethodologyPromptText(session.user.id),
     ]);
-    const action = await generateNextBestAction(context, coachBrainText);
+    const action = await generateNextBestAction(context, coachBrainText, methodologyText);
 
     const recommendation = await prisma.coachingRecommendation.create({
       data: {

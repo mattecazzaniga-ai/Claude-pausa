@@ -319,3 +319,37 @@ export const createInjuryEventSchema = z.object({
   note: z.string().trim().min(1, "Scrivi una nota").max(500),
   date: z.string().datetime().optional(),
 });
+
+const methodologyCategoryEnum = z.enum([
+  "FILOSOFIA",
+  "VOLUME",
+  "INTENSITA",
+  "RECUPERO",
+  "PROGRESSIONE",
+  "REGRESSIONE",
+  "PERIODIZZAZIONE",
+  "SCELTA_ESERCIZI",
+  "ESERCIZI_PREFERITI",
+  "ESERCIZI_DA_EVITARE",
+  "PRE_COMPETIZIONE",
+  "POST_COMPETIZIONE",
+  "LIVELLI_ETA",
+  "REGOLE_SPORT_SPECIFICHE",
+  "ALTRO",
+]);
+
+export const saveMethodologySchema = z.object({
+  principles: z
+    .array(
+      z.object({
+        text: z.string().trim().min(2, "Il principio deve avere almeno 2 caratteri").max(300),
+        category: methodologyCategoryEnum,
+      })
+    )
+    .max(100),
+  changeSummary: z.string().trim().max(200).optional(),
+});
+
+export const importMethodologySchema = z.object({
+  text: z.string().trim().min(5, "Scrivi almeno qualche frase").max(20000),
+});

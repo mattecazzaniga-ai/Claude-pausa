@@ -167,26 +167,28 @@ model Coach {
   /// structure rather than a separate identity system — see Phase 2 scope.
   selfCoaching Boolean @default(false)
 
-  primarySport        Sport?                   @relation(fields: [primarySportId], references: [id])
-  athletes            Athlete[]
-  sessionNotes        SessionNote[]
-  exercises           Exercise[]
-  trainingSessions    TrainingSession[]
-  teams               Team[]
-  goals               Objective[]
-  evaluations         Evaluation[]
-  customCriteria      EvaluationCriterion[]
-  competitions        Competition[]
-  calendarEvents      CalendarEvent[]
-  recommendations     CoachingRecommendation[]
-  analytics           AnalyticsEvent[]
-  feedbackSignals     CoachFeedbackSignal[]
-  offers              Offer[]
-  purchases           Purchase[]
-  passwordResetTokens PasswordResetToken[]
-  checkins            AthleteCheckin[]
-  metricValues        AthleteMetricValue[]
-  injuries            AthleteInjury[]
+  primarySport          Sport?                      @relation(fields: [primarySportId], references: [id])
+  athletes              Athlete[]
+  sessionNotes          SessionNote[]
+  exercises             Exercise[]
+  trainingSessions      TrainingSession[]
+  teams                 Team[]
+  goals                 Objective[]
+  evaluations           Evaluation[]
+  customCriteria        EvaluationCriterion[]
+  competitions          Competition[]
+  calendarEvents        CalendarEvent[]
+  recommendations       CoachingRecommendation[]
+  analytics             AnalyticsEvent[]
+  feedbackSignals       CoachFeedbackSignal[]
+  offers                Offer[]
+  purchases             Purchase[]
+  passwordResetTokens   PasswordResetToken[]
+  checkins              AthleteCheckin[]
+  metricValues          AthleteMetricValue[]
+  injuries              AthleteInjury[]
+  methodologyPrinciples CoachMethodologyPrinciple[]
+  methodologyVersions   CoachMethodologyVersion[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -520,6 +522,13 @@ model TrainingSession {
   /// adjustment. Null whenever no adaptation applied — the common case, and
   /// the entire historical default for every session before this field.
   adaptationNote String?
+
+  /// The coach's methodology version (see CoachMethodologyVersion) active
+  /// when this session was generated, if any — null when the coach had no
+  /// saved methodology yet. Lets a later "which methodology produced this
+  /// plan?" question (master prompt §10) be answered even after the coach
+  /// has since revised their approach.
+  methodologyVersion Int?
 
   coach         Coach          @relation(fields: [coachId], references: [id])
   athlete       Athlete?       @relation(fields: [athleteId], references: [id])
@@ -1084,4 +1093,61 @@ model AthleteInjuryEvent {
   injury AthleteInjury @relation(fields: [injuryId], references: [id], onDelete: Cascade)
 
   @@index([injuryId])
+}
+
+enum MethodologyPrincipleCategory {
+  FILOSOFIA
+  VOLUME
+  INTENSITA
+  RECUPERO
+  PROGRESSIONE
+  REGRESSIONE
+  PERIODIZZAZIONE
+  SCELTA_ESERCIZI
+  ESERCIZI_PREFERITI
+  ESERCIZI_DA_EVITARE
+  PRE_COMPETIZIONE
+  POST_COMPETIZIONE
+  LIVELLI_ETA
+  REGOLE_SPORT_SPECIFICHE
+  ALTRO
+}
+
+/// "La mia metodologia" (master prompt §8-12) — principles the coach wrote
+/// or uploaded and explicitly confirmed, not an inference. Deliberately a
+/// distinct concept from Coach.learnedPreferences (Coach Brain, §10-11 of
+/// the earlier master prompt): that one is AI-guessed from behavior and
+/// never coach-authored; this one is exactly what the coach said, nothing
+/// more. The live/current set — replaced wholesale on every save, with the
+/// full history kept in CoachMethodologyVersion below.
+model CoachMethodologyPrinciple {
+  id        String                       @id @default(cuid())
+  coachId   String
+  text      String
+  category  MethodologyPrincipleCategory @default(ALTRO)
+  order     Int                          @default(0)
+  createdAt DateTime                     @default(now())
+
+  coach Coach @relation(fields: [coachId], references: [id])
+
+  @@index([coachId])
+}
+
+/// Immutable snapshot taken every time the coach's live principle set
+/// changes (manual edit or a confirmed AI import) — never altered after
+/// creation, so "which methodology was active when this plan was
+/// generated" (§10) stays answerable even after the coach later revises
+/// their approach. See TrainingSession.methodologyVersion.
+model CoachMethodologyVersion {
+  id            String   @id @default(cuid())
+  coachId       String
+  version       Int
+  principles    Json
+  changeSummary String
+  createdAt     DateTime @default(now())
+
+  coach Coach @relation(fields: [coachId], references: [id])
+
+  @@unique([coachId, version])
+  @@index([coachId])
 }

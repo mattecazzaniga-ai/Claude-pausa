@@ -8,6 +8,7 @@ import { generateSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { computeAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
 import { getActiveInjuries, formatInjuriesForPrompt, formatInjuryAdaptationNote } from "@/lib/injuries";
+import { getMethodologyPromptText, getCurrentMethodologyVersion } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -82,7 +83,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const sportProfile = await getSportProfile(athlete.sportId);
   const sportContext = formatSportProfileForPrompt(athlete.sport.name, sportProfile);
 
-  const [latestCheckin, recentSessions, activeInjuries] = await Promise.all([
+  const [latestCheckin, recentSessions, activeInjuries, methodologyText, methodologyVersion] = await Promise.all([
     prisma.athleteCheckin.findFirst({ where: { athleteId: athlete.id }, orderBy: { date: "desc" } }),
     prisma.trainingSession.findMany({
       where: { athleteId: athlete.id },
@@ -91,6 +92,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       select: { createdAt: true, feedbackRating: true },
     }),
     getActiveInjuries(athlete.id),
+    getMethodologyPromptText(session.user.id),
+    getCurrentMethodologyVersion(session.user.id),
   ]);
   const adaptation = computeAdaptationSignal({ latestCheckin, recentSessions });
   const injuryDirective = formatInjuriesForPrompt(activeInjuries);
@@ -110,6 +113,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       sportContext,
       adaptationDirective: adaptation ? formatAdaptationDirective(adaptation) : undefined,
       injuryConstraints: injuryDirective ?? undefined,
+      methodologyText: methodologyText ?? undefined,
     });
   } catch (err) {
     captureError("AI session generation failed", err);
@@ -129,6 +133,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       objective: plan.objective,
       durationMinutes: parsed.data.durationMinutes,
       adaptationNote: adaptationNoteParts.length ? adaptationNoteParts.join(" ") : undefined,
+      methodologyVersion: methodologyVersion ?? undefined,
     },
   });
 

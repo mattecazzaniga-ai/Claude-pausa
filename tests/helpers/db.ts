@@ -72,6 +72,8 @@ export async function deleteTestCoach(coachId: string) {
   await prisma.athleteInjuryEvent.deleteMany({ where: { injury: { coachId } } });
   await prisma.$transaction([
     prisma.athleteInjury.deleteMany({ where: { coachId } }),
+    prisma.coachMethodologyPrinciple.deleteMany({ where: { coachId } }),
+    prisma.coachMethodologyVersion.deleteMany({ where: { coachId } }),
     prisma.athleteCheckin.deleteMany({ where: { coachId } }),
     prisma.athleteMetricValue.deleteMany({ where: { coachId } }),
     prisma.payment.deleteMany({ where: { purchase: { coachId } } }),

@@ -52,6 +52,7 @@ export async function generateSessionPlan(params: {
   sportContext?: string;
   adaptationDirective?: string;
   injuryConstraints?: string;
+  methodologyText?: string;
 }): Promise<GeneratedSessionPlan> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -83,6 +84,7 @@ export async function generateSessionPlan(params: {
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `${params.injuryConstraints ? `${params.injuryConstraints}\n\n` : ""}` +
       `${params.adaptationDirective ? `${params.adaptationDirective}\n\n` : ""}` +
+      `${params.methodologyText ? `${params.methodologyText}\n\n` : ""}` +
       `Atleta: ${params.athleteName}\n` +
       `Obiettivi generali: ${params.objectives || "Non specificati"}\n` +
       `Sintesi recente: ${params.aiSummary || "Nessuna ancora"}\n` +
@@ -152,6 +154,7 @@ export async function generateTeamSessionPlan(params: {
   libraryExercises: LibraryExercise[];
   sportContext?: string;
   adaptationDirective?: string;
+  methodologyText?: string;
 }): Promise<GeneratedSessionPlan> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -185,6 +188,7 @@ export async function generateTeamSessionPlan(params: {
       "Non usare mai terminologia presa in prestito da uno sport simile ma diverso.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
       `${params.adaptationDirective ? `${params.adaptationDirective}\n\n` : ""}` +
+      `${params.methodologyText ? `${params.methodologyText}\n\n` : ""}` +
       `Squadra: ${params.teamName}\n` +
       `Priorità individuali dei membri (bilancia il lavoro comune con ciò che emerge più spesso):\n${membersText}\n\n` +
       `Durata sessione richiesta: ${params.durationMinutes} minuti\n` +

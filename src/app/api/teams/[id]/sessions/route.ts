@@ -7,6 +7,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { generateTeamSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { computeTeamAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
+import { getMethodologyPromptText, getCurrentMethodologyVersion } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -77,6 +78,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     if (!latestCheckinByAthlete.has(c.athleteId)) latestCheckinByAthlete.set(c.athleteId, c);
   }
   const adaptation = computeTeamAdaptationSignal(memberAthleteIds.map((id) => latestCheckinByAthlete.get(id) ?? null));
+  const [methodologyText, methodologyVersion] = await Promise.all([
+    getMethodologyPromptText(session.user.id),
+    getCurrentMethodologyVersion(session.user.id),
+  ]);
 
   let plan;
   try {
@@ -93,6 +98,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       libraryExercises,
       sportContext,
       adaptationDirective: adaptation ? formatAdaptationDirective(adaptation) : undefined,
+      methodologyText: methodologyText ?? undefined,
     });
   } catch (err) {
     captureError("AI team session generation failed", err);
@@ -107,6 +113,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       objective: plan.objective,
       durationMinutes: parsed.data.durationMinutes,
       adaptationNote: adaptation ? formatAdaptationNote(adaptation) : undefined,
+      methodologyVersion: methodologyVersion ?? undefined,
     },
   });
 

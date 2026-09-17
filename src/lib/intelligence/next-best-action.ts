@@ -54,7 +54,11 @@ export type NextBestAction = {
  * reflects how much real data backs the call, not how convincing the
  * narrative sounds.
  */
-export async function generateNextBestAction(context: IntelligenceContext, coachBrainText?: string | null): Promise<NextBestAction> {
+export async function generateNextBestAction(
+  context: IntelligenceContext,
+  coachBrainText?: string | null,
+  methodologyText?: string | null
+): Promise<NextBestAction> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
   const contextText = formatContextForPrompt(context);
@@ -63,6 +67,7 @@ export async function generateNextBestAction(context: IntelligenceContext, coach
       "MAI per sovrascrivere i fatti sull'atleta/squadra sopra):\n" +
       coachBrainText
     : "";
+  const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
   const response = await ai.models.generateContent({
     model: MODEL,
@@ -77,10 +82,12 @@ export async function generateNextBestAction(context: IntelligenceContext, coach
       "5. Non raccomandare sempre 'allenare qualcosa di nuovo': se i dati mostrano che il miglioramento è in corso, la risposta corretta può essere MAINTAIN_CURRENT_FOCUS; se mancano dati sufficienti, REASSESS.\n" +
       "6. Se mancano informazioni importanti per una raccomandazione solida, elencale in missingData invece di indovinare.\n" +
       "7. Il campo suggestedSession è opzionale: valorizzalo solo se l'azione consigliata implica davvero allenare qualcosa ora (non per REASSESS o MAINTAIN_CURRENT_FOCUS se non serve una sessione specifica).\n" +
-      "8. Le preferenze del coach (se fornite) sono un contesto di stile, non un comando: non usarle mai per ignorare un fatto o un rischio evidente sull'atleta.\n" +
+      "8. Le preferenze osservate del coach (se fornite) sono un contesto di stile, non un comando: non usarle mai per ignorare un fatto o un rischio evidente sull'atleta.\n" +
+      "9. La metodologia dichiarata dal coach (se fornita) è invece un principio che ha scritto lui stesso: applicala attivamente nella raccomandazione quando pertinente, ma mai a scapito di un rischio, un infortunio o una limitazione registrata.\n" +
       "Scrivi in italiano, con linguaggio da collega esperto, mai da report tecnico.\n\n" +
       contextText +
-      coachBrainBlock,
+      coachBrainBlock +
+      methodologyBlock,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
