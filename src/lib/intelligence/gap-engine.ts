@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 export type MainGap = {
   hasEnoughData: boolean;
@@ -25,7 +26,7 @@ export type MainGap = {
  * current AND target value are eligible — a qualitative goal or one nobody
  * has updated yet can't produce a measurable gap.
  */
-export async function computeMainGap(context: IntelligenceContext): Promise<MainGap> {
+export async function computeMainGap(context: IntelligenceContext, methodologyText?: string | null): Promise<MainGap> {
   const eligible = context.activeObjectives.filter((o) => o.kind === "QUANTITATIVE" && o.currentValue && o.targetValue);
 
   if (eligible.length === 0) {
@@ -35,16 +36,20 @@ export async function computeMainGap(context: IntelligenceContext): Promise<Main
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
   const contextText = formatContextForPrompt(context);
+  const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
   const response = await ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente che aiuta un allenatore a capire QUALE gap tra dove sta ora l'atleta e dove vuole arrivare conta di più adesso. " +
       "Guarda gli obiettivi attivi quantitativi (con un valore attuale e un target) elencati nel contesto e scegli SOLO IL PIÙ IMPORTANTE — " +
-      "mai un elenco di tutti i gap. Considera l'urgenza (scadenza vicina, competizione imminente) e l'ampiezza del divario.\n\n" +
+      "mai un elenco di tutti i gap. Considera l'urgenza (scadenza vicina, competizione imminente) e l'ampiezza del divario. Se il coach ha " +
+      "dichiarato priorità metodologiche (sotto — es. tecnica prima della fisicità per atleti giovani), usale per decidere tra due gap altrimenti " +
+      "comparabili.\n\n" +
       "Se nessun obiettivo quantitativo ha dati sufficienti per calcolare un gap reale, imposta hasEnoughData a false.\n\n" +
       "Scrivi in italiano.\n\n" +
-      contextText,
+      contextText +
+      methodologyBlock,
     config: {
       responseMimeType: "application/json",
       responseSchema: {

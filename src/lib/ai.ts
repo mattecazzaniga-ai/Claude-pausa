@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { FAST_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -7,11 +8,9 @@ export const isAiConfigured = Boolean(apiKey);
 
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
-// Free-tier model (Google AI Studio / Gemini Developer API — no credit card
-// required). Same model for extraction and summary: both calls are small
-// and cheap enough that splitting cheap/strong models isn't worth the
-// complexity while this runs on the free tier.
-const MODEL = "gemini-3.6-flash";
+// High-volume, mechanical calls (tag extraction, note summarization) — see
+// lib/ai-model.ts for the fast/strong split.
+const MODEL = FAST_MODEL;
 
 export type SkillOption = { id: string; name: string; category: string };
 

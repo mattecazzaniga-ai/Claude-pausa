@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { buildAthleteIntelligenceContext } from "@/lib/intelligence/context";
 import { diagnoseBottleneck } from "@/lib/intelligence/bottleneck";
+import { getMethodologyPromptText } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -25,8 +26,11 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
   if (!athlete || athlete.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const context = await buildAthleteIntelligenceContext(athlete.id);
-    const diagnosis = await diagnoseBottleneck(context);
+    const [context, methodologyText] = await Promise.all([
+      buildAthleteIntelligenceContext(athlete.id),
+      getMethodologyPromptText(session.user.id),
+    ]);
+    const diagnosis = await diagnoseBottleneck(context, methodologyText);
 
     track("bottleneck_diagnosed", session.user.id, { athleteId: athlete.id, hasEnoughData: diagnosis.hasEnoughData });
 

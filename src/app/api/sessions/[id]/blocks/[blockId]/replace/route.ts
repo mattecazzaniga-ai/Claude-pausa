@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
 import { generateReplacementExercise, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
+import { getActiveInjuries, formatInjuriesForPrompt } from "@/lib/injuries";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { recordCoachFeedbackSignal } from "@/lib/intelligence/coach-brain";
@@ -65,6 +66,13 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string;
     }
   }
 
+  // Only meaningful for an individual athlete's session — a team session has
+  // no single set of injuries to adapt around (see generateSessionPlan's own
+  // athlete-only injuryConstraints for the same reasoning).
+  const injuryConstraints = trainingSession.athleteId
+    ? formatInjuriesForPrompt(await getActiveInjuries(trainingSession.athleteId)) ?? undefined
+    : undefined;
+
   let replacement;
   try {
     replacement = await generateReplacementExercise({
@@ -73,6 +81,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string;
       libraryExercises,
       excludeExerciseId: block.exerciseId ?? "",
       sportContext,
+      injuryConstraints,
     });
   } catch (err) {
     captureError("AI block replacement failed", err);

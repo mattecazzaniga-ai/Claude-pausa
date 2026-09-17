@@ -1,8 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 export type ScoreType =
   | "SCALE_1_5"

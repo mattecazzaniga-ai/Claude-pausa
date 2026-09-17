@@ -1,8 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 export type LibraryExercise = {
   id: string;
@@ -250,6 +251,7 @@ export async function generateReplacementExercise(params: {
   libraryExercises: LibraryExercise[];
   excludeExerciseId: string;
   sportContext?: string;
+  injuryConstraints?: string;
 }): Promise<GeneratedBlock> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -267,6 +269,7 @@ export async function generateReplacementExercise(params: {
       "Cerca prima nella libreria fornita; proponi un esercizio nuovo solo se non c'è nulla di adatto. " +
       "Se proponi un esercizio nuovo, deve essere specifico per questo sport (ambiente/attrezzatura/terminologia reali), non generico.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
+      `${params.injuryConstraints ? `${params.injuryConstraints}\n\n` : ""}` +
       `Libreria disponibile:\n${libraryText}`,
     config: {
       responseMimeType: "application/json",

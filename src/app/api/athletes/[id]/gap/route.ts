@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildAthleteIntelligenceContext } from "@/lib/intelligence/context";
 import { computeMainGap } from "@/lib/intelligence/gap-engine";
+import { getMethodologyPromptText } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -28,8 +29,11 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
   if (!athlete || athlete.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const context = await buildAthleteIntelligenceContext(athlete.id);
-    const gap = await computeMainGap(context);
+    const [context, methodologyText] = await Promise.all([
+      buildAthleteIntelligenceContext(athlete.id),
+      getMethodologyPromptText(session.user.id),
+    ]);
+    const gap = await computeMainGap(context, methodologyText);
 
     track("main_gap_computed", session.user.id, { athleteId: athlete.id, hasEnoughData: gap.hasEnoughData });
 

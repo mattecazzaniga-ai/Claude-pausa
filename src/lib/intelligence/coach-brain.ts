@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { CoachFeedbackSignalType, CoachPreferenceCategory, CoachPreferenceReviewState } from "@prisma/client";
 import { slugify } from "@/lib/sport";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 const MIN_SIGNALS_FOR_SYNTHESIS = 5;
 const SIGNALS_FOR_SYNTHESIS = 30;

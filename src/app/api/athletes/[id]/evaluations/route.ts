@@ -7,6 +7,7 @@ import { getEvaluationCriteria, buildComparison } from "@/lib/evaluation";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { analyzeEvaluationProgress } from "@/lib/ai-evaluation";
+import { recordAthleteMemoryObservation } from "@/lib/memory";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -107,6 +108,25 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
           aiSummaryUpdatedAt: new Date(),
         },
       });
+
+      // Coaching Memory (§14, same pattern as post-competition analysis): a
+      // priority that keeps resurfacing across evaluations is exactly the
+      // "recurring problem" the memory system should notice. Best-effort —
+      // a memory-write failure must never hide that the evaluation and its
+      // analysis already succeeded and were saved.
+      try {
+        for (const priority of analysis.priorities) {
+          await recordAthleteMemoryObservation({
+            athleteId: athlete.id,
+            coachId: session.user.id,
+            topic: priority.skill,
+            summary: `${priority.skill}: ${priority.reason} (valutazione periodica)`,
+            source: "EVALUATION",
+          });
+        }
+      } catch (memoryErr) {
+        captureError("Recording athlete memory from evaluation analysis failed", memoryErr);
+      }
 
       return NextResponse.json({ evaluation: { ...evaluation, aiAnalysis: analysis.narrative }, athleteSummary: analysis });
     } catch (err) {

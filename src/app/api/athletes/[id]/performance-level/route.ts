@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildAthleteIntelligenceContext } from "@/lib/intelligence/context";
 import { assessPerformanceLevel } from "@/lib/intelligence/performance-level";
+import { getMethodologyPromptText } from "@/lib/methodology";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -29,8 +30,11 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
   if (!athlete || athlete.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   try {
-    const context = await buildAthleteIntelligenceContext(athlete.id);
-    const assessment = await assessPerformanceLevel(context);
+    const [context, methodologyText] = await Promise.all([
+      buildAthleteIntelligenceContext(athlete.id),
+      getMethodologyPromptText(session.user.id),
+    ]);
+    const assessment = await assessPerformanceLevel(context, methodologyText);
 
     track("performance_level_assessed", session.user.id, { athleteId: athlete.id, provenance: assessment.provenance });
 

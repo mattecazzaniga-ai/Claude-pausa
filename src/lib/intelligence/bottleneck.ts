@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 export type BottleneckDiagnosis = {
   hasEnoughData: boolean;
@@ -19,10 +20,11 @@ export type BottleneckDiagnosis = {
  * hasEnoughData=false with no hypothesis when the evidence is too thin —
  * matching "there isn't enough data yet" instead of guessing.
  */
-export async function diagnoseBottleneck(context: IntelligenceContext): Promise<BottleneckDiagnosis> {
+export async function diagnoseBottleneck(context: IntelligenceContext, methodologyText?: string | null): Promise<BottleneckDiagnosis> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
   const contextText = formatContextForPrompt(context);
+  const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
   const response = await ai.models.generateContent({
     model: MODEL,
@@ -33,10 +35,13 @@ export async function diagnoseBottleneck(context: IntelligenceContext): Promise<
       "Analizza: frequenza di allenamento sulla stessa area, se il lavoro è stato ripetitivo/isolato invece che sotto pressione/in game, " +
       "il tempo tra le sessioni, se la stessa criticità è stata allenata ripetutamente senza cambiare approccio, il confronto tra progressi " +
       "tecnici (in allenamento) e trasferimento in competizione.\n\n" +
+      "Se il coach ha dichiarato una sua metodologia (sotto), considera se un principio suo può spiegare una scelta apparente (es. volume basso " +
+      "deliberato) prima di ipotizzare un blocco involontario — ma non farla mai prevalere su un rischio o un dato di stagnazione reale.\n\n" +
       "Se i dati forniti sono troppo scarsi per formulare un'ipotesi ragionevole (poche sessioni, nessuna valutazione), imposta " +
       "hasEnoughData a false e lascia bottleneckHypothesis/recommendedExperiment vuoti — non inventare un'ipotesi plausibile solo per dare una risposta.\n\n" +
       "Scrivi in italiano.\n\n" +
-      contextText,
+      contextText +
+      methodologyBlock,
     config: {
       responseMimeType: "application/json",
       responseSchema: {

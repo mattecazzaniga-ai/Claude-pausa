@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import type { GeneratedEvaluationCriteria, ScoreType } from "@/lib/ai-evaluation-criteria";
+import { FAST_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = FAST_MODEL;
 
 const SCORE_TYPE_ENUM: ScoreType[] = [
   "SCALE_1_5",

@@ -7,6 +7,7 @@ import { getEvaluationCriteria, buildComparison } from "@/lib/evaluation";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { analyzeEvaluationProgress } from "@/lib/ai-evaluation";
+import { recordTeamMemoryObservation } from "@/lib/memory";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -96,6 +97,23 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       });
 
       await prisma.evaluation.update({ where: { id: evaluation.id }, data: { aiAnalysis: analysis.narrative } });
+
+      // Coaching Memory (§14), same pattern as the athlete route and as
+      // post-competition analysis — best-effort, never hides that the
+      // evaluation itself already succeeded and was saved.
+      try {
+        for (const priority of analysis.priorities) {
+          await recordTeamMemoryObservation({
+            teamId: team.id,
+            coachId: session.user.id,
+            topic: priority.skill,
+            summary: `${priority.skill}: ${priority.reason} (valutazione periodica)`,
+            source: "EVALUATION",
+          });
+        }
+      } catch (memoryErr) {
+        captureError("Recording team memory from evaluation analysis failed", memoryErr);
+      }
 
       return NextResponse.json({ evaluation: { ...evaluation, aiAnalysis: analysis.narrative }, analysis });
     } catch (err) {

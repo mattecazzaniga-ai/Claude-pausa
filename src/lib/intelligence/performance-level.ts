@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
+import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-const MODEL = "gemini-3.6-flash";
+const MODEL = STRONG_MODEL;
 
 export type PerformanceLevelAssessment = {
   /** INSUFFICIENT_DATA when there isn't enough real evidence to say anything — never a guess dressed up as a level (master prompt §28's own test). */
@@ -24,7 +25,7 @@ export type PerformanceLevelAssessment = {
  * invented label, and one with a real track record is never flattened to
  * "beginner" by default.
  */
-export async function assessPerformanceLevel(context: IntelligenceContext): Promise<PerformanceLevelAssessment> {
+export async function assessPerformanceLevel(context: IntelligenceContext, methodologyText?: string | null): Promise<PerformanceLevelAssessment> {
   const hasEvidence =
     context.evaluationComparison.length > 0 ||
     context.recentCompetitions.length > 0 ||
@@ -38,6 +39,7 @@ export async function assessPerformanceLevel(context: IntelligenceContext): Prom
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
   const contextText = formatContextForPrompt(context);
+  const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
   const response = await ai.models.generateContent({
     model: MODEL,
@@ -45,11 +47,13 @@ export async function assessPerformanceLevel(context: IntelligenceContext): Prom
       "Sei un esperto di scienze dello sport. Stima il livello di performance ATTUALE di questo atleta, usando SOLO i dati forniti " +
       "(valutazioni, metriche sport-specifiche, competizioni, obiettivi attivi). Il livello è un'etichetta libera e specifica per questo sport " +
       "e questo atleta (es. 'principiante', 'intermedio con buona base tecnica', 'agonista regionale', 'competitivo a livello nazionale') — " +
-      "NON usare una scala universale fissa e non forzare un atleta con un percorso reale in una categoria generica bassa solo per prudenza.\n\n" +
+      "NON usare una scala universale fissa e non forzare un atleta con un percorso reale in una categoria generica bassa solo per prudenza. " +
+      "Se il coach ha dichiarato criteri propri su cosa considera un certo livello (sotto), tienine conto nell'etichetta.\n\n" +
       "Se i dati forniti sono troppo scarsi, contraddittori, o insufficienti per una stima ragionevole, imposta hasEnoughData a false e lascia " +
       "level/explanation vuoti — non inventare mai un livello per dare comunque una risposta.\n\n" +
       "Scrivi in italiano.\n\n" +
-      contextText,
+      contextText +
+      methodologyBlock,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
