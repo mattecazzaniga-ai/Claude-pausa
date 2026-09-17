@@ -55,6 +55,10 @@ const ALLOWED: AnalyticsEventName[] = [
   "athlete_chat_question_asked",
   "checkin_created",
   "metric_value_recorded",
+  "injury_recorded",
+  "injury_updated",
+  "injury_deleted",
+  "injury_event_added",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

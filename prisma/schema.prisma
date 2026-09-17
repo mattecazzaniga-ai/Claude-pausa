@@ -186,6 +186,7 @@ model Coach {
   passwordResetTokens PasswordResetToken[]
   checkins            AthleteCheckin[]
   metricValues        AthleteMetricValue[]
+  injuries            AthleteInjury[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -364,6 +365,7 @@ model Athlete {
   feedbackSignals  CoachFeedbackSignal[]
   checkins         AthleteCheckin[]
   metricValues     AthleteMetricValue[]
+  injuries         AthleteInjury[]
 
   @@index([coachId])
 }
@@ -994,4 +996,92 @@ model AnalyticsEvent {
 
   @@index([name])
   @@index([createdAt])
+}
+
+enum InjuryType {
+  INFORTUNIO
+  FASTIDIO
+  DOLORE_RIFERITO
+  LIMITAZIONE
+  PROBLEMA_RICORRENTE
+  ALTRO
+}
+
+enum InjurySide {
+  LEFT
+  RIGHT
+  BILATERAL
+  NOT_APPLICABLE
+}
+
+enum InjuryOrigin {
+  ALLENAMENTO
+  PARTITA
+  COMPETIZIONE
+  INSORGENZA_GRADUALE
+  FUORI_DALLO_SPORT
+  NON_NOTO
+}
+
+/// Mirrors ObjectiveStatus's 3-state lifecycle-on-a-timestamped-entity
+/// pattern, extended to the 5 states the master prompt names. RESOLVED and
+/// ARCHIVED are both "no longer active" for the Decision Engine (§20's own
+/// test: a resolved problem must never be treated as active) — kept as two
+/// states rather than one so a coach can still tell "healed" apart from
+/// "we stopped tracking this" in the history.
+enum InjuryStatus {
+  ACTIVE
+  MONITORING
+  RETURNING
+  RESOLVED
+  ARCHIVED
+}
+
+/// A reported physical problem — deliberately never a diagnosis. Only what
+/// the coach/athlete registered: type, area, when, and reported limitations
+/// (free text). See lib/injuries.ts for how this is turned into Decision
+/// Engine context: always framed as "registered data", never as a medical
+/// finding (master prompt §20's Fact/Inference/Recommendation split).
+/// No document-attachment storage in this pass — this environment has no
+/// blob storage configured to actually persist an upload, and building a
+/// fake "attach a file" button that silently drops it would be worse than
+/// not offering it.
+model AthleteInjury {
+  id                  String       @id @default(cuid())
+  athleteId           String
+  coachId             String
+  type                InjuryType
+  bodyRegion          String
+  side                InjurySide   @default(NOT_APPLICABLE)
+  areaDetail          String?
+  origin              InjuryOrigin @default(NON_NOTO)
+  status              InjuryStatus @default(ACTIVE)
+  startDate           DateTime     @default(now())
+  resolvedDate        DateTime?
+  description         String?
+  reportedLimitations String?
+  coachNotes          String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  athlete Athlete              @relation(fields: [athleteId], references: [id])
+  coach   Coach                @relation(fields: [coachId], references: [id])
+  events  AthleteInjuryEvent[]
+
+  @@index([athleteId, status])
+}
+
+/// Append-only timeline for one AthleteInjury (master prompt §17) — never
+/// edited or deleted, only added to, so the evolution of a problem stays
+/// legible even after its status changes.
+model AthleteInjuryEvent {
+  id        String   @id @default(cuid())
+  injuryId  String
+  date      DateTime @default(now())
+  note      String
+  createdAt DateTime @default(now())
+
+  injury AthleteInjury @relation(fields: [injuryId], references: [id], onDelete: Cascade)
+
+  @@index([injuryId])
 }

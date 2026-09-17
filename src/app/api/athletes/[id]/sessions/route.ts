@@ -7,6 +7,7 @@ import { isAiConfigured } from "@/lib/ai";
 import { generateSessionPlan, type LibraryExercise } from "@/lib/ai-session";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { computeAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
+import { getActiveInjuries, formatInjuriesForPrompt, formatInjuryAdaptationNote } from "@/lib/injuries";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -81,7 +82,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
   const sportProfile = await getSportProfile(athlete.sportId);
   const sportContext = formatSportProfileForPrompt(athlete.sport.name, sportProfile);
 
-  const [latestCheckin, recentSessions] = await Promise.all([
+  const [latestCheckin, recentSessions, activeInjuries] = await Promise.all([
     prisma.athleteCheckin.findFirst({ where: { athleteId: athlete.id }, orderBy: { date: "desc" } }),
     prisma.trainingSession.findMany({
       where: { athleteId: athlete.id },
@@ -89,8 +90,10 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       take: 2,
       select: { createdAt: true, feedbackRating: true },
     }),
+    getActiveInjuries(athlete.id),
   ]);
   const adaptation = computeAdaptationSignal({ latestCheckin, recentSessions });
+  const injuryDirective = formatInjuriesForPrompt(activeInjuries);
 
   let plan;
   try {
@@ -106,11 +109,17 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       libraryExercises,
       sportContext,
       adaptationDirective: adaptation ? formatAdaptationDirective(adaptation) : undefined,
+      injuryConstraints: injuryDirective ?? undefined,
     });
   } catch (err) {
     captureError("AI session generation failed", err);
     return NextResponse.json({ error: "La generazione AI non è riuscita. Riprova tra poco." }, { status: 502 });
   }
+
+  const adaptationNoteParts = [
+    adaptation ? formatAdaptationNote(adaptation) : null,
+    activeInjuries.length ? formatInjuryAdaptationNote(activeInjuries) : null,
+  ].filter((n): n is string => Boolean(n));
 
   const trainingSession = await prisma.trainingSession.create({
     data: {
@@ -119,7 +128,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       sportId: athlete.sportId,
       objective: plan.objective,
       durationMinutes: parsed.data.durationMinutes,
-      adaptationNote: adaptation ? formatAdaptationNote(adaptation) : undefined,
+      adaptationNote: adaptationNoteParts.length ? adaptationNoteParts.join(" ") : undefined,
     },
   });
 

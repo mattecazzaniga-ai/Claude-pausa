@@ -51,6 +51,7 @@ export async function generateSessionPlan(params: {
   libraryExercises: LibraryExercise[];
   sportContext?: string;
   adaptationDirective?: string;
+  injuryConstraints?: string;
 }): Promise<GeneratedSessionPlan> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
@@ -80,6 +81,7 @@ export async function generateSessionPlan(params: {
       "terminologia indicati sotto, non contenuti generici che andrebbero bene per qualsiasi sport. " +
       "Non usare mai terminologia presa in prestito da uno sport simile ma diverso.\n\n" +
       `${params.sportContext ? `${params.sportContext}\n\n` : ""}` +
+      `${params.injuryConstraints ? `${params.injuryConstraints}\n\n` : ""}` +
       `${params.adaptationDirective ? `${params.adaptationDirective}\n\n` : ""}` +
       `Atleta: ${params.athleteName}\n` +
       `Obiettivi generali: ${params.objectives || "Non specificati"}\n` +

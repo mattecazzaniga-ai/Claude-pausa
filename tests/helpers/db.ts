@@ -69,7 +69,9 @@ export async function createTestOffer(coachId: string, overrides?: Partial<{ pri
 
 /** Deletes a coach and everything under it — the same cascade a real account deletion would need. */
 export async function deleteTestCoach(coachId: string) {
+  await prisma.athleteInjuryEvent.deleteMany({ where: { injury: { coachId } } });
   await prisma.$transaction([
+    prisma.athleteInjury.deleteMany({ where: { coachId } }),
     prisma.athleteCheckin.deleteMany({ where: { coachId } }),
     prisma.athleteMetricValue.deleteMany({ where: { coachId } }),
     prisma.payment.deleteMany({ where: { purchase: { coachId } } }),

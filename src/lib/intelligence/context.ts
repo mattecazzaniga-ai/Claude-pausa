@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { getEvaluationCriteria, buildComparison, type ComparisonRow } from "@/lib/evaluation";
+import { getActiveInjuries, formatInjuriesForPrompt, type InjurySummary } from "@/lib/injuries";
 
 const RECENT_NOTES_LIMIT = 6;
 const RECENT_COMPETITIONS_LIMIT = 3;
@@ -33,6 +34,7 @@ export type IntelligenceContext = {
   daysSinceLastSession: number | null;
   recentCheckins: { date: string; readiness: number | null; rpe: number | null; feeling: string | null; sleepHours: number | null; soreness: number | null; notes: string | null }[];
   recentMetrics: { name: string; unit: string | null; latestValue: number; latestDate: string; trend: "up" | "down" | "flat" | null }[];
+  activeInjuries: InjurySummary[];
 };
 
 /**
@@ -50,7 +52,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
   });
   if (!athlete) throw new Error("Athlete not found");
 
-  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins, recentMetricValues] = await Promise.all([
+  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins, recentMetricValues, activeInjuries] = await Promise.all([
     getSportProfile(athlete.sportId),
     getEvaluationCriteria(athlete.sportId, athlete.coachId),
     prisma.evaluation.findMany({ where: { athleteId }, orderBy: { evaluatedAt: "asc" }, include: { scores: true } }),
@@ -80,6 +82,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       take: RECENT_METRIC_VALUES_LIMIT,
       include: { sportMetric: { select: { name: true, unit: true } } },
     }),
+    getActiveInjuries(athleteId),
   ]);
 
   const lastEvaluation = evaluations[evaluations.length - 1];
@@ -136,6 +139,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       notes: c.notes,
     })),
     recentMetrics: summarizeMetricValues(recentMetricValues),
+    activeInjuries,
   };
 }
 
@@ -236,6 +240,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
     daysSinceLastSession: recentSessions[0] ? daysBetween(recentSessions[0].createdAt, new Date()) : null,
     recentCheckins: [],
     recentMetrics: [],
+    activeInjuries: [],
   };
 }
 
@@ -246,6 +251,10 @@ function daysBetween(a: Date, b: Date): number {
 /** Renders the context as compact prompt text — shared so every intelligence prompt uses the same evidence framing. */
 export function formatContextForPrompt(ctx: IntelligenceContext): string {
   const lines: string[] = [ctx.sportContextText, "", `Soggetto: ${ctx.subjectName}`];
+
+  if (ctx.activeInjuries.length) {
+    lines.push("", formatInjuriesForPrompt(ctx.activeInjuries) ?? "");
+  }
 
   if (ctx.objectivesFreeText) lines.push(`Obiettivi generali dichiarati dal coach: ${ctx.objectivesFreeText}`);
   if (ctx.aiSummary) lines.push(`Sintesi AI più recente: ${ctx.aiSummary}`);

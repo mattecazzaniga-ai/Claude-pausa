@@ -289,3 +289,33 @@ export const createCheckinSchema = z
   .refine((data) => data.readiness != null || data.rpe != null || data.feeling != null || data.sleepHours != null || data.soreness != null || Boolean(data.notes), {
     message: "Compila almeno un campo del check-in.",
   });
+
+const injuryTypeEnum = z.enum(["INFORTUNIO", "FASTIDIO", "DOLORE_RIFERITO", "LIMITAZIONE", "PROBLEMA_RICORRENTE", "ALTRO"]);
+const injurySideEnum = z.enum(["LEFT", "RIGHT", "BILATERAL", "NOT_APPLICABLE"]);
+const injuryOriginEnum = z.enum(["ALLENAMENTO", "PARTITA", "COMPETIZIONE", "INSORGENZA_GRADUALE", "FUORI_DALLO_SPORT", "NON_NOTO"]);
+const injuryStatusEnum = z.enum(["ACTIVE", "MONITORING", "RETURNING", "RESOLVED", "ARCHIVED"]);
+
+export const createInjurySchema = z.object({
+  type: injuryTypeEnum,
+  bodyRegion: z.string().trim().min(1, "Indica l'area interessata").max(60),
+  side: injurySideEnum.optional(),
+  areaDetail: z.string().trim().max(100).optional().nullable(),
+  origin: injuryOriginEnum.optional(),
+  startDate: z.string().datetime().optional(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  reportedLimitations: z.string().trim().max(500).optional().nullable(),
+  coachNotes: z.string().trim().max(500).optional().nullable(),
+});
+
+export const updateInjurySchema = z.object({
+  status: injuryStatusEnum.optional(),
+  resolvedDate: z.string().datetime().optional().nullable(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  reportedLimitations: z.string().trim().max(500).optional().nullable(),
+  coachNotes: z.string().trim().max(500).optional().nullable(),
+});
+
+export const createInjuryEventSchema = z.object({
+  note: z.string().trim().min(1, "Scrivi una nota").max(500),
+  date: z.string().datetime().optional(),
+});

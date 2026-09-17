@@ -15,6 +15,7 @@ import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
 import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
+import { InjuriesSection, InjuryStatusBadge } from "@/components/injuries-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const SENTIMENT_STYLE: Record<string, string> = {
@@ -141,6 +142,9 @@ export function AthleteClient({
             {athlete.sportName}
             {athlete.level ? ` · ${athlete.level}` : ""}
           </p>
+          <div className="mt-2">
+            <InjuryStatusBadge basePath={`/api/athletes/${athlete.id}`} />
+          </div>
           {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
         </div>
         {!athlete.isSelf && (
@@ -289,6 +293,11 @@ export function AthleteClient({
             id: "checkin",
             label: "Check-in",
             content: <CheckinSection basePath={`/api/athletes/${athlete.id}`} />,
+          },
+          {
+            id: "injuries",
+            label: "Infortuni & Fastidi",
+            content: <InjuriesSection basePath={`/api/athletes/${athlete.id}`} />,
           },
           {
             id: "competitions",

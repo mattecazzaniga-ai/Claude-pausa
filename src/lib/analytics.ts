@@ -56,7 +56,11 @@ export type AnalyticsEventName =
   | "athlete_chat_question_asked"
   | "checkin_created"
   | "checkin_imported"
-  | "metric_value_recorded";
+  | "metric_value_recorded"
+  | "injury_recorded"
+  | "injury_updated"
+  | "injury_deleted"
+  | "injury_event_added";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —
