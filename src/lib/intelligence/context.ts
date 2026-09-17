@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { getEvaluationCriteria, buildComparison, type ComparisonRow } from "@/lib/evaluation";
 import { getActiveInjuries, formatInjuriesForPrompt, type InjurySummary } from "@/lib/injuries";
+import { getRelevantAthleteMemories, getRelevantTeamMemories, formatMemoriesForPrompt, type MemorySummary } from "@/lib/memory";
 
 const RECENT_NOTES_LIMIT = 6;
 const RECENT_COMPETITIONS_LIMIT = 3;
@@ -35,6 +36,9 @@ export type IntelligenceContext = {
   recentCheckins: { date: string; readiness: number | null; rpe: number | null; feeling: string | null; sleepHours: number | null; soreness: number | null; notes: string | null }[];
   recentMetrics: { name: string; unit: string | null; latestValue: number; latestDate: string; trend: "up" | "down" | "flat" | null }[];
   activeInjuries: InjurySummary[];
+  /// Coaching Memory (§6-10 of the Coach Brain master prompt): dated
+  /// observations retrieved via lib/memory.ts, never the whole memory store.
+  relevantMemories: MemorySummary[];
 };
 
 /**
@@ -52,7 +56,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
   });
   if (!athlete) throw new Error("Athlete not found");
 
-  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins, recentMetricValues, activeInjuries] = await Promise.all([
+  const [sportProfile, criteria, evaluations, notes, objectives, pastCompetitions, upcomingCompetition, recentSessions, recentCheckins, recentMetricValues, activeInjuries, relevantMemories] = await Promise.all([
     getSportProfile(athlete.sportId),
     getEvaluationCriteria(athlete.sportId, athlete.coachId),
     prisma.evaluation.findMany({ where: { athleteId }, orderBy: { evaluatedAt: "asc" }, include: { scores: true } }),
@@ -83,6 +87,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
       include: { sportMetric: { select: { name: true, unit: true } } },
     }),
     getActiveInjuries(athleteId),
+    getRelevantAthleteMemories(athleteId),
   ]);
 
   const lastEvaluation = evaluations[evaluations.length - 1];
@@ -140,6 +145,7 @@ export async function buildAthleteIntelligenceContext(athleteId: string): Promis
     })),
     recentMetrics: summarizeMetricValues(recentMetricValues),
     activeInjuries,
+    relevantMemories,
   };
 }
 
@@ -167,7 +173,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
   });
   if (!team) throw new Error("Team not found");
 
-  const [sportProfile, evaluationCriteria, evaluations, objectives, pastCompetitions, upcomingCompetition, recentSessions] = await Promise.all([
+  const [sportProfile, evaluationCriteria, evaluations, objectives, pastCompetitions, upcomingCompetition, recentSessions, relevantMemories] = await Promise.all([
     getSportProfile(team.sportId),
     getEvaluationCriteria(team.sportId, team.coachId),
     prisma.evaluation.findMany({ where: { teamId }, orderBy: { evaluatedAt: "asc" }, include: { scores: true } }),
@@ -184,6 +190,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
       take: RECENT_SESSIONS_LIMIT,
       select: { createdAt: true, objective: true, feedbackRating: true, feedbackNote: true },
     }),
+    getRelevantTeamMemories(teamId),
   ]);
 
   // No single cached summary for a team — aggregate each member's current
@@ -241,6 +248,7 @@ export async function buildTeamIntelligenceContext(teamId: string): Promise<Inte
     recentCheckins: [],
     recentMetrics: [],
     activeInjuries: [],
+    relevantMemories,
   };
 }
 
@@ -254,6 +262,10 @@ export function formatContextForPrompt(ctx: IntelligenceContext): string {
 
   if (ctx.activeInjuries.length) {
     lines.push("", formatInjuriesForPrompt(ctx.activeInjuries) ?? "");
+  }
+
+  if (ctx.relevantMemories.length) {
+    lines.push("", formatMemoriesForPrompt(ctx.relevantMemories) ?? "");
   }
 
   if (ctx.objectivesFreeText) lines.push(`Obiettivi generali dichiarati dal coach: ${ctx.objectivesFreeText}`);

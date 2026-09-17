@@ -6,6 +6,7 @@ import { recordCompetitionResultSchema } from "@/lib/validation";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { analyzeCompetitionPerformance } from "@/lib/ai-competition";
+import { recordAthleteMemoryObservation } from "@/lib/memory";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -66,6 +67,26 @@ export async function PATCH(
       where: { id: competition.athleteId! },
       data: { aiSummary: analysis.narrative, aiPriorities: analysis.priorities, aiSummaryUpdatedAt: new Date() },
     });
+
+    // Coaching Memory (§14): a priority that keeps resurfacing after
+    // competitions is exactly the "recurring problem" the memory system
+    // should notice — recordAthleteMemoryObservation only strengthens it
+    // into a real pattern once the SAME topic recurs, never on one occurrence.
+    // Best-effort: a memory-write failure must never hide that the analysis
+    // itself already succeeded and was saved.
+    try {
+      for (const priority of analysis.priorities) {
+        await recordAthleteMemoryObservation({
+          athleteId: competition.athleteId!,
+          coachId: session.user.id,
+          topic: priority.skill,
+          summary: `${priority.skill}: ${priority.reason} (dopo ${competition.name})`,
+          source: "COMPETITION",
+        });
+      }
+    } catch (memoryErr) {
+      captureError("Recording athlete memory from competition analysis failed", memoryErr);
+    }
 
     return NextResponse.json({ competition: withAnalysis, athleteSummary: analysis });
   } catch (err) {

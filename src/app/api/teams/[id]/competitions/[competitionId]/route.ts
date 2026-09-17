@@ -6,6 +6,7 @@ import { recordCompetitionResultSchema } from "@/lib/validation";
 import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { isAiConfigured } from "@/lib/ai";
 import { analyzeCompetitionPerformance } from "@/lib/ai-competition";
+import { recordTeamMemoryObservation } from "@/lib/memory";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
@@ -62,6 +63,20 @@ export async function PATCH(
     });
 
     const withAnalysis = await prisma.competition.update({ where: { id: competition.id }, data: { aiPostAnalysis: analysis.narrative } });
+
+    try {
+      for (const priority of analysis.priorities) {
+        await recordTeamMemoryObservation({
+          teamId: competition.teamId!,
+          coachId: session.user.id,
+          topic: priority.skill,
+          summary: `${priority.skill}: ${priority.reason} (dopo ${competition.name})`,
+          source: "COMPETITION",
+        });
+      }
+    } catch (memoryErr) {
+      captureError("Recording team memory from competition analysis failed", memoryErr);
+    }
 
     return NextResponse.json({ competition: withAnalysis, analysis });
   } catch (err) {

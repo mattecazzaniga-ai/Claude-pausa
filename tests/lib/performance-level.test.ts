@@ -21,6 +21,7 @@ function emptyContext(overrides: Partial<IntelligenceContext> = {}): Intelligenc
     recentCheckins: [],
     recentMetrics: [],
     activeInjuries: [],
+    relevantMemories: [],
     ...overrides,
   };
 }

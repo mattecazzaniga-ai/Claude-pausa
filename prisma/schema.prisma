@@ -190,6 +190,8 @@ model Coach {
   methodologyPrinciples CoachMethodologyPrinciple[]
   methodologyVersions   CoachMethodologyVersion[]
   weeklyPlans           WeeklyTrainingPlan[]
+  athleteMemories       AthleteMemory[]
+  teamMemories          TeamMemory[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -394,6 +396,7 @@ model Athlete {
   metricValues     AthleteMetricValue[]
   injuries         AthleteInjury[]
   weeklyPlans      WeeklyTrainingPlan[]
+  memories         AthleteMemory[]
 
   @@index([coachId])
 }
@@ -425,6 +428,7 @@ model Team {
   recommendations  CoachingRecommendation[]
   feedbackSignals  CoachFeedbackSignal[]
   weeklyPlans      WeeklyTrainingPlan[]
+  memories         TeamMemory[]
 
   @@index([coachId])
 }
@@ -1251,4 +1255,139 @@ model PlannedSessionSlot {
   trainingSession TrainingSession?   @relation(fields: [trainingSessionId], references: [id])
 
   @@index([planId])
+}
+
+/// Coaching Memory (master prompt COACH BRAIN + COACHING MEMORY, §7-10): how
+/// durable a piece of knowledge about an athlete/team is. A single
+/// observation ("Marco era stanco oggi") starts RILEVANTE — it's real, but
+/// not yet a trait — and never becomes PERSISTENTE on its own; only repeated
+/// evidence (see lib/memory.ts's dedupe-by-topic promotion) or an explicit
+/// coach confirmation earns that. STORICA is for the timeline/history view —
+/// kept for context, but excluded from what live AI decisions retrieve.
+/// TEMPORANEA is scoped to its own moment and never resurfaces later.
+enum MemoryStatus {
+  TEMPORANEA
+  RILEVANTE
+  PERSISTENTE
+  STORICA
+}
+
+/// FACT → PATTERN → PREFERENCE → CONFIRMED (§10): only CONFIRMED is ever
+/// stated as certain. The others are real but must be hedged in prompt text
+/// (see formatMemoriesForPrompt) — never presented as settled fact.
+enum MemoryConfidence {
+  FACT
+  PATTERN
+  PREFERENCE
+  CONFIRMED
+}
+
+enum MemorySource {
+  SESSION_NOTE
+  SESSION_FEEDBACK
+  EVALUATION
+  COMPETITION
+  CHECKIN
+  COACH_OBSERVATION
+  MANUAL
+}
+
+/// §24: the coach must be able to see, edit, confirm or reject any memory —
+/// never an irreversible record. REJECTED memories are kept (not deleted)
+/// so the coach can see what MENTATHLOS got wrong, but are excluded from
+/// every retrieval the same as if they didn't exist.
+enum MemoryReviewState {
+  ACTIVE
+  REJECTED
+}
+
+/// One atomic piece of Coaching Memory about a specific athlete — distinct
+/// from Coach Brain (Coach.learnedPreferences / CoachMethodology*), which is
+/// about how the COACH works, never the athlete (§19). Deliberately mirrors
+/// AthleteInjury/AthleteInjuryEvent's shape (a durable record + an
+/// append-only evidence timeline) rather than inventing a new pattern.
+model AthleteMemory {
+  id              String            @id @default(cuid())
+  athleteId       String
+  coachId         String
+  /// Groups repeated observations of the same underlying thing (e.g. a
+  /// slugified skill name) so a second occurrence strengthens this row
+  /// instead of creating a duplicate. Null for a one-off manual note with
+  /// nothing to group against.
+  topic           String?
+  summary         String
+  status          MemoryStatus      @default(RILEVANTE)
+  confidence      MemoryConfidence  @default(FACT)
+  source          MemorySource
+  reviewState     MemoryReviewState @default(ACTIVE)
+  evidenceCount   Int               @default(1)
+  firstObservedAt DateTime          @default(now())
+  lastObservedAt  DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  athlete Athlete              @relation(fields: [athleteId], references: [id])
+  coach   Coach                @relation(fields: [coachId], references: [id])
+  events  AthleteMemoryEvent[]
+
+  @@index([athleteId, status])
+  @@index([athleteId, topic])
+  @@index([coachId])
+}
+
+/// Append-only evidence timeline for one AthleteMemory — never edited or
+/// deleted, so "why does MENTATHLOS think this" stays answerable even after
+/// the memory's own summary/status has since evolved.
+model AthleteMemoryEvent {
+  id         String   @id @default(cuid())
+  memoryId   String
+  note       String
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  memory AthleteMemory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([memoryId])
+}
+
+/// Same shape as AthleteMemory, scoped to a Team instead — kept as a
+/// separate model rather than a nullable athleteId/teamId pair on one table,
+/// since "what MENTATHLOS knows about this team" and "...about this athlete"
+/// are never queried together and mixing them risks a memory leaking to the
+/// wrong subject.
+model TeamMemory {
+  id              String            @id @default(cuid())
+  teamId          String
+  coachId         String
+  topic           String?
+  summary         String
+  status          MemoryStatus      @default(RILEVANTE)
+  confidence      MemoryConfidence  @default(FACT)
+  source          MemorySource
+  reviewState     MemoryReviewState @default(ACTIVE)
+  evidenceCount   Int               @default(1)
+  firstObservedAt DateTime          @default(now())
+  lastObservedAt  DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  team   Team              @relation(fields: [teamId], references: [id])
+  coach  Coach             @relation(fields: [coachId], references: [id])
+  events TeamMemoryEvent[]
+
+  @@index([teamId, status])
+  @@index([teamId, topic])
+  @@index([coachId])
+}
+
+model TeamMemoryEvent {
+  id         String   @id @default(cuid())
+  memoryId   String
+  note       String
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  memory TeamMemory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([memoryId])
 }
