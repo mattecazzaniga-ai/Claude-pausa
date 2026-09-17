@@ -24,7 +24,7 @@ vi.mock("@/lib/ai-sport-profile", () => ({
 
 vi.mock("@/lib/ai-sport-metrics", () => ({
   generateSportMetrics: vi.fn().mockResolvedValue({
-    metrics: [{ name: "Metrica di prova", unit: "unità", description: "Descrizione di prova" }],
+    metrics: [{ name: "Metrica di prova", unit: "unità", description: "Descrizione di prova", direction: "HIGHER_IS_BETTER" }],
   }),
 }));
 

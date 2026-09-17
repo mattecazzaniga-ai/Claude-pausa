@@ -278,18 +278,30 @@ model SkillCategory {
   @@index([sportId])
 }
 
+/// Whether a lower or higher recorded value represents an improvement for a
+/// given SportMetric (e.g. a 5km time is LOWER_IS_BETTER, a vertical jump is
+/// HIGHER_IS_BETTER) — needed to tell a Personal Best from a Personal Worst.
+/// Null on SportMetric means "not known" (metrics generated before this field
+/// existed): baseline computation then reports initial/current only, with no
+/// PB/SB claim, rather than guessing a direction.
+enum MetricDirection {
+  HIGHER_IS_BETTER
+  LOWER_IS_BETTER
+}
+
 /// Sport-specific performance metrics (master prompt §22, "Smart Metrics
 /// Engine") — e.g. pace/distance for running, first-serve % for tennis.
 /// Generated lazily via AI on first real use, same pattern as the skill
 /// taxonomy and Sport Profile. Deliberately just name/unit/description: no
 /// invented thresholds or "scores" without a real statistical basis.
 model SportMetric {
-  id          String  @id @default(cuid())
+  id          String           @id @default(cuid())
   sportId     String
   name        String
   unit        String?
   description String?
-  order       Int     @default(0)
+  direction   MetricDirection?
+  order       Int              @default(0)
 
   sport  Sport                @relation(fields: [sportId], references: [id])
   values AthleteMetricValue[]

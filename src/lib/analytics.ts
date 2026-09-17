@@ -62,7 +62,9 @@ export type AnalyticsEventName =
   | "injury_deleted"
   | "injury_event_added"
   | "methodology_saved"
-  | "methodology_imported";
+  | "methodology_imported"
+  | "performance_level_assessed"
+  | "main_gap_computed";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

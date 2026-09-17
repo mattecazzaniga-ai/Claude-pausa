@@ -61,6 +61,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "injury_event_added",
   "methodology_saved",
   "methodology_imported",
+  "performance_level_assessed",
+  "main_gap_computed",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

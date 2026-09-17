@@ -15,6 +15,7 @@ import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
 import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
+import { BaselineSection } from "@/components/baseline-section";
 import { InjuriesSection, InjuryStatusBadge } from "@/components/injuries-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
@@ -285,6 +286,7 @@ export function AthleteClient({
               <>
                 <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
                 <MetricsSection basePath={`/api/athletes/${athlete.id}`} />
+                <BaselineSection basePath={`/api/athletes/${athlete.id}`} />
                 <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
               </>
             ),

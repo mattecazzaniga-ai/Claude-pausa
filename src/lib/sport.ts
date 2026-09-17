@@ -182,7 +182,7 @@ export async function getSportProfile(sportId: string): Promise<SportProfileCont
   };
 }
 
-export type SportMetricData = { id: string; name: string; unit: string | null; description: string | null };
+export type SportMetricData = { id: string; name: string; unit: string | null; description: string | null; direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER" | null };
 
 /**
  * Ensures a sport has performance metrics (master prompt §22), generating
@@ -212,7 +212,7 @@ export async function ensureSportMetrics(sportId: string, opts?: { force?: boole
   await prisma.$transaction([
     prisma.sportMetric.deleteMany({ where: { sportId } }),
     prisma.sportMetric.createMany({
-      data: generated.metrics.map((m, i) => ({ sportId, name: m.name, unit: m.unit || null, description: m.description || null, order: i })),
+      data: generated.metrics.map((m, i) => ({ sportId, name: m.name, unit: m.unit || null, description: m.description || null, direction: m.direction, order: i })),
     }),
   ]);
 }

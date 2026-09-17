@@ -4,7 +4,7 @@ const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 const MODEL = "gemini-3.6-flash";
 
-export type GeneratedMetric = { name: string; unit: string; description: string };
+export type GeneratedMetric = { name: string; unit: string; description: string; direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER" };
 export type GeneratedSportMetrics = { metrics: GeneratedMetric[] };
 
 /**
@@ -23,7 +23,9 @@ export async function generateSportMetrics(sportName: string, sportContext: stri
       "Sei un esperto di scienze dello sport. Elenca le metriche di performance che un allenatore o un atleta di questo sport monitora " +
       "realmente per capire se sta migliorando. Devono essere metriche concrete e misurabili in allenamento o in gara, non concetti astratti. " +
       "NON inventare punteggi/soglie scientificamente non validati: limitati a nome, unità di misura e una breve descrizione di cosa indica " +
-      "la metrica. Usa solo metriche che appartengono davvero a questo sport specifico, non prese in prestito da uno sport simile ma diverso.\n\n" +
+      "la metrica. Usa solo metriche che appartengono davvero a questo sport specifico, non prese in prestito da uno sport simile ma diverso. " +
+      "Per ogni metrica indica anche se un valore PIÙ ALTO o PIÙ BASSO rappresenta un miglioramento (es. un tempo sui 5km è 'più basso è meglio', " +
+      "un salto in alto è 'più alto è meglio') — questo determina se un nuovo valore è un record personale.\n\n" +
       `${sportContext}\n\n` +
       `Sport: ${sportName}`,
     config: {
@@ -40,8 +42,9 @@ export async function generateSportMetrics(sportName: string, sportContext: stri
                 name: { type: "string" },
                 unit: { type: "string", description: "Unità di misura (es. 'min/km', '%', 'watt'). Stringa vuota se la metrica non ha un'unità." },
                 description: { type: "string", description: "Cosa indica questa metrica, in breve." },
+                direction: { type: "string", enum: ["HIGHER_IS_BETTER", "LOWER_IS_BETTER"], description: "Se un valore più alto o più basso è un miglioramento." },
               },
-              required: ["name", "unit", "description"],
+              required: ["name", "unit", "description", "direction"],
             },
           },
         },
