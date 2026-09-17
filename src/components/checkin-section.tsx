@@ -357,7 +357,7 @@ function NewCheckinForm({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">Prontezza (1-10)</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Prontezza</label>
             <input
               type="number"
               min={1}
@@ -366,9 +366,10 @@ function NewCheckinForm({
               onChange={(e) => setReadiness(e.target.value)}
               className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
             />
+            <p className="mt-1 text-[11px] text-muted">1 = per niente pronto, 10 = al top della forma</p>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">Sforzo percepito (0-10)</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Sforzo percepito</label>
             <input
               type="number"
               min={0}
@@ -377,6 +378,7 @@ function NewCheckinForm({
               onChange={(e) => setRpe(e.target.value)}
               className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
             />
+            <p className="mt-1 text-[11px] text-muted">0 = nessuno sforzo, 10 = sforzo massimale</p>
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted">Ore di sonno</label>
@@ -391,7 +393,7 @@ function NewCheckinForm({
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted">Indolenzimento (1-10)</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted">Indolenzimento</label>
             <input
               type="number"
               min={1}
@@ -400,6 +402,7 @@ function NewCheckinForm({
               onChange={(e) => setSoreness(e.target.value)}
               className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-accent"
             />
+            <p className="mt-1 text-[11px] text-muted">1 = nessun indolenzimento, 10 = molto indolenzito</p>
           </div>
         </div>
 

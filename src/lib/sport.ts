@@ -79,6 +79,8 @@ export type SportProfileContext = {
   commonProblems: string;
   progressions: string;
   safetyNotes: string;
+  /** e.g. ["Nuoto", "Ciclismo", "Corsa"] for Triathlon — empty for every single-discipline sport. */
+  disciplines: string[];
 };
 
 /** Shared field list so ensure/regenerate/get can't drift from each other by missing a field in one of the three spots. */
@@ -97,6 +99,7 @@ function profileToDbData(profile: GeneratedSportProfile) {
     commonProblems: profile.commonProblems,
     progressions: profile.progressions,
     safetyNotes: profile.safetyNotes,
+    disciplines: profile.disciplines,
   };
 }
 
@@ -157,7 +160,24 @@ export async function regenerateSportProfile(sportId: string): Promise<SportProf
   return profileToDbData(profile);
 }
 
-function sportRowToProfileContext(sport: { formats: string[]; environment: string | null; equipment: string | null; scoringSystem: string | null; keyRules: string | null; terminology: string | null; positions: string | null; movementPatterns: string | null; gameSituations: string | null; trainingMethods: string | null; commonProblems: string | null; progressions: string | null; safetyNotes: string | null } | null): SportProfileContext {
+function sportRowToProfileContext(
+  sport: {
+    formats: string[];
+    environment: string | null;
+    equipment: string | null;
+    scoringSystem: string | null;
+    keyRules: string | null;
+    terminology: string | null;
+    positions: string | null;
+    movementPatterns: string | null;
+    gameSituations: string | null;
+    trainingMethods: string | null;
+    commonProblems: string | null;
+    progressions: string | null;
+    safetyNotes: string | null;
+    disciplines: string[];
+  } | null
+): SportProfileContext {
   return {
     formats: sport?.formats ?? [],
     environment: sport?.environment ?? "",
@@ -170,8 +190,9 @@ function sportRowToProfileContext(sport: { formats: string[]; environment: strin
     gameSituations: sport?.gameSituations ?? "",
     trainingMethods: sport?.trainingMethods ?? "",
     commonProblems: sport?.commonProblems ?? "",
-    progressions: sport?.progressions ?? "",
     safetyNotes: sport?.safetyNotes ?? "",
+    progressions: sport?.progressions ?? "",
+    disciplines: sport?.disciplines ?? [],
   };
 }
 
@@ -260,6 +281,7 @@ export function formatSportProfileForPrompt(sportName: string, profile: SportPro
   if (profile.commonProblems) lines.push(`Problemi tecnici/tattici comuni: ${profile.commonProblems}`);
   if (profile.progressions) lines.push(`Progressioni didattiche: ${profile.progressions}`);
   if (profile.safetyNotes) lines.push(`Sicurezza/infortuni tipici: ${profile.safetyNotes}`);
+  if (profile.disciplines.length) lines.push(`Discipline separate di questo sport: ${profile.disciplines.join(", ")}`);
 
   return lines.join("\n");
 }

@@ -17,6 +17,7 @@ import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
 import { BaselineSection } from "@/components/baseline-section";
 import { DigitalTwinSection } from "@/components/digital-twin-section";
+import { WeeklyPlanSection } from "@/components/weekly-plan-section";
 import { InjuriesSection, InjuryStatusBadge } from "@/components/injuries-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
@@ -182,6 +183,7 @@ export function AthleteClient({
             content: (
               <>
                 {aiConfigured && <NextBestActionCard basePath={`/api/athletes/${athlete.id}`} showDiagnose />}
+                {aiConfigured && <WeeklyPlanSection basePath={`/api/athletes/${athlete.id}`} />}
                 {aiConfigured && <AthleteChatCard basePath={`/api/athletes/${athlete.id}`} />}
 
                 {/* AI summary / priorities */}

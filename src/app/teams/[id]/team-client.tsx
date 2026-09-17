@@ -10,6 +10,7 @@ import { EvaluationsSection } from "@/components/evaluations-section";
 import { CompetitionsSection } from "@/components/competitions-section";
 import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
+import { WeeklyPlanSection } from "@/components/weekly-plan-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
@@ -151,6 +152,7 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
             content: (
               <>
                 {aiConfigured && <NextBestActionCard basePath={`/api/teams/${team.id}`} />}
+                {aiConfigured && <WeeklyPlanSection basePath={`/api/teams/${team.id}`} />}
 
                 {/* Session generator — one plan for the whole team, aggregating member priorities */}
                 {aiConfigured && (

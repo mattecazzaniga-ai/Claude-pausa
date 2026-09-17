@@ -80,6 +80,7 @@ export async function deleteTestCoach(coachId: string) {
     prisma.purchase.deleteMany({ where: { coachId } }),
     prisma.calendarEvent.deleteMany({ where: { coachId } }),
     prisma.coachingRecommendation.deleteMany({ where: { coachId } }),
+    prisma.weeklyTrainingPlan.deleteMany({ where: { coachId } }),
     prisma.sessionBlock.deleteMany({ where: { trainingSession: { coachId } } }),
     prisma.trainingSession.deleteMany({ where: { coachId } }),
     prisma.noteTag.deleteMany({ where: { sessionNote: { coachId } } }),

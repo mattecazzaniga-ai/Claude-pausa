@@ -9,22 +9,10 @@ import { getSportProfile, formatSportProfileForPrompt } from "@/lib/sport";
 import { computeAdaptationSignal, formatAdaptationDirective, formatAdaptationNote } from "@/lib/adaptive-training";
 import { getActiveInjuries, formatInjuriesForPrompt, formatInjuryAdaptationNote } from "@/lib/injuries";
 import { getMethodologyPromptText, getCurrentMethodologyVersion } from "@/lib/methodology";
+import { persistGeneratedSession } from "@/lib/create-training-session";
 import { rateLimit } from "@/lib/rate-limit";
 import { track } from "@/lib/analytics";
 import { captureError } from "@/lib/monitoring";
-import type { $Enums } from "@prisma/client";
-
-// SessionBlockType and ExerciseCategory are deliberately separate enums (a
-// "GAME" block is a valid session phase but not an exercise category) — map
-// between them rather than casting, so an invalid value never reaches Prisma.
-const BLOCK_TYPE_TO_EXERCISE_CATEGORY: Record<string, $Enums.ExerciseCategory> = {
-  WARMUP: "WARMUP",
-  TECHNICAL: "TECHNICAL",
-  TACTICAL: "TACTICAL",
-  PHYSICAL: "PHYSICAL",
-  GAME: "COMPETITIVE",
-  COOLDOWN: "COOLDOWN",
-};
 
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -125,54 +113,17 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     activeInjuries.length ? formatInjuryAdaptationNote(activeInjuries) : null,
   ].filter((n): n is string => Boolean(n));
 
-  const trainingSession = await prisma.trainingSession.create({
-    data: {
-      coachId: session.user.id,
-      athleteId: athlete.id,
-      sportId: athlete.sportId,
-      objective: plan.objective,
-      durationMinutes: parsed.data.durationMinutes,
-      adaptationNote: adaptationNoteParts.length ? adaptationNoteParts.join(" ") : undefined,
-      methodologyVersion: methodologyVersion ?? undefined,
-    },
+  const sessionId = await persistGeneratedSession({
+    coachId: session.user.id,
+    athleteId: athlete.id,
+    sportId: athlete.sportId,
+    durationMinutes: parsed.data.durationMinutes,
+    plan,
+    adaptationNote: adaptationNoteParts.length ? adaptationNoteParts.join(" ") : undefined,
+    methodologyVersion,
   });
 
-  for (let i = 0; i < plan.blocks.length; i++) {
-    const block = plan.blocks[i];
-    let exerciseId: string | null = block.chosenExerciseId || null;
+  track("training_session_generated", session.user.id, { athleteId: athlete.id, sessionId });
 
-    // No library match — the AI proposed something new. Save it as a real
-    // exercise (marked AI_GENERATED, never mislabeled as coach-authored) so
-    // it also becomes part of the coach's library going forward.
-    if (!exerciseId && block.newExerciseName) {
-      const created = await prisma.exercise.create({
-        data: {
-          coachId: session.user.id,
-          sportId: athlete.sportId,
-          name: block.newExerciseName,
-          description: block.newExerciseDescription || undefined,
-          coachingPoints: block.newExerciseCoachingPoints || undefined,
-          category: BLOCK_TYPE_TO_EXERCISE_CATEGORY[block.type] ?? "TECHNICAL",
-          durationMinutes: block.durationMinutes,
-          source: "AI_GENERATED",
-        },
-      });
-      exerciseId = created.id;
-    }
-
-    await prisma.sessionBlock.create({
-      data: {
-        trainingSessionId: trainingSession.id,
-        order: i,
-        type: block.type,
-        durationMinutes: block.durationMinutes,
-        exerciseId,
-        rationale: block.rationale,
-      },
-    });
-  }
-
-  track("training_session_generated", session.user.id, { athleteId: athlete.id, sessionId: trainingSession.id });
-
-  return NextResponse.json({ sessionId: trainingSession.id });
+  return NextResponse.json({ sessionId });
 }

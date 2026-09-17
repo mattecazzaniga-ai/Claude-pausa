@@ -18,6 +18,8 @@ export type GeneratedSportProfile = {
   commonProblems: string;
   progressions: string;
   safetyNotes: string;
+  /** e.g. ["Nuoto", "Ciclismo", "Corsa"] for Triathlon — empty for every single-discipline sport. */
+  disciplines: string[];
 };
 
 /**
@@ -39,6 +41,10 @@ export async function generateSportProfile(sportName: string): Promise<Generated
       "uno sport senza ruoli fissi), i pattern di movimento realmente specifici di questo sport (non 'correre e saltare' generico), le situazioni di gioco " +
       "reali che si allenano, i metodi/metodologie di allenamento usati davvero in questo sport, i problemi tecnici/tattici più comuni negli atleti di " +
       "livello medio, come si strutturano le progressioni didattiche, e gli aspetti di sicurezza/infortuni tipici da tenere a mente.\n\n" +
+      "Indica anche se questo sport allena realmente PIÙ DISCIPLINE SEPARATE con allenamenti specifici e distinti per ciascuna (es. Triathlon: nuoto, " +
+      "ciclismo, corsa; Pentathlon moderno: scherma, nuoto, equitazione, tiro, corsa) — in tal caso elenca le discipline in disciplines. NON confondere " +
+      "questo con semplici aspetti o capacità di uno sport a disciplina unica (es. il calcio NON ha discipline separate anche se richiede corsa, tecnica " +
+      "e tattica): lascia disciplines vuoto per ogni sport a disciplina singola, anche se molto complesso.\n\n" +
       "ATTENZIONE — ERRORE DA EVITARE ASSOLUTAMENTE: la contaminazione terminologica tra sport simili. " +
       "Prima di rispondere, identifica mentalmente gli sport con cui questo sport viene più spesso confuso " +
       "(es. Beach Tennis è spesso confuso con Padel e Tennis; Calcio a 5 con Calcio; Beach Volley con Pallavolo; Squash con Racchetball). " +
@@ -74,6 +80,11 @@ export async function generateSportProfile(sportName: string): Promise<Generated
           commonProblems: { type: "string", description: "Problemi tecnici/tattici più comuni negli atleti di livello medio in questo sport." },
           progressions: { type: "string", description: "Come si strutturano tipicamente le progressioni didattiche in questo sport." },
           safetyNotes: { type: "string", description: "Aspetti di sicurezza/infortuni tipici a cui prestare attenzione in questo sport." },
+          disciplines: {
+            type: "array",
+            items: { type: "string" },
+            description: "Discipline separate allenate distintamente (es. Triathlon: Nuoto/Ciclismo/Corsa). Array vuoto per ogni sport a disciplina singola.",
+          },
         },
         required: [
           "formats",
@@ -89,6 +100,7 @@ export async function generateSportProfile(sportName: string): Promise<Generated
           "commonProblems",
           "progressions",
           "safetyNotes",
+          "disciplines",
         ],
       },
     },
@@ -96,7 +108,7 @@ export async function generateSportProfile(sportName: string): Promise<Generated
 
   try {
     const parsed = JSON.parse(response.text ?? "") as GeneratedSportProfile;
-    return { ...parsed, formats: parsed.formats?.length ? parsed.formats : ["INDIVIDUAL"] };
+    return { ...parsed, formats: parsed.formats?.length ? parsed.formats : ["INDIVIDUAL"], disciplines: parsed.disciplines ?? [] };
   } catch (err) {
     console.error("Failed to parse sport profile from Gemini", err, response.text);
     return {
@@ -113,6 +125,7 @@ export async function generateSportProfile(sportName: string): Promise<Generated
       commonProblems: "",
       progressions: "",
       safetyNotes: "",
+      disciplines: [],
     };
   }
 }

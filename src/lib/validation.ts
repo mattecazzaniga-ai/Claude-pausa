@@ -43,6 +43,14 @@ export const generateSessionSchema = z.object({
   intensity: z.string().trim().max(40).optional(),
 });
 
+export const createWeeklyPlanSchema = z.object({
+  sessionsPerWeek: z.number().int().min(1, "Minimo 1 sessione a settimana").max(14, "Massimo 14 sessioni a settimana"),
+});
+
+export const fillPlanSlotSchema = z.object({
+  durationMinutes: z.number().int().min(10).max(240),
+});
+
 const objectiveTermLengthEnum = z.enum(["SHORT", "MEDIUM", "LONG"]);
 const objectiveKindEnum = z.enum(["QUANTITATIVE", "QUALITATIVE"]);
 const objectiveStatusEnum = z.enum(["ACTIVE", "ACHIEVED", "ABANDONED"]);

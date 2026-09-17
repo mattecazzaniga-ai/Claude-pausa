@@ -64,7 +64,9 @@ export type AnalyticsEventName =
   | "methodology_saved"
   | "methodology_imported"
   | "performance_level_assessed"
-  | "main_gap_computed";
+  | "main_gap_computed"
+  | "weekly_plan_generated"
+  | "weekly_plan_slot_filled";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

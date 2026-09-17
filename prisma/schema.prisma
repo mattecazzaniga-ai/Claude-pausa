@@ -189,6 +189,7 @@ model Coach {
   injuries              AthleteInjury[]
   methodologyPrinciples CoachMethodologyPrinciple[]
   methodologyVersions   CoachMethodologyVersion[]
+  weeklyPlans           WeeklyTrainingPlan[]
 
   /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
   /// observed preferences ({insight, evidenceCount, category}[]), refreshed
@@ -243,6 +244,12 @@ model Sport {
   commonProblems     String?
   progressions       String?
   safetyNotes        String?
+  /// Only for sports that genuinely train several distinct disciplines
+  /// separately (e.g. Triathlon: Nuoto/Ciclismo/Corsa) — empty for every
+  /// single-discipline sport. Drives the Weekly Training Plan's discipline
+  /// rotation; never invented beyond what the AI is confident actually
+  /// applies (see generateSportProfile's own instruction).
+  disciplines        String[]      @default([])
   profileGeneratedAt DateTime?
 
   coaches            Coach[]
@@ -365,6 +372,12 @@ model Athlete {
   /// coach manages for other people are always false.
   isSelf Boolean @default(false)
 
+  /// Coach-set default for the Weekly Training Plan generator — how many
+  /// sessions a week this athlete actually trains. Null until the coach
+  /// generates a first weekly plan; editable per-generation afterwards, this
+  /// is just the pre-filled default so it isn't re-entered every time.
+  trainingDaysPerWeek Int?
+
   coach            Coach                    @relation(fields: [coachId], references: [id])
   sport            Sport                    @relation(fields: [sportId], references: [id])
   sessionNotes     SessionNote[]
@@ -380,6 +393,7 @@ model Athlete {
   checkins         AthleteCheckin[]
   metricValues     AthleteMetricValue[]
   injuries         AthleteInjury[]
+  weeklyPlans      WeeklyTrainingPlan[]
 
   @@index([coachId])
 }
@@ -396,6 +410,10 @@ model Team {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Same Weekly Training Plan default as Athlete.trainingDaysPerWeek, for
+  /// team-generated plans.
+  trainingDaysPerWeek Int?
+
   coach            Coach                    @relation(fields: [coachId], references: [id])
   sport            Sport                    @relation(fields: [sportId], references: [id])
   members          TeamMember[]
@@ -406,6 +424,7 @@ model Team {
   calendarEvents   CalendarEvent[]
   recommendations  CoachingRecommendation[]
   feedbackSignals  CoachFeedbackSignal[]
+  weeklyPlans      WeeklyTrainingPlan[]
 
   @@index([coachId])
 }
@@ -542,13 +561,14 @@ model TrainingSession {
   /// has since revised their approach.
   methodologyVersion Int?
 
-  coach         Coach          @relation(fields: [coachId], references: [id])
-  athlete       Athlete?       @relation(fields: [athleteId], references: [id])
-  team          Team?          @relation(fields: [teamId], references: [id])
-  sport         Sport?         @relation(fields: [sportId], references: [id])
+  coach         Coach               @relation(fields: [coachId], references: [id])
+  athlete       Athlete?            @relation(fields: [athleteId], references: [id])
+  team          Team?               @relation(fields: [teamId], references: [id])
+  sport         Sport?              @relation(fields: [sportId], references: [id])
   sportId       String?
   blocks        SessionBlock[]
   calendarEvent CalendarEvent?
+  plannedSlot   PlannedSessionSlot?
 
   @@index([athleteId])
   @@index([teamId])
@@ -1162,4 +1182,73 @@ model CoachMethodologyVersion {
 
   @@unique([coachId, version])
   @@index([coachId])
+}
+
+/// Overall training-load direction for one generated week — never invented:
+/// derived from real recent volume/checkins/methodology (see
+/// lib/ai-weekly-plan.ts), with CARICO as the only safe default when there
+/// isn't enough history yet to say anything else.
+enum TrainingPhase {
+  CARICO
+  SCARICO
+  MANTENIMENTO
+}
+
+enum PlannedSessionIntensity {
+  ALTA
+  MEDIA
+  BASSA
+}
+
+/// Feedback ask: "posso impostare quante volte a settimana mi alleno, e il
+/// carico si distribuisce di conseguenza" — plus sport-aware carico/scarico
+/// and, for multi-discipline sports (Triathlon...), a discipline per slot.
+/// Exactly one of athleteId/teamId is set, same pattern as TrainingSession/
+/// Objective. Deliberately just the WEEK'S SKELETON (phase + one slot per
+/// planned session) — the actual exercise content is generated per slot on
+/// demand by reusing the existing single-session generator (see
+/// lib/weekly-plan.ts#fillPlanSlot), never a second, duplicate session
+/// engine.
+model WeeklyTrainingPlan {
+  id              String        @id @default(cuid())
+  coachId         String
+  athleteId       String?
+  teamId          String?
+  weekStartDate   DateTime
+  sessionsPerWeek Int
+  phase           TrainingPhase
+  /// Why this phase/split, citing the real facts used (recent volume,
+  /// check-ins, methodology, upcoming competition) — same hedged,
+  /// evidence-only framing as diagnoseBottleneck/assessPerformanceLevel.
+  rationale       String
+  createdAt       DateTime      @default(now())
+
+  coach   Coach                @relation(fields: [coachId], references: [id])
+  athlete Athlete?             @relation(fields: [athleteId], references: [id])
+  team    Team?                @relation(fields: [teamId], references: [id])
+  slots   PlannedSessionSlot[]
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([teamId])
+}
+
+model PlannedSessionSlot {
+  id                String                  @id @default(cuid())
+  planId            String
+  order             Int
+  intensity         PlannedSessionIntensity
+  /// Which discipline this slot targets (e.g. "Nuoto", "Ciclismo", "Corsa")
+  /// — null for single-discipline sports, where the whole plan is one
+  /// discipline and this field would just repeat the sport's name.
+  discipline        String?
+  focus             String
+  /// Set once the coach "fills" this slot into a real generated session —
+  /// null means the slot is still just a planned placeholder.
+  trainingSessionId String?                 @unique
+
+  plan            WeeklyTrainingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  trainingSession TrainingSession?   @relation(fields: [trainingSessionId], references: [id])
+
+  @@index([planId])
 }

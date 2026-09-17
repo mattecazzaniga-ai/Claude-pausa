@@ -19,6 +19,7 @@ vi.mock("@/lib/ai-sport-profile", () => ({
     commonProblems: "Problema di prova",
     progressions: "Progressione di prova",
     safetyNotes: "Nota di sicurezza di prova",
+    disciplines: [],
   }),
 }));
 
@@ -56,6 +57,7 @@ describe("Sport Intelligence Phase 1", () => {
     expect(profile.commonProblems).toBe("Problema di prova");
     expect(profile.progressions).toBe("Progressione di prova");
     expect(profile.safetyNotes).toBe("Nota di sicurezza di prova");
+    expect(profile.disciplines).toEqual([]);
   });
 
   it("ensureSportMetrics persists sport-specific metrics", async () => {
@@ -90,11 +92,13 @@ describe("Sport Intelligence Phase 1", () => {
       commonProblems: "Problema aggiornato",
       progressions: "Progressione aggiornata",
       safetyNotes: "Nota aggiornata",
+      disciplines: ["Nuoto", "Ciclismo", "Corsa"],
     });
 
     const updated = await regenerateSportProfile(sportId);
     expect(updated.environment).toBe("Campo aggiornato");
     expect(updated.safetyNotes).toBe("Nota aggiornata");
+    expect(updated.disciplines).toEqual(["Nuoto", "Ciclismo", "Corsa"]);
 
     const metrics = await prisma.sportMetric.findMany({ where: { sportId } });
     expect(metrics.length).toBeGreaterThan(0);
@@ -146,11 +150,34 @@ describe("formatSportProfileForPrompt", () => {
       commonProblems: "",
       progressions: "",
       safetyNotes: "",
+      disciplines: [],
     });
     expect(text).toContain("Sabbia");
     expect(text).toContain("Spostamenti laterali rapidi su sabbia");
     expect(text).not.toContain("Ruoli/posizioni");
     expect(text).not.toContain("Situazioni di gioco");
+    expect(text).not.toContain("Discipline separate");
+  });
+
+  it("includes the disciplines line for a multi-discipline sport", async () => {
+    const { formatSportProfileForPrompt } = await import("@/lib/sport");
+    const text = formatSportProfileForPrompt("Triathlon", {
+      formats: ["INDIVIDUAL"],
+      environment: "Percorso misto acqua/strada",
+      equipment: "Bici, muta, scarpe da corsa",
+      scoringSystem: "Tempo totale più basso",
+      keyRules: "Transizioni cronometrate",
+      terminology: "Frazione, T1, T2",
+      positions: "",
+      movementPatterns: "",
+      gameSituations: "",
+      trainingMethods: "",
+      commonProblems: "",
+      progressions: "",
+      safetyNotes: "",
+      disciplines: ["Nuoto", "Ciclismo", "Corsa"],
+    });
+    expect(text).toContain("Discipline separate di questo sport: Nuoto, Ciclismo, Corsa");
   });
 
   it("falls back to just the sport name when nothing has been generated yet", async () => {
@@ -169,6 +196,7 @@ describe("formatSportProfileForPrompt", () => {
       commonProblems: "",
       progressions: "",
       safetyNotes: "",
+      disciplines: [],
     });
     expect(text).toBe("Sport: Sport Nuovo");
   });

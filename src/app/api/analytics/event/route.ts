@@ -63,6 +63,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "methodology_imported",
   "performance_level_assessed",
   "main_gap_computed",
+  "weekly_plan_generated",
+  "weekly_plan_slot_filled",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */
