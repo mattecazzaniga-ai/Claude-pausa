@@ -297,11 +297,15 @@ export function AthleteClient({
               </>
             ),
           },
-          {
-            id: "checkin",
-            label: "Check-in",
-            content: <CheckinSection basePath={`/api/athletes/${athlete.id}`} />,
-          },
+          ...(athlete.isSelf
+            ? [
+                {
+                  id: "checkin",
+                  label: "Check-in",
+                  content: <CheckinSection basePath={`/api/athletes/${athlete.id}`} />,
+                },
+              ]
+            : []),
           {
             id: "injuries",
             label: "Infortuni",
