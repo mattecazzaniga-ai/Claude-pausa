@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import type { CoachFeedbackSignalType } from "@prisma/client";
+import type { CoachFeedbackSignalType, CoachPreferenceCategory, CoachPreferenceReviewState } from "@prisma/client";
+import { slugify } from "@/lib/sport";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
@@ -11,7 +12,7 @@ const MIN_SIGNALS_FOR_SYNTHESIS = 5;
 const SIGNALS_FOR_SYNTHESIS = 30;
 const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
-type LearnedPreference = { insight: string; evidenceCount: number; category: string };
+type SynthesizedPreference = { insight: string; evidenceCount: number; category: CoachPreferenceCategory };
 
 /**
  * Master prompt §10-11: log one moment a coach accepted, rejected, or
@@ -45,25 +46,24 @@ export async function recordCoachFeedbackSignal(
 }
 
 /**
- * If too few signals are left to support any pattern, clear the cached
- * synthesis outright rather than let a stale (possibly now-invalid) one
- * linger — refreshCoachBrainIfStale on its own only ever recomputes, it
- * never clears. Otherwise just invalidate the cache so the next real use
- * (Next Best Action generation) recomputes it lazily, same as everywhere
- * else in this app — this never blocks on an AI call.
+ * If too few signals are left to support any pattern, clear the AI's own
+ * unconfirmed inferences (ACTIVE) and any past rejections (REJECTED) — but
+ * never a CONFIRMED preference, since that's a deliberate coach action, not
+ * a fragile inference tied to how much signal volume currently exists.
+ * refreshCoachBrainIfStale on its own only ever recomputes/strengthens, it
+ * never clears — clearing only happens here, when evidence genuinely
+ * disappears (e.g. the athlete/team it came from was deleted).
  */
 async function invalidateCoachBrain(coachId: string): Promise<void> {
   const signalCount = await prisma.coachFeedbackSignal.count({ where: { coachId } });
 
   if (signalCount < MIN_SIGNALS_FOR_SYNTHESIS) {
-    await prisma.coach.update({
-      where: { id: coachId },
-      data: { learnedPreferences: Prisma.JsonNull, learnedPreferencesUpdatedAt: null },
-    });
+    await prisma.coachLearnedPreference.deleteMany({ where: { coachId, reviewState: { not: "CONFIRMED" } } });
+    await prisma.coach.update({ where: { id: coachId }, data: { coachBrainRefreshedAt: null } });
     return;
   }
 
-  await prisma.coach.update({ where: { id: coachId }, data: { learnedPreferencesUpdatedAt: null } });
+  await prisma.coach.update({ where: { id: coachId }, data: { coachBrainRefreshedAt: null } });
 }
 
 /**
@@ -84,10 +84,20 @@ export async function forgetTeamMemory(coachId: string, teamId: string): Promise
 }
 
 /**
- * Lazy cache-filler (same pattern as ensureSportProfile): recomputes
- * Coach.learnedPreferences from the signal log when there's enough evidence
- * and the cache is stale, and silently no-ops on any failure — this must
- * never block or break Next Best Action generation.
+ * Lazy cache-filler (same pattern as ensureSportProfile): resynthesizes the
+ * coach's behavioral preferences from the signal log when there's enough
+ * evidence and the last synthesis is stale, and silently no-ops on any
+ * failure — this must never block or break Next Best Action generation.
+ *
+ * Each returned insight is grouped by a slugified topic key (same
+ * topic-key-dedup convention as AthleteMemory/TeamMemory) so a recurring
+ * pattern strengthens the same row (evidenceCount++) instead of duplicating
+ * it. A REJECTED topic is never resurrected by resynthesis (§9-11: the
+ * coach's rejection stands until they explicitly reactivate it); a
+ * CONFIRMED topic keeps its confirmed state — resynthesis can refine its
+ * wording/evidence count but never revert it back to a mere inference. A
+ * topic that used to be ACTIVE but isn't returned this cycle (no longer
+ * supported by recent signals) is dropped — confirmed/rejected ones are not.
  */
 export async function refreshCoachBrainIfStale(coachId: string): Promise<void> {
   if (!ai) return;
@@ -95,11 +105,11 @@ export async function refreshCoachBrainIfStale(coachId: string): Promise<void> {
   try {
     const coach = await prisma.coach.findUnique({
       where: { id: coachId },
-      select: { learnedPreferencesUpdatedAt: true },
+      select: { coachBrainRefreshedAt: true },
     });
     if (!coach) return;
 
-    if (coach.learnedPreferencesUpdatedAt && Date.now() - coach.learnedPreferencesUpdatedAt.getTime() < REFRESH_INTERVAL_MS) {
+    if (coach.coachBrainRefreshedAt && Date.now() - coach.coachBrainRefreshedAt.getTime() < REFRESH_INTERVAL_MS) {
       return;
     }
 
@@ -153,27 +163,112 @@ export async function refreshCoachBrainIfStale(coachId: string): Promise<void> {
       },
     });
 
-    const parsed = JSON.parse(response.text ?? "{}") as { preferences?: LearnedPreference[] };
+    const parsed = JSON.parse(response.text ?? "{}") as { preferences?: SynthesizedPreference[] };
     const preferences = parsed.preferences ?? [];
 
-    await prisma.coach.update({
-      where: { id: coachId },
-      data: { learnedPreferences: preferences as unknown as Prisma.InputJsonValue, learnedPreferencesUpdatedAt: new Date() },
+    const existing = await prisma.coachLearnedPreference.findMany({ where: { coachId } });
+    const existingByTopic = new Map(existing.map((p) => [p.topic, p]));
+    const newTopics = new Set<string>();
+
+    for (const pref of preferences) {
+      const topic = slugify(pref.insight);
+      if (!topic) continue;
+      newTopics.add(topic);
+      const current = existingByTopic.get(topic);
+
+      if (current?.reviewState === "REJECTED") continue; // honor the coach's rejection — never resurrect silently
+
+      if (current) {
+        await prisma.coachLearnedPreference.update({
+          where: { id: current.id },
+          data: { insight: pref.insight, category: pref.category, evidenceCount: pref.evidenceCount },
+          // reviewState untouched: stays ACTIVE or stays CONFIRMED, never reverted
+        });
+      } else {
+        await prisma.coachLearnedPreference.create({
+          data: { coachId, topic, insight: pref.insight, category: pref.category, evidenceCount: pref.evidenceCount },
+        });
+      }
+    }
+
+    // Drop ACTIVE topics no longer supported by this synthesis — CONFIRMED and REJECTED rows are left alone.
+    await prisma.coachLearnedPreference.deleteMany({
+      where: { coachId, reviewState: "ACTIVE", topic: { notIn: [...newTopics] } },
     });
+
+    await prisma.coach.update({ where: { id: coachId }, data: { coachBrainRefreshedAt: new Date() } });
   } catch (err) {
-    console.error("Coach Brain refresh failed, leaving previous cache in place", err);
+    console.error("Coach Brain refresh failed, leaving previous state in place", err);
   }
 }
 
+const CATEGORY_LABEL: Record<CoachPreferenceCategory, string> = {
+  INTENSITY: "Intensità",
+  DURATION: "Durata",
+  EXERCISE_STYLE: "Stile di esercizi",
+  COMMUNICATION: "Comunicazione",
+  OTHER: "Altro",
+};
+
+export type LearnedPreferenceView = {
+  id: string;
+  insight: string;
+  category: CoachPreferenceCategory;
+  categoryLabel: string;
+  evidenceCount: number;
+  reviewState: CoachPreferenceReviewState;
+  updatedAt: string;
+};
+
+/** Everything the coach can see/act on for "Il mio Coach Brain" — ACTIVE + CONFIRMED first, REJECTED kept visible so a reject can be undone. */
+export async function getCoachLearnedPreferences(coachId: string): Promise<LearnedPreferenceView[]> {
+  const rows = await prisma.coachLearnedPreference.findMany({
+    where: { coachId },
+    orderBy: [{ reviewState: "asc" }, { evidenceCount: "desc" }],
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    insight: r.insight,
+    category: r.category,
+    categoryLabel: CATEGORY_LABEL[r.category],
+    evidenceCount: r.evidenceCount,
+    reviewState: r.reviewState,
+    updatedAt: r.updatedAt.toISOString(),
+  }));
+}
+
+/** §10: the only path to CONFIRMED — an explicit coach action, never an automatic promotion. */
+export async function confirmCoachPreference(id: string, coachId: string): Promise<void> {
+  await prisma.coachLearnedPreference.updateMany({ where: { id, coachId }, data: { reviewState: "CONFIRMED" } });
+}
+
+/** §24: rejecting keeps the row (never deleted) but excludes it from prompts and from future resynthesis under the same topic. */
+export async function rejectCoachPreference(id: string, coachId: string): Promise<void> {
+  await prisma.coachLearnedPreference.updateMany({ where: { id, coachId }, data: { reviewState: "REJECTED" } });
+}
+
+/** Nothing here is irreversible: undoes a reject, putting the insight back into active use/resynthesis. */
+export async function reactivateCoachPreference(id: string, coachId: string): Promise<void> {
+  await prisma.coachLearnedPreference.updateMany({ where: { id, coachId }, data: { reviewState: "ACTIVE" } });
+}
+
+const CONFIDENCE_HEDGE: Record<CoachPreferenceReviewState, (insight: string) => string> = {
+  ACTIVE: (s) => `${s} (pattern osservato, non confermato)`,
+  CONFIRMED: (s) => `${s} (confermato dal coach)`,
+  REJECTED: (s) => s, // never reached — excluded from the query below
+};
+
 /**
- * Formats cached learned preferences for injection into an AI prompt as
- * additional context — never as a command that overrides athlete facts.
- * Returns null when there isn't a synthesized profile yet.
+ * Formats learned preferences for injection into an AI prompt as additional
+ * context — never as a command that overrides athlete facts, and always
+ * hedged unless the coach explicitly confirmed it (§9-10).
  */
 export async function getCoachBrainPromptText(coachId: string): Promise<string | null> {
-  const coach = await prisma.coach.findUnique({ where: { id: coachId }, select: { learnedPreferences: true } });
-  const preferences = (coach?.learnedPreferences as unknown as LearnedPreference[] | null) ?? null;
-  if (!preferences || preferences.length === 0) return null;
+  const preferences = await prisma.coachLearnedPreference.findMany({
+    where: { coachId, reviewState: { in: ["ACTIVE", "CONFIRMED"] } },
+    orderBy: [{ reviewState: "desc" }, { evidenceCount: "desc" }],
+  });
+  if (preferences.length === 0) return null;
 
-  return preferences.map((p) => `- ${p.insight} (osservato ${p.evidenceCount} volte)`).join("\n");
+  return preferences.map((p) => `- ${CONFIDENCE_HEDGE[p.reviewState](p.insight)}`).join("\n");
 }

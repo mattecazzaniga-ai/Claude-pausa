@@ -193,11 +193,12 @@ model Coach {
   athleteMemories       AthleteMemory[]
   teamMemories          TeamMemory[]
 
-  /// Master prompt §10-11 (Coach Brain): a short, AI-synthesized list of
-  /// observed preferences ({insight, evidenceCount, category}[]), refreshed
-  /// periodically from feedbackSignals. Null until enough signals exist.
-  learnedPreferences          Json?
-  learnedPreferencesUpdatedAt DateTime?
+  /// Master prompt §10-11 (Coach Brain): when this coach's learned
+  /// preferences were last resynthesized from feedbackSignals — the
+  /// preferences themselves now live in CoachLearnedPreference, one row per
+  /// insight, so each can carry its own confirm/reject review state.
+  coachBrainRefreshedAt DateTime?
+  learnedPreferences    CoachLearnedPreference[]
 }
 
 /// Single-use, expiring token for the "forgot password" flow. Only a SHA-256
@@ -856,6 +857,52 @@ model CoachFeedbackSignal {
   @@index([coachId, createdAt])
   @@index([athleteId])
   @@index([teamId])
+}
+
+enum CoachPreferenceCategory {
+  INTENSITY
+  DURATION
+  EXERCISE_STYLE
+  COMMUNICATION
+  OTHER
+}
+
+/// Master prompt §3/§9-11: an AI deduction about how the coach works is never
+/// treated as settled truth on its own — the coach must be able to see it,
+/// confirm it, or reject it. ACTIVE is the AI's own inference (used in
+/// prompts, but hedged); CONFIRMED is reachable ONLY via an explicit coach
+/// action, never inferred; REJECTED keeps the row (never deleted, §24) but
+/// excludes it from prompts and from ever being resynthesized under the same
+/// topic — reactivateCoachPreference can undo a reject, since nothing here
+/// is irreversible.
+enum CoachPreferenceReviewState {
+  ACTIVE
+  CONFIRMED
+  REJECTED
+}
+
+/// One row per distinct behavioral insight the Coach Brain has synthesized
+/// from CoachFeedbackSignal (e.g. "tende a preferire sedute più brevi").
+/// Replaces the old Coach.learnedPreferences JSON cache so each insight can
+/// carry its own review state and survive resynthesis once confirmed.
+model CoachLearnedPreference {
+  id            String                     @id @default(cuid())
+  coachId       String
+  /// Slugified grouping key derived from the insight text, so a recurring
+  /// resynthesis strengthens the same row instead of duplicating it — same
+  /// topic-key convention as AthleteMemory/TeamMemory.
+  topic         String
+  insight       String
+  category      CoachPreferenceCategory
+  evidenceCount Int                        @default(1)
+  reviewState   CoachPreferenceReviewState @default(ACTIVE)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  coach Coach @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@unique([coachId, topic])
+  @@index([coachId, reviewState])
 }
 
 enum CheckinFeeling {

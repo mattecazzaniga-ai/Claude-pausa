@@ -66,7 +66,10 @@ export type AnalyticsEventName =
   | "performance_level_assessed"
   | "main_gap_computed"
   | "weekly_plan_generated"
-  | "weekly_plan_slot_filled";
+  | "weekly_plan_slot_filled"
+  | "coach_preference_confirmed"
+  | "coach_preference_rejected"
+  | "coach_preference_reactivated";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

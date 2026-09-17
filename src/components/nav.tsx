@@ -36,6 +36,9 @@ export function Nav() {
               <Link href="/methodology" className="hover:text-foreground transition-colors">
                 Metodologia
               </Link>
+              <Link href="/coach-brain" className="hover:text-foreground transition-colors">
+                Coach Brain
+              </Link>
               {!session.user.selfCoaching && (
                 <Link href="/payments" className="hover:text-foreground transition-colors">
                   Pagamenti
@@ -104,6 +107,9 @@ export function Nav() {
               </Link>
               <Link href="/methodology" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Metodologia
+              </Link>
+              <Link href="/coach-brain" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                Coach Brain
               </Link>
               {!session.user.selfCoaching && (
                 <Link href="/payments" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
