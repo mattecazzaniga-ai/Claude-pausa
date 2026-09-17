@@ -16,6 +16,7 @@ import { PaymentsSection } from "@/components/payments-section";
 import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
 import { BaselineSection } from "@/components/baseline-section";
+import { DigitalTwinSection } from "@/components/digital-twin-section";
 import { InjuriesSection, InjuryStatusBadge } from "@/components/injuries-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
@@ -278,6 +279,11 @@ export function AthleteClient({
                 </form>
               </>
             ),
+          },
+          {
+            id: "profile",
+            label: "Profilo",
+            content: <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />,
           },
           {
             id: "development",
