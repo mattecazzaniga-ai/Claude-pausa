@@ -17,6 +17,7 @@ import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
 import { BaselineSection } from "@/components/baseline-section";
 import { DigitalTwinSection } from "@/components/digital-twin-section";
+import { MemoryTimelineSection } from "@/components/memory-timeline-section";
 import { WeeklyPlanSection } from "@/components/weekly-plan-section";
 import { InjuriesSection, InjuryStatusBadge } from "@/components/injuries-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
@@ -285,7 +286,14 @@ export function AthleteClient({
           {
             id: "profile",
             label: "Profilo",
-            content: <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />,
+            content: (
+              <>
+                <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />
+                <div className="mt-4">
+                  <MemoryTimelineSection basePath={`/api/athletes/${athlete.id}`} />
+                </div>
+              </>
+            ),
           },
           {
             id: "development",

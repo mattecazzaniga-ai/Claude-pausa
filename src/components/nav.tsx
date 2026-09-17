@@ -33,9 +33,6 @@ export function Nav() {
               <Link href="/exercises" className="hover:text-foreground transition-colors">
                 Esercizi
               </Link>
-              <Link href="/methodology" className="hover:text-foreground transition-colors">
-                Metodologia
-              </Link>
               <Link href="/coach-brain" className="hover:text-foreground transition-colors">
                 Coach Brain
               </Link>
@@ -104,9 +101,6 @@ export function Nav() {
               </Link>
               <Link href="/exercises" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Esercizi
-              </Link>
-              <Link href="/methodology" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                Metodologia
               </Link>
               <Link href="/coach-brain" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                 Coach Brain

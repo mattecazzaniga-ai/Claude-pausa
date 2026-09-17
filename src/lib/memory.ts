@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/sport";
-import type { MemorySource, MemoryStatus, MemoryConfidence } from "@prisma/client";
+import type { MemorySource, MemoryStatus, MemoryConfidence, MemoryReviewState } from "@prisma/client";
 
 /**
  * Coaching Memory (master prompt COACH BRAIN + COACHING MEMORY, §6-10):
@@ -185,4 +185,81 @@ export async function confirmAthleteMemory(memoryId: string, coachId: string): P
 
 export async function confirmTeamMemory(memoryId: string, coachId: string): Promise<void> {
   await prisma.teamMemory.updateMany({ where: { id: memoryId, coachId }, data: { confidence: "CONFIRMED", status: "PERSISTENTE" } });
+}
+
+/** Nothing here is irreversible (§24): undoes a reject, putting the memory back into live retrieval. */
+export async function reactivateAthleteMemory(memoryId: string, coachId: string): Promise<void> {
+  await prisma.athleteMemory.updateMany({ where: { id: memoryId, coachId }, data: { reviewState: "ACTIVE" } });
+}
+
+export async function reactivateTeamMemory(memoryId: string, coachId: string): Promise<void> {
+  await prisma.teamMemory.updateMany({ where: { id: memoryId, coachId }, data: { reviewState: "ACTIVE" } });
+}
+
+export type MemoryTimelineEvent = { id: string; note: string; occurredAt: string };
+export type MemoryTimelineItem = {
+  id: string;
+  topic: string | null;
+  summary: string;
+  status: MemoryStatus;
+  confidence: MemoryConfidence;
+  source: MemorySource;
+  reviewState: MemoryReviewState;
+  evidenceCount: number;
+  firstObservedAt: string;
+  lastObservedAt: string;
+  events: MemoryTimelineEvent[];
+};
+
+/**
+ * Everything the coach can see/act on for a Memory Timeline UI (§20-24) —
+ * unlike getRelevantAthleteMemories (targeted, live-decision retrieval, §26),
+ * this is the full history including TEMPORANEA/STORICA and REJECTED, each
+ * with its append-only evidence timeline, so the coach can inspect *why*
+ * MENTATHLOS believes something, confirm it, reject it, or undo a rejection.
+ */
+export async function getAthleteMemoryTimeline(athleteId: string): Promise<MemoryTimelineItem[]> {
+  const memories = await prisma.athleteMemory.findMany({
+    where: { athleteId },
+    orderBy: { lastObservedAt: "desc" },
+    include: { events: { orderBy: { occurredAt: "desc" } } },
+  });
+  return memories.map(toTimelineItem);
+}
+
+export async function getTeamMemoryTimeline(teamId: string): Promise<MemoryTimelineItem[]> {
+  const memories = await prisma.teamMemory.findMany({
+    where: { teamId },
+    orderBy: { lastObservedAt: "desc" },
+    include: { events: { orderBy: { occurredAt: "desc" } } },
+  });
+  return memories.map(toTimelineItem);
+}
+
+function toTimelineItem(m: {
+  id: string;
+  topic: string | null;
+  summary: string;
+  status: MemoryStatus;
+  confidence: MemoryConfidence;
+  source: MemorySource;
+  reviewState: MemoryReviewState;
+  evidenceCount: number;
+  firstObservedAt: Date;
+  lastObservedAt: Date;
+  events: { id: string; note: string; occurredAt: Date }[];
+}): MemoryTimelineItem {
+  return {
+    id: m.id,
+    topic: m.topic,
+    summary: m.summary,
+    status: m.status,
+    confidence: m.confidence,
+    source: m.source,
+    reviewState: m.reviewState,
+    evidenceCount: m.evidenceCount,
+    firstObservedAt: m.firstObservedAt.toISOString(),
+    lastObservedAt: m.lastObservedAt.toISOString(),
+    events: m.events.map((e) => ({ id: e.id, note: e.note, occurredAt: e.occurredAt.toISOString() })),
+  };
 }

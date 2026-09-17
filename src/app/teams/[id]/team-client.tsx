@@ -11,6 +11,7 @@ import { CompetitionsSection } from "@/components/competitions-section";
 import { Tabs } from "@/components/tabs";
 import { NextBestActionCard } from "@/components/next-best-action-card";
 import { WeeklyPlanSection } from "@/components/weekly-plan-section";
+import { MemoryTimelineSection } from "@/components/memory-timeline-section";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 export function TeamClient({ initialData, aiConfigured }: { initialData: TeamData; aiConfigured: boolean }) {
@@ -256,6 +257,9 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
               <>
                 <ObjectivesSection basePath={`/api/teams/${team.id}/objectives`} initialGoals={team.goals} />
                 <EvaluationsSection basePath={`/api/teams/${team.id}`} />
+                <div className="mt-4">
+                  <MemoryTimelineSection basePath={`/api/teams/${team.id}`} />
+                </div>
               </>
             ),
           },

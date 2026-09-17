@@ -65,6 +65,15 @@ const ALLOWED: AnalyticsEventName[] = [
   "main_gap_computed",
   "weekly_plan_generated",
   "weekly_plan_slot_filled",
+  "coach_preference_confirmed",
+  "coach_preference_rejected",
+  "coach_preference_reactivated",
+  "athlete_memory_confirmed",
+  "athlete_memory_rejected",
+  "athlete_memory_reactivated",
+  "team_memory_confirmed",
+  "team_memory_rejected",
+  "team_memory_reactivated",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

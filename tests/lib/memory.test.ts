@@ -9,6 +9,9 @@ import {
   formatMemoriesForPrompt,
   confirmAthleteMemory,
   rejectAthleteMemory,
+  reactivateAthleteMemory,
+  getAthleteMemoryTimeline,
+  getTeamMemoryTimeline,
 } from "@/lib/memory";
 
 describe("Coaching Memory — athlete", () => {
@@ -178,6 +181,62 @@ describe("Coaching Memory — athlete", () => {
     // not a contradiction — the latest summary wins and evidence keeps accumulating.
     expect(contradicting.evidenceCount).toBe(2);
     expect(contradicting.summary).toBe("Rovescio nettamente migliorato, nessun problema.");
+  });
+
+  it("Memory Timeline: shows every memory (including TEMPORANEA/REJECTED) with its full evidence timeline, unlike the targeted live-retrieval view", async () => {
+    const coach = await createTestCoach();
+    coachId = coach.id;
+    const sport = await createTestSport();
+    sportId = sport.id;
+    const athlete = await createTestAthlete(coachId, sportId);
+
+    const recurring = await recordAthleteMemoryObservation({ athleteId: athlete.id, coachId, topic: "servizio", summary: "Servizio in difficoltà.", source: "SESSION_NOTE" });
+    await recordAthleteMemoryObservation({ athleteId: athlete.id, coachId, topic: "servizio", summary: "Ancora in difficoltà col servizio.", source: "COMPETITION" });
+    const oneOff = await recordAthleteMemoryObservation({ athleteId: athlete.id, coachId, summary: "Nota isolata.", source: "MANUAL" });
+    await rejectAthleteMemory(oneOff.id, coachId);
+
+    const timeline = await getAthleteMemoryTimeline(athlete.id);
+    expect(timeline).toHaveLength(2); // both shown, unlike getRelevantAthleteMemories which would exclude the rejected one
+
+    const recurringInTimeline = timeline.find((m) => m.id === recurring.id);
+    expect(recurringInTimeline?.events).toHaveLength(2); // full append-only evidence history
+
+    const rejectedInTimeline = timeline.find((m) => m.id === oneOff.id);
+    expect(rejectedInTimeline?.reviewState).toBe("REJECTED");
+  });
+
+  it("reactivateAthleteMemory undoes a reject — nothing here is irreversible", async () => {
+    const coach = await createTestCoach();
+    coachId = coach.id;
+    const sport = await createTestSport();
+    sportId = sport.id;
+    const athlete = await createTestAthlete(coachId, sportId);
+
+    const memory = await recordAthleteMemoryObservation({ athleteId: athlete.id, coachId, summary: "Ipotesi da rivedere.", source: "MANUAL" });
+    await rejectAthleteMemory(memory.id, coachId);
+    expect(await getRelevantAthleteMemories(athlete.id)).toHaveLength(0);
+
+    await reactivateAthleteMemory(memory.id, coachId);
+    const relevant = await getRelevantAthleteMemories(athlete.id);
+    expect(relevant.map((m) => m.summary)).toEqual(["Ipotesi da rivedere."]);
+  });
+
+  it("Team Memory Timeline never leaks a team's memories into an athlete's timeline or another team's", async () => {
+    const coach = await createTestCoach();
+    coachId = coach.id;
+    const sport = await createTestSport();
+    sportId = sport.id;
+    const athlete = await createTestAthlete(coachId, sportId);
+    const teamA = await createTestTeam(coachId, sportId, []);
+    const teamB = await createTestTeam(coachId, sportId, []);
+
+    await recordTeamMemoryObservation({ teamId: teamA.id, coachId, summary: "Solo di A.", source: "MANUAL" });
+    await recordAthleteMemoryObservation({ athleteId: athlete.id, coachId, summary: "Solo dell'atleta.", source: "MANUAL" });
+
+    const timelineA = await getTeamMemoryTimeline(teamA.id);
+    const timelineB = await getTeamMemoryTimeline(teamB.id);
+    expect(timelineA.map((m) => m.summary)).toEqual(["Solo di A."]);
+    expect(timelineB).toHaveLength(0);
   });
 
   it("formats hedged language per confidence tier — only CONFIRMED is stated as certain", () => {
