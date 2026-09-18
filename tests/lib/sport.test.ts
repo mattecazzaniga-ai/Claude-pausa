@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { createTestSport, deleteTestSport } from "../helpers/db";
+import { createTestSport, deleteTestSport, createTestCoach, deleteTestCoach } from "../helpers/db";
 
 vi.mock("@/lib/ai", () => ({ isAiConfigured: true }));
 
@@ -63,11 +63,34 @@ describe("Sport Intelligence Phase 1", () => {
   it("ensureSportMetrics persists sport-specific metrics", async () => {
     const sport = await createTestSport();
     sportId = sport.id;
+    const coach = await createTestCoach();
 
     const { getSportMetrics } = await import("@/lib/sport");
-    const metrics = await getSportMetrics(sportId);
+    const metrics = await getSportMetrics(sportId, coach.id);
     expect(metrics).toHaveLength(1);
     expect(metrics[0]).toMatchObject({ name: "Metrica di prova", unit: "unità", description: "Descrizione di prova" });
+
+    await deleteTestCoach(coach.id);
+  });
+
+  it("a coach's own custom metric survives a shared-set regeneration by another coach", async () => {
+    const sport = await createTestSport();
+    sportId = sport.id;
+    const coach = await createTestCoach();
+
+    const { ensureSportMetrics, getSportMetrics } = await import("@/lib/sport");
+    await ensureSportMetrics(sportId); // creates the shared (coachId: null) set
+
+    await prisma.sportMetric.create({
+      data: { sportId, coachId: coach.id, name: "Tempo sui 40km", unit: "min", direction: "LOWER_IS_BETTER", order: 99 },
+    });
+
+    await ensureSportMetrics(sportId, { force: true }); // simulates another coach regenerating the shared profile
+
+    const metrics = await getSportMetrics(sportId, coach.id);
+    expect(metrics.map((m) => m.name)).toContain("Tempo sui 40km");
+
+    await deleteTestCoach(coach.id);
   });
 
   it("regenerateSportProfile overwrites the profile and refreshes metrics", async () => {

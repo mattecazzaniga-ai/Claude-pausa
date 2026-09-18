@@ -92,6 +92,13 @@ export const createEvaluationCriterionSchema = z.object({
   notes: z.string().trim().max(500).optional().nullable(),
 });
 
+export const createSportMetricSchema = z.object({
+  name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(100),
+  unit: z.string().trim().max(30).optional().nullable(),
+  description: z.string().trim().max(300).optional().nullable(),
+  direction: z.enum(["HIGHER_IS_BETTER", "LOWER_IS_BETTER"]),
+});
+
 export const bulkCreateCriteriaSchema = z.object({
   criteria: z
     .array(

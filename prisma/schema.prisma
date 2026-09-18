@@ -176,6 +176,7 @@ model Coach {
   goals                 Objective[]
   evaluations           Evaluation[]
   customCriteria        EvaluationCriterion[]
+  customMetrics         SportMetric[]
   competitions          Competition[]
   calendarEvents        CalendarEvent[]
   recommendations       CoachingRecommendation[]
@@ -301,12 +302,16 @@ enum MetricDirection {
 
 /// Sport-specific performance metrics (master prompt §22, "Smart Metrics
 /// Engine") — e.g. pace/distance for running, first-serve % for tennis.
-/// Generated lazily via AI on first real use, same pattern as the skill
-/// taxonomy and Sport Profile. Deliberately just name/unit/description: no
-/// invented thresholds or "scores" without a real statistical basis.
+/// The shared set (coachId: null) is generated lazily via AI on first real
+/// use, same pattern as the skill taxonomy and Sport Profile — deliberately
+/// just name/unit/description: no invented thresholds or "scores" without a
+/// real statistical basis. A coach can also add their own on top (e.g. a
+/// specific race distance the AI's shared set didn't cover, like "Tempo sui
+/// 40km"), same coachId-optional pattern as EvaluationCriterion.
 model SportMetric {
   id          String           @id @default(cuid())
   sportId     String
+  coachId     String?
   name        String
   unit        String?
   description String?
@@ -314,9 +319,11 @@ model SportMetric {
   order       Int              @default(0)
 
   sport  Sport                @relation(fields: [sportId], references: [id])
+  coach  Coach?               @relation(fields: [coachId], references: [id])
   values AthleteMetricValue[]
 
   @@index([sportId])
+  @@index([coachId])
 }
 
 /// Closes the loop on the Smart Metrics Engine (master prompt §22): Phase 1

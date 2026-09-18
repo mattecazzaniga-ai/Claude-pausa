@@ -221,16 +221,25 @@ export async function getCachedSportProfile(sportId: string): Promise<SportProfi
   return sportRowToProfileContext(sport);
 }
 
-export type SportMetricData = { id: string; name: string; unit: string | null; description: string | null; direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER" | null };
+export type SportMetricData = {
+  id: string;
+  name: string;
+  unit: string | null;
+  description: string | null;
+  direction: "HIGHER_IS_BETTER" | "LOWER_IS_BETTER" | null;
+  coachId: string | null;
+};
 
 /**
- * Ensures a sport has performance metrics (master prompt §22), generating
- * them via AI on first real use — same lazy/cached pattern as the taxonomy
- * and profile. `force` re-generates and replaces the existing set (used when
- * the coach regenerates the whole Sport Profile after spotting bad output).
+ * Ensures a sport has its shared (coachId: null) performance metrics (master
+ * prompt §22), generating them via AI on first real use — same lazy/cached
+ * pattern as the taxonomy and profile. `force` re-generates and replaces
+ * this shared set only (used when the coach regenerates the whole Sport
+ * Profile after spotting bad output) — it must never touch another coach's
+ * own custom metrics on this same sport (see getSportMetrics).
  */
 export async function ensureSportMetrics(sportId: string, opts?: { force?: boolean }): Promise<void> {
-  const existingCount = await prisma.sportMetric.count({ where: { sportId } });
+  const existingCount = await prisma.sportMetric.count({ where: { sportId, coachId: null } });
   if (existingCount > 0 && !opts?.force) return;
   if (!isAiConfigured) return;
 
@@ -249,16 +258,21 @@ export async function ensureSportMetrics(sportId: string, opts?: { force?: boole
   if (generated.metrics.length === 0) return;
 
   await prisma.$transaction([
-    prisma.sportMetric.deleteMany({ where: { sportId } }),
+    prisma.sportMetric.deleteMany({ where: { sportId, coachId: null } }),
     prisma.sportMetric.createMany({
       data: generated.metrics.map((m, i) => ({ sportId, name: m.name, unit: m.unit || null, description: m.description || null, direction: m.direction, order: i })),
     }),
   ]);
 }
 
-export async function getSportMetrics(sportId: string): Promise<SportMetricData[]> {
+/**
+ * The sport's shared AI-generated metrics plus this coach's own custom ones
+ * (e.g. a specific race distance the shared set didn't cover, like "Tempo
+ * sui 40km") — same shared-plus-per-coach pattern as getEvaluationCriteria.
+ */
+export async function getSportMetrics(sportId: string, coachId: string): Promise<SportMetricData[]> {
   await ensureSportMetrics(sportId);
-  return prisma.sportMetric.findMany({ where: { sportId }, orderBy: { order: "asc" } });
+  return prisma.sportMetric.findMany({ where: { sportId, OR: [{ coachId: null }, { coachId }] }, orderBy: { order: "asc" } });
 }
 
 /** Renders a Sport Profile as prompt text — shared by every AI call site so the framing stays consistent. */

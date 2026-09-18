@@ -15,7 +15,7 @@ export async function GET() {
   const coach = await prisma.coach.findUnique({ where: { id: session.user.id }, select: { primarySport: true } });
   if (!coach?.primarySport) return NextResponse.json({ error: "Nessuno sport selezionato." }, { status: 409 });
 
-  const [profile, metrics] = await Promise.all([getSportProfile(coach.primarySport.id), getSportMetrics(coach.primarySport.id)]);
+  const [profile, metrics] = await Promise.all([getSportProfile(coach.primarySport.id), getSportMetrics(coach.primarySport.id, session.user.id)]);
   return NextResponse.json({ sportName: coach.primarySport.name, profile, metrics });
 }
 
@@ -45,6 +45,6 @@ export async function POST() {
 
   track("sport_profile_regenerated", session.user.id, { sportId: coach.primarySport.id });
 
-  const metrics = await getSportMetrics(coach.primarySport.id);
+  const metrics = await getSportMetrics(coach.primarySport.id, session.user.id);
   return NextResponse.json({ sportName: coach.primarySport.name, profile, metrics });
 }

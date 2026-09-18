@@ -17,7 +17,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   if (!athlete || athlete.coachId !== session.user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const [metrics, values] = await Promise.all([
-    getSportMetrics(athlete.sportId),
+    getSportMetrics(athlete.sportId, session.user.id),
     prisma.athleteMetricValue.findMany({
       where: { athleteId: params.id },
       orderBy: { recordedAt: "desc" },
