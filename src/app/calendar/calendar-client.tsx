@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trackClient } from "@/lib/track-client";
 import { formatMoney } from "@/lib/format";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 type EventType = "TRAINING" | "EVALUATION" | "COMPETITION" | "OTHER";
 type EventStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
@@ -470,6 +471,7 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNoShowDialog, setShowNoShowDialog] = useState(false);
 
   async function generateSession() {
     setBusy(true);
@@ -621,7 +623,7 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
             </button>
             {event.purchase && (
               <button
-                onClick={() => setStatus("NO_SHOW", confirm("Consumare comunque il credito per questo no-show?"))}
+                onClick={() => setShowNoShowDialog(true)}
                 disabled={busy}
                 className="rounded-md border border-border px-3 py-1.5 text-xs text-muted hover:bg-surface-2 disabled:opacity-50"
               >
@@ -635,6 +637,24 @@ function EventDetailPanel({ event, onClose, onChanged }: { event: CalendarEvent;
           Chiudi
         </button>
       </div>
+
+      {showNoShowDialog && (
+        <ConfirmDialog
+          title="Segnare come no-show?"
+          description="Vuoi consumare comunque il credito per questa sessione?"
+          confirmLabel="Sì, consuma credito"
+          cancelLabel="No, non consumare"
+          busy={busy}
+          onCancel={() => {
+            setShowNoShowDialog(false);
+            setStatus("NO_SHOW", false);
+          }}
+          onConfirm={() => {
+            setShowNoShowDialog(false);
+            setStatus("NO_SHOW", true);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export type ScoreType =
   | "SCALE_1_5"
@@ -63,6 +64,8 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     const res = await fetch(`${basePath}/evaluations`);
@@ -80,9 +83,11 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
   }, [basePath]);
 
   async function deleteEvaluation(id: string) {
-    if (!confirm("Eliminare questa valutazione? L'azione non è reversibile.")) return;
+    setDeleting(true);
     setError(null);
     const res = await fetch(`${basePath}/evaluations/${id}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteTargetId(null);
     if (!res.ok) {
       const result = await res.json().catch(() => ({}));
       setError(result.error ?? "Errore durante l'eliminazione.");
@@ -151,7 +156,7 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
                   {new Date(ev.evaluatedAt).toLocaleDateString("it-IT")}
                 </p>
                 <button
-                  onClick={() => deleteEvaluation(ev.id)}
+                  onClick={() => setDeleteTargetId(ev.id)}
                   className="shrink-0 text-[11px] text-muted transition-colors hover:text-negative"
                   aria-label="Elimina valutazione"
                 >
@@ -186,6 +191,18 @@ export function EvaluationsSection({ basePath }: { basePath: string }) {
             setShowImport(false);
             load();
           }}
+        />
+      )}
+
+      {deleteTargetId && (
+        <ConfirmDialog
+          title="Eliminare questa valutazione?"
+          description="L'azione non è reversibile."
+          confirmLabel="Elimina"
+          danger
+          busy={deleting}
+          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={() => deleteEvaluation(deleteTargetId)}
         />
       )}
     </div>

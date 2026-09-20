@@ -184,7 +184,7 @@ export function DashboardClient() {
 function StatPill({ count, label, accent }: { count: number; label: string; accent?: boolean }) {
   if (count === 0) return null;
   return (
-    <span className={`rounded-full px-3 py-1 ${accent ? "bg-accent/15 text-accent" : "bg-surface-2 text-foreground/80"}`}>
+    <span className={`rounded-full px-3 py-1 tabular-nums ${accent ? "bg-accent/15 text-accent" : "bg-surface-2 text-foreground/80"}`}>
       {count} {label}
     </span>
   );

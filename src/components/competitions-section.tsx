@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 type CompetitionType = "TOURNAMENT" | "MATCH" | "CHAMPIONSHIP" | "LEAGUE" | "FRIENDLY" | "OTHER";
 type CompetitionResult = "WIN" | "LOSS" | "DRAW" | "NOT_RECORDED";
@@ -116,13 +117,14 @@ function CompetitionCard({
   const [showResultForm, setShowResultForm] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   async function deleteCompetition() {
-    if (!confirm("Eliminare questa competizione? L'evento collegato nel calendario verrà rimosso. L'azione non è reversibile.")) return;
     setDeleting(true);
     onError(null);
     const res = await fetch(`${basePath}/competitions/${competition.id}`, { method: "DELETE" });
     setDeleting(false);
+    setShowDeleteDialog(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       onError(data.error ?? "Errore durante l'eliminazione.");
@@ -197,13 +199,25 @@ function CompetitionCard({
           </button>
         )}
         <button
-          onClick={deleteCompetition}
+          onClick={() => setShowDeleteDialog(true)}
           disabled={deleting}
           className="rounded-md border border-border px-2 py-1 text-[11px] text-muted transition-colors hover:border-negative/40 hover:text-negative disabled:opacity-50"
         >
           {deleting ? "…" : "Elimina"}
         </button>
       </div>
+
+      {showDeleteDialog && (
+        <ConfirmDialog
+          title="Eliminare questa competizione?"
+          description="L'evento collegato nel calendario verrà rimosso. L'azione non è reversibile."
+          confirmLabel="Elimina"
+          danger
+          busy={deleting}
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={deleteCompetition}
+        />
+      )}
 
       {showResultForm && (
         <RecordResultForm

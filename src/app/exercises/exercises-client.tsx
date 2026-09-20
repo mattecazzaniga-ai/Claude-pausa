@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const CATEGORY_LABEL: Record<string, string> = {
   TECHNICAL: "Tecnica",
@@ -70,6 +71,8 @@ export function ExercisesClient() {
   const [exercises, setExercises] = useState<ExerciseListItem[] | null>(null);
   const [query, setQuery] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load(q?: string) {
     const res = await fetch(`/api/exercises${q ? `?q=${encodeURIComponent(q)}` : ""}`);
@@ -78,12 +81,14 @@ export function ExercisesClient() {
   }
 
   async function deleteExercise(id: string) {
-    if (!confirm("Eliminare questo esercizio dalla libreria? L'azione non è reversibile.")) return;
+    setDeleting(true);
     const res = await fetch(`/api/exercises/${id}`, { method: "DELETE" });
+    setDeleting(false);
     if (res.ok) {
       setExercises((prev) => (prev ?? []).filter((ex) => ex.id !== id));
       trackClient("exercise_deleted");
     }
+    setDeleteTargetId(null);
   }
 
   useEffect(() => {
@@ -136,7 +141,7 @@ export function ExercisesClient() {
                   {ex.source === "AI_GENERATED" && (
                     <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-muted">generato da AI</span>
                   )}
-                  <button onClick={() => deleteExercise(ex.id)} className="text-[11px] text-muted transition-colors hover:text-negative">
+                  <button onClick={() => setDeleteTargetId(ex.id)} className="text-[11px] text-muted transition-colors hover:text-negative">
                     Elimina
                   </button>
                 </div>
@@ -165,6 +170,18 @@ export function ExercisesClient() {
             setShowForm(false);
             load(query);
           }}
+        />
+      )}
+
+      {deleteTargetId && (
+        <ConfirmDialog
+          title="Eliminare questo esercizio?"
+          description="Verrà rimosso dalla libreria. L'azione non è reversibile."
+          confirmLabel="Elimina"
+          danger
+          busy={deleting}
+          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={() => deleteExercise(deleteTargetId)}
         />
       )}
     </div>

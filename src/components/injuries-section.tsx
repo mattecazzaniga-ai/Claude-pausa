@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 type InjuryType = "INFORTUNIO" | "FASTIDIO" | "DOLORE_RIFERITO" | "LIMITAZIONE" | "PROBLEMA_RICORRENTE" | "ALTRO";
 type InjurySide = "LEFT" | "RIGHT" | "BILATERAL" | "NOT_APPLICABLE";
@@ -109,6 +110,8 @@ export function InjuriesSection({ basePath }: { basePath: string }) {
   const [injuries, setInjuries] = useState<Injury[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     const res = await fetch(`${basePath}/injuries`);
@@ -138,9 +141,11 @@ export function InjuriesSection({ basePath }: { basePath: string }) {
   }
 
   async function deleteInjury(injuryId: string) {
-    if (!confirm("Eliminare questo episodio? L'azione non è reversibile.")) return;
+    setDeleting(true);
     setError(null);
     const res = await fetch(`${basePath}/injuries/${injuryId}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteTargetId(null);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Errore durante l'eliminazione.");
@@ -168,7 +173,7 @@ export function InjuriesSection({ basePath }: { basePath: string }) {
       ) : (
         <div className="space-y-3">
           {injuries.map((inj) => (
-            <InjuryCard key={inj.id} injury={inj} basePath={basePath} onStatusChange={updateStatus} onDelete={deleteInjury} onEventAdded={load} />
+            <InjuryCard key={inj.id} injury={inj} basePath={basePath} onStatusChange={updateStatus} onDelete={setDeleteTargetId} onEventAdded={load} />
           ))}
         </div>
       )}
@@ -182,6 +187,18 @@ export function InjuriesSection({ basePath }: { basePath: string }) {
             load();
           }}
           onError={setError}
+        />
+      )}
+
+      {deleteTargetId && (
+        <ConfirmDialog
+          title="Eliminare questo episodio?"
+          description="L'azione non è reversibile."
+          confirmLabel="Elimina"
+          danger
+          busy={deleting}
+          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={() => deleteInjury(deleteTargetId)}
         />
       )}
     </div>

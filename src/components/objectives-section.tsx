@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export type GoalData = {
   id: string;
@@ -59,6 +60,8 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
   const [goals, setGoals] = useState(initialGoals);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function updateGoal(id: string, data: { currentValue?: string; status?: GoalData["status"] }) {
     setError(null);
@@ -77,9 +80,11 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
   }
 
   async function deleteGoal(id: string) {
-    if (!confirm("Eliminare questo obiettivo? L'azione non è reversibile.")) return;
+    setDeleting(true);
     setError(null);
     const res = await fetch(`${basePath}/${id}`, { method: "DELETE" });
+    setDeleting(false);
+    setDeleteTargetId(null);
     if (!res.ok) {
       const result = await res.json().catch(() => ({}));
       setError(result.error ?? "Errore durante l'eliminazione.");
@@ -121,7 +126,7 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
                       {STATUS_LABEL[g.status]}
                     </span>
                     <button
-                      onClick={() => deleteGoal(g.id)}
+                      onClick={() => setDeleteTargetId(g.id)}
                       className="text-[11px] text-muted transition-colors hover:text-negative"
                       aria-label="Elimina obiettivo"
                     >
@@ -181,6 +186,18 @@ export function ObjectivesSection({ basePath, initialGoals }: { basePath: string
             setGoals((prev) => [g, ...prev]);
             setShowForm(false);
           }}
+        />
+      )}
+
+      {deleteTargetId && (
+        <ConfirmDialog
+          title="Eliminare questo obiettivo?"
+          description="L'azione non è reversibile."
+          confirmLabel="Elimina"
+          danger
+          busy={deleting}
+          onCancel={() => setDeleteTargetId(null)}
+          onConfirm={() => deleteGoal(deleteTargetId)}
         />
       )}
     </div>

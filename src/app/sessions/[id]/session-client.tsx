@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trackClient } from "@/lib/track-client";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { TrainingSessionData, SessionBlockData } from "./types";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -42,12 +43,16 @@ export function SessionClient({ initialData }: { initialData: TrainingSessionDat
   const [data, setData] = useState(initialData);
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function deleteSession() {
-    if (!confirm("Eliminare questa sessione? L'azione non è reversibile.")) return;
+    setDeleting(true);
     const res = await fetch(`/api/sessions/${data.id}`, { method: "DELETE" });
     if (!res.ok) {
       const result = await res.json().catch(() => ({}));
+      setDeleting(false);
+      setShowDeleteDialog(false);
       setError(result.error ?? "Errore durante l'eliminazione.");
       return;
     }
@@ -98,10 +103,22 @@ export function SessionClient({ initialData }: { initialData: TrainingSessionDat
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">
         <div className="flex items-start justify-between gap-2">
           <p className="text-xs uppercase tracking-wider text-muted">Sessione — {data.durationMinutes} min</p>
-          <button onClick={deleteSession} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
+          <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
             Elimina
           </button>
         </div>
+
+        {showDeleteDialog && (
+          <ConfirmDialog
+            title="Eliminare questa sessione?"
+            description="L'azione non è reversibile."
+            confirmLabel="Elimina"
+            danger
+            busy={deleting}
+            onCancel={() => setShowDeleteDialog(false)}
+            onConfirm={deleteSession}
+          />
+        )}
         <h1 className="mt-1 text-xl font-semibold">{data.objective || "Sessione di allenamento"}</h1>
         <p className="mt-1 text-xs text-muted">
           {data.blocks.length} blocchi · {totalPlanned} min pianificati
