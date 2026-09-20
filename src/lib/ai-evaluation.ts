@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -46,7 +47,7 @@ export async function analyzeEvaluationProgress(params: {
     })
     .join("\n");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi che analizza una valutazione periodica confrontandola con quella precedente e con la baseline iniziale. " +
@@ -80,7 +81,7 @@ export async function analyzeEvaluationProgress(params: {
         required: ["narrative", "priorities"],
       },
     },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as EvaluationAnalysis;

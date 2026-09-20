@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import type { SkillOption } from "@/lib/ai";
 import { FAST_MODEL } from "@/lib/ai-model";
 
@@ -31,7 +32,7 @@ export async function parseExerciseFromText(description: string, skills: SkillOp
 
   const skillList = skills.map((s) => `- ${s.id}: ${s.category} / ${s.name}`).join("\n");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi. Trasforma la descrizione di un esercizio, scritta velocemente da un allenatore, " +
@@ -63,7 +64,7 @@ export async function parseExerciseFromText(description: string, skills: SkillOp
         required: ["name", "description", "category", "tags", "skillIds"],
       },
     },
-  });
+  }));
 
   const validIds = new Set(skills.map((s) => s.id));
   const parsed = JSON.parse(response.text ?? "{}") as ParsedExercise;

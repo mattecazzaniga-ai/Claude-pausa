@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -18,7 +19,7 @@ export type GeneratedTaxonomy = { categories: { name: string; type: SkillCategor
 export async function generateSportTaxonomy(sportName: string): Promise<GeneratedTaxonomy> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       `Sei un esperto di metodologia dell'allenamento per molti sport. Crea una tassonomia di valutazione per il seguente sport, ` +
@@ -52,7 +53,7 @@ export async function generateSportTaxonomy(sportName: string): Promise<Generate
         required: ["categories"],
       },
     },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as GeneratedTaxonomy;

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { FAST_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -46,7 +47,7 @@ export async function extractTagsFromNote(noteText: string, skills: SkillOption[
 
   const skillList = skills.map((s) => `- ${s.id}: ${s.category} / ${s.name}`).join("\n");
 
-  const response = await client.models.generateContent({
+  const response = await withAiRetry(() => client.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente che estrae osservazioni tecniche strutturate dalle note di un allenatore sportivo. " +
@@ -81,7 +82,7 @@ export async function extractTagsFromNote(noteText: string, skills: SkillOption[
         required: ["observations"],
       },
     },
-  });
+  }));
 
   const parsed = parseJson<{ observations?: ExtractedTag[] }>(response.text, {});
   const validIds = new Set(skills.map((s) => s.id));
@@ -119,7 +120,7 @@ export async function generateAthleteSummary(params: {
     })
     .join("\n\n");
 
-  const response = await client.models.generateContent({
+  const response = await withAiRetry(() => client.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi. Analizzi lo storico delle sessioni di un atleta e produci una sintesi utile e concreta, " +
@@ -154,7 +155,7 @@ export async function generateAthleteSummary(params: {
         required: ["summary", "priorities"],
       },
     },
-  });
+  }));
 
   return parseJson<AthleteAiSummary>(response.text, {
     summary: "Non è stato possibile generare una sintesi.",

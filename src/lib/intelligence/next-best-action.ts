@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -70,7 +71,7 @@ export async function generateNextBestAction(
     : "";
   const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei il motore di intelligenza di un sistema per allenatori sportivi. Il tuo compito NON è generare contenuti generici, " +
@@ -114,7 +115,7 @@ export async function generateNextBestAction(
         required: ["actionType", "priorityLabel", "facts", "pattern", "recommendation", "confidence", "missingData"],
       },
     },
-  });
+  }));
 
   const parsed = JSON.parse(response.text ?? "{}") as Partial<NextBestAction>;
   return {

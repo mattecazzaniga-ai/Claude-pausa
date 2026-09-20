@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -38,7 +39,7 @@ export async function computeMainGap(context: IntelligenceContext, methodologyTe
   const contextText = formatContextForPrompt(context);
   const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente che aiuta un allenatore a capire QUALE gap tra dove sta ora l'atleta e dove vuole arrivare conta di più adesso. " +
@@ -66,7 +67,7 @@ export async function computeMainGap(context: IntelligenceContext, methodologyTe
         required: ["hasEnoughData", "objectiveTitle", "current", "target", "unit", "gapExplanation", "priorityReason"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "{}") as {

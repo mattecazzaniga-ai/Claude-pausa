@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import type { GeneratedEvaluationCriteria, ScoreType } from "@/lib/ai-evaluation-criteria";
 import { FAST_MODEL } from "@/lib/ai-model";
 
@@ -85,11 +86,11 @@ export async function parseEvaluationDocument(params: {
       ]
     : `${contextText}\n\nDocumento caricato dall'allenatore:\n"""${params.text}"""`;
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents,
     config: { responseMimeType: "application/json", responseSchema: RESPONSE_SCHEMA },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as GeneratedEvaluationCriteria;

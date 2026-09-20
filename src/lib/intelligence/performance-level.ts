@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -41,7 +42,7 @@ export async function assessPerformanceLevel(context: IntelligenceContext, metho
   const contextText = formatContextForPrompt(context);
   const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un esperto di scienze dello sport. Stima il livello di performance ATTUALE di questo atleta, usando SOLO i dati forniti " +
@@ -67,7 +68,7 @@ export async function assessPerformanceLevel(context: IntelligenceContext, metho
         required: ["hasEnoughData", "level", "explanation", "basedOn"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "{}") as { hasEnoughData: boolean; level: string; explanation: string; basedOn: string[] };

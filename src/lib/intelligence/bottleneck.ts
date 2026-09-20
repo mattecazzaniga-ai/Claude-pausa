@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -26,7 +27,7 @@ export async function diagnoseBottleneck(context: IntelligenceContext, methodolo
   const contextText = formatContextForPrompt(context);
   const methodologyBlock = methodologyText ? `\n\n${methodologyText}` : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente che aiuta un allenatore a capire PERCHÉ un atleta non sta migliorando come atteso su una certa area. " +
@@ -55,7 +56,7 @@ export async function diagnoseBottleneck(context: IntelligenceContext, methodolo
         required: ["hasEnoughData", "evidence", "bottleneckHypothesis", "recommendedExperiment"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "{}") as BottleneckDiagnosis;

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -28,7 +29,7 @@ export async function answerCoachQuestion(context: IntelligenceContext, question
       trimmedHistory.map((t) => `${t.role === "coach" ? "Allenatore" : "Tu"}: ${t.text}`).join("\n")
     : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei l'assistente AI di un allenatore sportivo all'interno di Mentathlos. Rispondi alla sua domanda su questo specifico atleta " +
@@ -43,7 +44,7 @@ export async function answerCoachQuestion(context: IntelligenceContext, question
       contextText +
       historyText +
       `\n\nDomanda dell'allenatore: "${question}"`,
-  });
+  }));
 
   return response.text?.trim() || "Non sono riuscito a generare una risposta. Riprova tra poco.";
 }

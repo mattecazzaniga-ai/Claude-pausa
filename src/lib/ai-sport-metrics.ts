@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -18,7 +19,7 @@ export type GeneratedSportMetrics = { metrics: GeneratedMetric[] };
 export async function generateSportMetrics(sportName: string, sportContext: string): Promise<GeneratedSportMetrics> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un esperto di scienze dello sport. Elenca le metriche di performance che un allenatore o un atleta di questo sport monitora " +
@@ -52,7 +53,7 @@ export async function generateSportMetrics(sportName: string, sportContext: stri
         required: ["metrics"],
       },
     },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as GeneratedSportMetrics;

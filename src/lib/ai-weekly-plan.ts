@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { formatContextForPrompt, type IntelligenceContext } from "@/lib/intelligence/context";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
@@ -45,7 +46,7 @@ export async function generateWeeklyPlanSkeleton(params: {
       "concentrarsi su una in particolare, motivandolo nel focus della sessione.\n\n"
     : "";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un allenatore esperto che pianifica UNA SETTIMANA di allenamento (microciclo), non una singola sessione. " +
@@ -89,7 +90,7 @@ export async function generateWeeklyPlanSkeleton(params: {
         required: ["phase", "rationale", "slots"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "{}") as GeneratedWeeklyPlan;

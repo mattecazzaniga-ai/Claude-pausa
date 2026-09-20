@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -30,7 +31,7 @@ export async function analyzeCompetitionPerformance(params: {
 }): Promise<CompetitionAnalysis> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi che analizza il risultato di una competizione appena disputata. " +
@@ -66,7 +67,7 @@ export async function analyzeCompetitionPerformance(params: {
         required: ["narrative", "priorities"],
       },
     },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as CompetitionAnalysis;
@@ -102,7 +103,7 @@ export async function analyzeCompetitionPreparation(params: {
     ? params.currentPriorities.map((p) => `- ${p.skill}: ${p.reason}`).join("\n")
     : "Nessuna priorità specifica registrata al momento.";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi che prepara un atleta o una squadra a una competizione imminente. " +
@@ -131,7 +132,7 @@ export async function analyzeCompetitionPreparation(params: {
         required: ["narrative"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "") as { narrative: string };

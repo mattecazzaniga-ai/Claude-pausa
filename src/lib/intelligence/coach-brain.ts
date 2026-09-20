@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { CoachFeedbackSignalType, CoachPreferenceCategory, CoachPreferenceReviewState } from "@prisma/client";
@@ -125,7 +126,7 @@ export async function refreshCoachBrainIfStale(coachId: string): Promise<void> {
 
     const signalsText = signals.map((s) => `- [${s.type}] ${s.summary}`).join("\n");
 
-    const response = await ai.models.generateContent({
+    const response = await withAiRetry(() => ai.models.generateContent({
       model: MODEL,
       contents:
         "Osservi come un allenatore reagisce nel tempo alle proposte di un sistema AI di coaching (raccomandazioni accettate/rifiutate, " +
@@ -162,7 +163,7 @@ export async function refreshCoachBrainIfStale(coachId: string): Promise<void> {
           required: ["preferences"],
         },
       },
-    });
+    }));
 
     const parsed = JSON.parse(response.text ?? "{}") as { preferences?: SynthesizedPreference[] };
     const preferences = parsed.preferences ?? [];

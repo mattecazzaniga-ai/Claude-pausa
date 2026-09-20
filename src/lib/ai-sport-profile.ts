@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -32,7 +33,7 @@ export type GeneratedSportProfile = {
 export async function generateSportProfile(sportName: string): Promise<GeneratedSportProfile> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un esperto di questo sport, che deve fornire un profilo di riferimento a un motore AI che genererà esercizi e sessioni di allenamento. " +
@@ -105,7 +106,7 @@ export async function generateSportProfile(sportName: string): Promise<Generated
         ],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "") as GeneratedSportProfile;

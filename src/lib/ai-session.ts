@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -72,7 +73,7 @@ export async function generateSessionPlan(params: {
     ? params.aiPriorities.map((p) => `- ${p.skill}: ${p.reason}`).join("\n")
     : "Nessuna priorità specifica registrata ancora.";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi che costruisce sessioni di allenamento personalizzate. " +
@@ -129,7 +130,7 @@ export async function generateSessionPlan(params: {
         required: ["objective", "blocks"],
       },
     },
-  });
+  }));
 
   const parsed = JSON.parse(response.text ?? "{}") as GeneratedSessionPlan;
   const validIds = new Set(params.libraryExercises.map((e) => e.id));
@@ -176,7 +177,7 @@ export async function generateTeamSessionPlan(params: {
         .join("\n")
     : "(nessun atleta con storico ancora)";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un assistente per allenatori sportivi che costruisce sessioni di allenamento per un'INTERA squadra/gruppo (non un singolo atleta). " +
@@ -231,7 +232,7 @@ export async function generateTeamSessionPlan(params: {
         required: ["objective", "blocks"],
       },
     },
-  });
+  }));
 
   const parsed = JSON.parse(response.text ?? "{}") as GeneratedSessionPlan;
   const validIds = new Set(params.libraryExercises.map((e) => e.id));
@@ -262,7 +263,7 @@ export async function generateReplacementExercise(params: {
         .join("\n")
     : "(nessun altro esercizio disponibile nella libreria)";
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       `Un allenatore vuole sostituire l'esercizio "${params.currentExerciseName}" (blocco di tipo ${params.blockType}) con un'alternativa che copra lo stesso obiettivo. ` +
@@ -285,7 +286,7 @@ export async function generateReplacementExercise(params: {
         required: ["chosenExerciseId", "newExerciseName", "newExerciseDescription", "newExerciseCoachingPoints", "rationale"],
       },
     },
-  });
+  }));
 
   const validIds = new Set(candidates.map((e) => e.id));
   const parsed = JSON.parse(response.text ?? "{}") as Omit<GeneratedBlock, "type" | "durationMinutes">;

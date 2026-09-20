@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { STRONG_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -42,7 +43,7 @@ const SCORE_TYPE_ENUM: ScoreType[] = [
 export async function generateEvaluationCriteria(sportName: string): Promise<GeneratedEvaluationCriteria> {
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Sei un esperto di valutazione tecnica per molti sport. Crea un set di criteri di valutazione iniziale/periodica per il seguente sport, " +
@@ -84,7 +85,7 @@ export async function generateEvaluationCriteria(sportName: string): Promise<Gen
         required: ["categories"],
       },
     },
-  });
+  }));
 
   try {
     return JSON.parse(response.text ?? "") as GeneratedEvaluationCriteria;

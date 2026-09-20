@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { withAiRetry } from "@/lib/ai-retry";
 import { FAST_MODEL } from "@/lib/ai-model";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -38,7 +39,7 @@ export async function parseMethodologyDocument(params: { text: string; sportName
   if (!ai) throw new Error("AI not configured: GEMINI_API_KEY is missing.");
   if (!params.text.trim()) return { principles: [] };
 
-  const response = await ai.models.generateContent({
+  const response = await withAiRetry(() => ai.models.generateContent({
     model: MODEL,
     contents:
       "Un allenatore sportivo ha scritto o caricato un testo che descrive la propria metodologia/filosofia di allenamento. " +
@@ -68,7 +69,7 @@ export async function parseMethodologyDocument(params: { text: string; sportName
         required: ["principles"],
       },
     },
-  });
+  }));
 
   try {
     const parsed = JSON.parse(response.text ?? "") as ParsedMethodology;
