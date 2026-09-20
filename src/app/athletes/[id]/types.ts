@@ -11,6 +11,13 @@ export type SessionNoteData = {
 import type { GoalData } from "@/components/objectives-section";
 export type { GoalData };
 
+export type TrainingSessionListItem = {
+  id: string;
+  objective: string | null;
+  durationMinutes: number;
+  createdAt: string;
+};
+
 export type AthleteData = {
   id: string;
   name: string;
@@ -23,4 +30,5 @@ export type AthleteData = {
   notes: SessionNoteData[];
   goals: GoalData[];
   isSelf: boolean;
+  trainingSessions: TrainingSessionListItem[];
 };

@@ -336,32 +336,57 @@ export function AthleteClient({
           {
             id: "history",
             label: "Storico",
-            content:
-              athlete.notes.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
-                  Nessuna sessione registrata ancora.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {athlete.notes.map((note) => (
-                    <div key={note.id} className="rounded-xl border border-border bg-surface p-4">
-                      <p className="text-xs text-muted">{formatDate(note.sessionDate)}</p>
-                      <p className="mt-1.5 text-sm text-foreground/90">{note.rawText}</p>
-                      {note.tags.length > 0 ? (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {note.tags.map((t, i) => (
-                            <span key={i} className={`rounded-full px-2.5 py-1 text-xs ${SENTIMENT_STYLE[t.sentiment]}`}>
-                              {t.skillName} · {SENTIMENT_LABEL[t.sentiment]}
-                            </span>
-                          ))}
-                        </div>
-                      ) : !note.aiProcessed && aiConfigured ? (
-                        <p className="mt-2 text-xs text-muted">In elaborazione…</p>
-                      ) : null}
+            content: (
+              <>
+                {athlete.trainingSessions.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Sessioni generate</h2>
+                    <div className="space-y-2">
+                      {athlete.trainingSessions.map((s) => (
+                        <a
+                          key={s.id}
+                          href={`/sessions/${s.id}`}
+                          className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 transition-colors hover:bg-surface-2"
+                        >
+                          <div>
+                            <p className="font-medium">{s.objective || "Sessione di allenamento"}</p>
+                            <p className="mt-0.5 text-xs text-muted">
+                              {formatDate(s.createdAt)} · {s.durationMinutes} min
+                            </p>
+                          </div>
+                        </a>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ),
+                  </div>
+                )}
+
+                {athlete.notes.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
+                    Nessuna nota di sessione registrata ancora.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {athlete.notes.map((note) => (
+                      <div key={note.id} className="rounded-xl border border-border bg-surface p-4">
+                        <p className="text-xs text-muted">{formatDate(note.sessionDate)}</p>
+                        <p className="mt-1.5 text-sm text-foreground/90">{note.rawText}</p>
+                        {note.tags.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {note.tags.map((t, i) => (
+                              <span key={i} className={`rounded-full px-2.5 py-1 text-xs ${SENTIMENT_STYLE[t.sentiment]}`}>
+                                {t.skillName} · {SENTIMENT_LABEL[t.sentiment]}
+                              </span>
+                            ))}
+                          </div>
+                        ) : !note.aiProcessed && aiConfigured ? (
+                          <p className="mt-2 text-xs text-muted">In elaborazione…</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ),
           },
         ]}
       />

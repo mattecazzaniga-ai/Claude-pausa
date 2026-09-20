@@ -23,6 +23,11 @@ export default async function AthletePage(props: { params: Promise<{ id: string 
         include: { tags: { include: { skill: true } } },
       },
       goals: { orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
+      trainingSessions: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: { id: true, objective: true, durationMinutes: true, createdAt: true },
+      },
     },
   });
 
@@ -58,6 +63,12 @@ export default async function AthletePage(props: { params: Promise<{ id: string 
       status: g.status,
     })),
     isSelf: athlete.isSelf,
+    trainingSessions: athlete.trainingSessions.map((s) => ({
+      id: s.id,
+      objective: s.objective,
+      durationMinutes: s.durationMinutes,
+      createdAt: s.createdAt.toISOString(),
+    })),
   };
 
   return (
