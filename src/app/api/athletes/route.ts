@@ -4,19 +4,35 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAthleteSchema } from "@/lib/validation";
 import { track } from "@/lib/analytics";
+import { ACTIVE_INJURY_STATUSES, computeOverallInjuryStatus } from "@/lib/injuries";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const athletes = await prisma.athlete.findMany({
-    where: { coachId: session.user.id },
-    include: {
-      sport: { select: { name: true } },
-      sessionNotes: { select: { sessionDate: true }, orderBy: { sessionDate: "desc" }, take: 1 },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const [athletes, activeInjuries] = await Promise.all([
+    prisma.athlete.findMany({
+      where: { coachId: session.user.id },
+      include: {
+        sport: { select: { name: true } },
+        sessionNotes: { select: { sessionDate: true }, orderBy: { sessionDate: "desc" }, take: 1 },
+      },
+      orderBy: { updatedAt: "desc" },
+    }),
+    // One grouped query for the whole roster's injury status (Home's "needs
+    // attention" list needs this) instead of one query per athlete.
+    prisma.athleteInjury.findMany({
+      where: { coachId: session.user.id, status: { in: ACTIVE_INJURY_STATUSES } },
+      select: { athleteId: true, type: true, status: true },
+    }),
+  ]);
+
+  const injuriesByAthlete = new Map<string, { type: (typeof activeInjuries)[number]["type"]; status: (typeof activeInjuries)[number]["status"] }[]>();
+  for (const inj of activeInjuries) {
+    const list = injuriesByAthlete.get(inj.athleteId) ?? [];
+    list.push(inj);
+    injuriesByAthlete.set(inj.athleteId, list);
+  }
 
   return NextResponse.json({
     athletes: athletes.map((a) => {
@@ -29,6 +45,7 @@ export async function GET() {
         lastSessionDate: a.sessionNotes[0]?.sessionDate ?? null,
         priorityCount: priorities.length,
         topPriority: priorities[0] ?? null,
+        overallInjuryStatus: computeOverallInjuryStatus(injuriesByAthlete.get(a.id) ?? []),
       };
     }),
   });

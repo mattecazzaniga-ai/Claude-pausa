@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { trackClient } from "@/lib/track-client";
+import { MethodologyClient } from "./methodology-client";
 
 type ReviewState = "ACTIVE" | "CONFIRMED" | "REJECTED";
 
@@ -15,13 +15,33 @@ type Preference = {
   updatedAt: string;
 };
 
+type MethodologyCategory =
+  | "FILOSOFIA"
+  | "VOLUME"
+  | "INTENSITA"
+  | "RECUPERO"
+  | "PROGRESSIONE"
+  | "REGRESSIONE"
+  | "PERIODIZZAZIONE"
+  | "SCELTA_ESERCIZI"
+  | "ESERCIZI_PREFERITI"
+  | "ESERCIZI_DA_EVITARE"
+  | "PRE_COMPETIZIONE"
+  | "POST_COMPETIZIONE"
+  | "LIVELLI_ETA"
+  | "REGOLE_SPORT_SPECIFICHE"
+  | "ALTRO";
+
+type MethodologyPrinciple = { id: string; text: string; category: MethodologyCategory };
+type MethodologyVersionHistoryItem = { id: string; version: number; changeSummary: string; createdAt: string; principleCount: number };
+
 export function CoachBrainClient({
-  methodologyPrincipleCount,
-  methodologyVersion,
+  initialPrinciples,
+  initialHistory,
   initialPreferences,
 }: {
-  methodologyPrincipleCount: number;
-  methodologyVersion: number;
+  initialPrinciples: MethodologyPrinciple[];
+  initialHistory: MethodologyVersionHistoryItem[];
   initialPreferences: Preference[];
 }) {
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -48,31 +68,16 @@ export function CoachBrainClient({
   return (
     <div className="mx-auto max-w-2xl px-4 pb-16 sm:px-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Il mio Coach Brain</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Coach Brain</h1>
         <p className="mt-1 text-sm text-muted">
-          Come MENTATHLOS ha imparato ad allenare insieme a te — solo da segnali reali, mai inventato. Conferma quello che ti riconosci,
-          rifiuta quello che non ti rappresenta: nessuna delle due scelte è definitiva.
+          Come MENTATHLOS capisce il tuo modo di allenare: i principi che scrivi tu, e i pattern che osserva da solo — solo da segnali
+          reali, mai inventati. Conferma quello che ti riconosci, rifiuta quello che non ti rappresenta: nessuna delle due scelte è
+          definitiva.
         </p>
       </div>
 
-      <div className="mb-6 rounded-xl border border-border bg-surface p-5">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Come alleno</h2>
-          <Link href="/methodology" className="text-xs text-accent underline underline-offset-4">
-            Vai alla metodologia →
-          </Link>
-        </div>
-        {methodologyPrincipleCount > 0 ? (
-          <p className="text-sm text-foreground/90">
-            {methodologyPrincipleCount} principi attivi (v{methodologyVersion}) guidano già le decisioni dell&apos;AI — sessioni generate,
-            priorità, raccomandazioni.
-          </p>
-        ) : (
-          <p className="text-sm text-muted">
-            Non hai ancora scritto la tua metodologia. Definiscila per far sì che l&apos;AI alleni davvero come alleni tu.
-          </p>
-        )}
-      </div>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Come alleno</h2>
+      <MethodologyClient initialPrinciples={initialPrinciples} initialHistory={initialHistory} />
 
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Cosa ho imparato di recente</h2>

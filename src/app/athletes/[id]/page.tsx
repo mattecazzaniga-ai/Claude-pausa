@@ -65,8 +65,8 @@ export default async function AthletePage(props: { params: Promise<{ id: string 
       <Nav />
       {!athlete.isSelf && (
         <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-          <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-            ← I miei atleti
+          <Link href="/athletes" className="text-sm text-muted hover:text-foreground">
+            ← Atleti
           </Link>
         </div>
       )}

@@ -41,6 +41,13 @@ const CATEGORY_LABEL: Record<Category, string> = {
   ALTRO: "Altro",
 };
 
+/**
+ * The "how I coach" half of the Coach Brain page (see coach-brain-client.tsx)
+ * — previously its own /methodology page/route, merged in here because it
+ * told the same story ("how MENTATHLOS understands your coaching") under a
+ * different name. Renders just the two content cards; the page-level h1/
+ * intro now lives once in CoachBrainClient.
+ */
 export function MethodologyClient({
   initialPrinciples,
   initialHistory,
@@ -54,8 +61,6 @@ export function MethodologyClient({
   const [showImportModal, setShowImportModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const currentVersion = history[0]?.version ?? 0;
 
   async function save(next: { text: string; category: Category }[], changeSummary?: string) {
     setBusy(true);
@@ -86,16 +91,7 @@ export function MethodologyClient({
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-16 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">La mia metodologia</h1>
-        <p className="mt-1 text-sm text-muted">
-          Questi principi guidano davvero le decisioni dell&apos;AI — sessioni generate, priorità, raccomandazioni — non sono solo mostrati
-          in una pagina.
-        </p>
-        {currentVersion > 0 && <p className="mt-2 text-xs text-muted">Versione attuale: v{currentVersion}</p>}
-      </div>
-
+    <>
       <div className="mb-6 rounded-xl border border-border bg-surface p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Principi attivi</h2>
@@ -150,7 +146,7 @@ export function MethodologyClient({
       </div>
 
       {history.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5">
+        <div className="mb-6 rounded-xl border border-border bg-surface p-5">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">Cronologia</h2>
           <div className="space-y-2">
             {history.map((h) => (
@@ -178,7 +174,7 @@ export function MethodologyClient({
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 

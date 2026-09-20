@@ -134,7 +134,7 @@ export function AthleteClient({
       return;
     }
     trackClient("athlete_deleted", { athleteId: athlete.id, forgetAiMemory });
-    router.push("/dashboard");
+    router.push("/athletes");
   }
 
   return (

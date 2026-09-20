@@ -20,8 +20,13 @@ export function Nav() {
           {session?.user && (
             <>
               <Link href="/dashboard" className="hover:text-foreground transition-colors">
-                {session.user.selfCoaching ? "Il mio allenamento" : "I miei atleti"}
+                {session.user.selfCoaching ? "Il mio allenamento" : "Home"}
               </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/athletes" className="hover:text-foreground transition-colors">
+                  Atleti
+                </Link>
+              )}
               {!session.user.selfCoaching && (
                 <Link href="/teams" className="hover:text-foreground transition-colors">
                   Squadre
@@ -89,8 +94,13 @@ export function Nav() {
           {session?.user ? (
             <>
               <Link href="/dashboard" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
-                {session.user.selfCoaching ? "Il mio allenamento" : "I miei atleti"}
+                {session.user.selfCoaching ? "Il mio allenamento" : "Home"}
               </Link>
+              {!session.user.selfCoaching && (
+                <Link href="/athletes" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
+                  Atleti
+                </Link>
+              )}
               {!session.user.selfCoaching && (
                 <Link href="/teams" className="rounded-md px-2 py-2 text-sm hover:bg-surface-2" onClick={() => setOpen(false)}>
                   Squadre
