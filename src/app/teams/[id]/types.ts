@@ -18,4 +18,5 @@ export type TeamData = {
   availableAthletes: { id: string; name: string }[];
   sessions: TeamSessionListItem[];
   goals: GoalData[];
+  topPriority: { skill: string; reason: string } | null;
 };

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiConfigured } from "@/lib/ai";
+import { computeTeamTopPriority } from "@/lib/team-priority";
 import { Nav } from "@/components/nav";
 import { TeamClient } from "./team-client";
 import type { TeamData } from "./types";
@@ -17,7 +18,7 @@ export default async function TeamPage(props: { params: Promise<{ id: string }> 
     where: { id: params.id },
     include: {
       sport: { select: { name: true } },
-      members: { include: { athlete: { select: { id: true, name: true, level: true } } } },
+      members: { include: { athlete: { select: { id: true, name: true, level: true, aiPriorities: true } } } },
       trainingSessions: { orderBy: { createdAt: "desc" }, select: { id: true, objective: true, durationMinutes: true, createdAt: true } },
       goals: { orderBy: [{ status: "asc" }, { createdAt: "desc" }] },
     },
@@ -56,6 +57,7 @@ export default async function TeamPage(props: { params: Promise<{ id: string }> 
       deadline: g.deadline?.toISOString() ?? null,
       status: g.status,
     })),
+    topPriority: computeTeamTopPriority(team.members.map((m) => m.athlete.aiPriorities)),
   };
 
   return (

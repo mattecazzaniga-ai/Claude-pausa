@@ -120,6 +120,12 @@ export function TeamClient({ initialData, aiConfigured }: { initialData: TeamDat
           <p className="mt-1 text-sm text-muted">
             {team.sportName} · {team.members.length} {team.members.length === 1 ? "atleta" : "atleti"}
           </p>
+          {team.topPriority && (
+            <p className="mt-2 text-sm">
+              <span className="text-muted">Cosa conta ora:</span>{" "}
+              <span className="font-medium text-accent">{team.topPriority.skill}</span>
+            </p>
+          )}
         </div>
         <button onClick={() => setShowDeleteDialog(true)} className="shrink-0 text-xs text-muted transition-colors hover:text-negative">
           Elimina squadra

@@ -149,6 +149,12 @@ export function AthleteClient({
           <div className="mt-2">
             <InjuryStatusBadge basePath={`/api/athletes/${athlete.id}`} />
           </div>
+          {athlete.aiPriorities[0] && (
+            <p className="mt-2 text-sm">
+              <span className="text-muted">Cosa conta ora:</span>{" "}
+              <span className="font-medium text-accent">{athlete.aiPriorities[0].skill}</span>
+            </p>
+          )}
           {athlete.objectives && <p className="mt-2 text-sm text-foreground/80">{athlete.objectives}</p>}
         </div>
         {!athlete.isSelf && (
@@ -284,26 +290,18 @@ export function AthleteClient({
             ),
           },
           {
-            id: "profile",
-            label: "Profilo",
-            content: (
-              <>
-                <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />
-                <div className="mt-4">
-                  <MemoryTimelineSection basePath={`/api/athletes/${athlete.id}`} />
-                </div>
-              </>
-            ),
-          },
-          {
             id: "development",
             label: "Sviluppo",
             content: (
               <>
                 <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
-                <MetricsSection basePath={`/api/athletes/${athlete.id}`} />
                 <BaselineSection basePath={`/api/athletes/${athlete.id}`} />
+                <MetricsSection basePath={`/api/athletes/${athlete.id}`} />
                 <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
+                <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />
+                <div className="mt-4">
+                  <MemoryTimelineSection basePath={`/api/athletes/${athlete.id}`} />
+                </div>
               </>
             ),
           },
