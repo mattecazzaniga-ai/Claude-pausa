@@ -74,6 +74,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "team_memory_confirmed",
   "team_memory_rejected",
   "team_memory_reactivated",
+  "sport_metric_created",
+  "command_bar_used",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

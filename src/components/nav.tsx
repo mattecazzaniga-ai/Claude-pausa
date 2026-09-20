@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { useState } from "react";
+import { CommandBar } from "@/components/command-bar";
 
 export function Nav() {
   const { data: session, status } = useSession();
@@ -53,6 +54,13 @@ export function Nav() {
         <div className="hidden items-center gap-3 sm:flex">
           {status === "loading" ? null : session?.user ? (
             <>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("mentathlos:open-command-bar"))}
+                className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-muted transition-colors hover:bg-surface-2"
+                title="Vai a un atleta, una squadra o una sezione"
+              >
+                Cerca <span className="rounded border border-border px-1 text-[10px]">⌘K</span>
+              </button>
               <span className="text-sm text-muted">{session.user.name}</span>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
@@ -136,6 +144,8 @@ export function Nav() {
           )}
         </div>
       )}
+
+      {session?.user && <CommandBar selfCoaching={!!session.user.selfCoaching} />}
     </header>
   );
 }
