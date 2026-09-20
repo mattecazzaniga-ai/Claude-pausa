@@ -32,6 +32,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# third-party skills installed via `npx skills add` (not part of this project)
+/.agents/
+/.claude/
+/skills-lock.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
