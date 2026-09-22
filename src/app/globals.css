@@ -41,4 +41,34 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Ambient glow behind auth screens (login/register/password flows) — these
+     were a flat black void with a floating card, the only pages left that
+     didn't share the landing page's sense of depth. */
+  .auth-backdrop {
+    position: relative;
+    isolation: isolate;
+  }
+  .auth-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 640px 420px at 15% -10%, rgba(242, 153, 74, 0.12), transparent 60%),
+      radial-gradient(ellipse 560px 460px at 100% 110%, rgba(45, 212, 191, 0.1), transparent 60%);
+  }
+}
+
+@layer base {
+  /* Sitewide press feedback — buttons had hover states but no tactile
+     response on click/tap, the interface felt inert until the request
+     round-tripped. */
+  button:not(:disabled) {
+    transition: transform 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  button:not(:disabled):active {
+    transform: scale(0.98);
+  }
 }

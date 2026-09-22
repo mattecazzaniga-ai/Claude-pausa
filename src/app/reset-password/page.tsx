@@ -51,7 +51,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
+      <main className="auth-backdrop flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-sm animate-fade-in text-center">
           <p className="text-sm text-muted">Link non valido.</p>
           <Link href="/forgot-password" className="mt-4 inline-block text-foreground underline underline-offset-4">
@@ -63,7 +63,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="auth-backdrop flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
           <Link href="/" className="text-sm text-muted hover:text-foreground">

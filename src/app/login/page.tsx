@@ -40,7 +40,7 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
+    <main className="auth-backdrop flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="mb-8 text-center">
           <Link href="/" className="text-sm text-muted hover:text-foreground">
