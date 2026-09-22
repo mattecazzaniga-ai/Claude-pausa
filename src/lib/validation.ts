@@ -290,6 +290,15 @@ export const createMetricValueSchema = z.object({
   notes: z.string().trim().max(300).optional().nullable(),
 });
 
+export const createTrainingLoadEntrySchema = z.object({
+  discipline: z.string().trim().min(2, "Indica la disciplina").max(60),
+  durationMinutes: z.number().int().min(1, "Indica una durata valida").max(1440),
+  rpe: z.number().int().min(0).max(10),
+  zone: z.enum(["WARMUP", "EASY", "MODERATE", "HARD", "RACE"]).optional(),
+  date: z.string().datetime().optional(),
+  notes: z.string().trim().max(300).optional().nullable(),
+});
+
 const checkinFeelingEnum = z.enum(["GREAT", "GOOD", "OK", "TIRED", "UNWELL"]);
 
 export const createCheckinSchema = z

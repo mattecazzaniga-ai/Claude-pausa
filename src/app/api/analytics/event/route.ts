@@ -76,6 +76,8 @@ const ALLOWED: AnalyticsEventName[] = [
   "team_memory_reactivated",
   "sport_metric_created",
   "command_bar_used",
+  "training_load_recorded",
+  "training_load_deleted",
 ];
 
 /** Thin endpoint for client-side analytics beacons (server-side flows call track() directly). */

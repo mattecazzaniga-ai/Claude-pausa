@@ -77,7 +77,9 @@ export type AnalyticsEventName =
   | "team_memory_rejected"
   | "team_memory_reactivated"
   | "sport_metric_created"
-  | "command_bar_used";
+  | "command_bar_used"
+  | "training_load_recorded"
+  | "training_load_deleted";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —

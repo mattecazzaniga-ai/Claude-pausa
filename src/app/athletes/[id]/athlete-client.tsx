@@ -15,6 +15,7 @@ import { AthleteChatCard } from "@/components/athlete-chat-card";
 import { PaymentsSection } from "@/components/payments-section";
 import { CheckinSection } from "@/components/checkin-section";
 import { MetricsSection } from "@/components/metrics-section";
+import { TrainingLoadSection } from "@/components/training-load-section";
 import { BaselineSection } from "@/components/baseline-section";
 import { DigitalTwinSection } from "@/components/digital-twin-section";
 import { MemoryTimelineSection } from "@/components/memory-timeline-section";
@@ -297,6 +298,7 @@ export function AthleteClient({
                 <ObjectivesSection basePath={`/api/athletes/${athlete.id}/objectives`} initialGoals={athlete.goals} />
                 <BaselineSection basePath={`/api/athletes/${athlete.id}`} />
                 <MetricsSection basePath={`/api/athletes/${athlete.id}`} />
+                <TrainingLoadSection basePath={`/api/athletes/${athlete.id}`} />
                 <EvaluationsSection basePath={`/api/athletes/${athlete.id}`} />
                 <DigitalTwinSection basePath={`/api/athletes/${athlete.id}`} />
                 <div className="mt-4">

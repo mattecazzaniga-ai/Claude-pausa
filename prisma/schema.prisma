@@ -193,6 +193,7 @@ model Coach {
   weeklyPlans           WeeklyTrainingPlan[]
   athleteMemories       AthleteMemory[]
   teamMemories          TeamMemory[]
+  trainingLoadEntries   TrainingLoadEntry[]
 
   /// Master prompt §10-11 (Coach Brain): when this coach's learned
   /// preferences were last resynthesized from feedbackSignals — the
@@ -388,23 +389,24 @@ model Athlete {
   /// is just the pre-filled default so it isn't re-entered every time.
   trainingDaysPerWeek Int?
 
-  coach            Coach                    @relation(fields: [coachId], references: [id])
-  sport            Sport                    @relation(fields: [sportId], references: [id])
-  sessionNotes     SessionNote[]
-  trainingSessions TrainingSession[]
-  teamMemberships  TeamMember[]
-  goals            Objective[]
-  evaluations      Evaluation[]
-  competitions     Competition[]
-  calendarEvents   CalendarEvent[]
-  recommendations  CoachingRecommendation[]
-  purchases        Purchase[]
-  feedbackSignals  CoachFeedbackSignal[]
-  checkins         AthleteCheckin[]
-  metricValues     AthleteMetricValue[]
-  injuries         AthleteInjury[]
-  weeklyPlans      WeeklyTrainingPlan[]
-  memories         AthleteMemory[]
+  coach               Coach                    @relation(fields: [coachId], references: [id])
+  sport               Sport                    @relation(fields: [sportId], references: [id])
+  sessionNotes        SessionNote[]
+  trainingSessions    TrainingSession[]
+  teamMemberships     TeamMember[]
+  goals               Objective[]
+  evaluations         Evaluation[]
+  competitions        Competition[]
+  calendarEvents      CalendarEvent[]
+  recommendations     CoachingRecommendation[]
+  purchases           Purchase[]
+  feedbackSignals     CoachFeedbackSignal[]
+  checkins            AthleteCheckin[]
+  metricValues        AthleteMetricValue[]
+  injuries            AthleteInjury[]
+  weeklyPlans         WeeklyTrainingPlan[]
+  memories            AthleteMemory[]
+  trainingLoadEntries TrainingLoadEntry[]
 
   @@index([coachId])
 }
@@ -1444,4 +1446,36 @@ model TeamMemoryEvent {
   memory TeamMemory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
 
   @@index([memoryId])
+}
+
+enum TrainingZone {
+  WARMUP
+  EASY
+  MODERATE
+  HARD
+  RACE
+}
+
+/// Daily training load (session-RPE, Foster method extended with a
+/// discipline and a zone multiplier — see lib/training-load.ts for the
+/// formula). One row per logged session; `load` is computed and stored at
+/// creation time rather than recomputed on read, so a later change to the
+/// coefficient table never silently rewrites an athlete's history.
+model TrainingLoadEntry {
+  id              String       @id @default(cuid())
+  athleteId       String
+  coachId         String
+  date            DateTime     @default(now())
+  discipline      String
+  durationMinutes Int
+  rpe             Int
+  zone            TrainingZone @default(MODERATE)
+  load            Float
+  notes           String?
+  createdAt       DateTime     @default(now())
+
+  athlete Athlete @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  coach   Coach   @relation(fields: [coachId], references: [id])
+
+  @@index([athleteId, date])
 }
