@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatRelativeDate } from "@/lib/format";
+import { ListSkeleton } from "@/components/list-skeleton";
 
 type OverallInjuryStatus = "NONE" | "MONITORED" | "PARTIAL" | "ACTIVE_INJURY";
 const INJURY_DOT: Record<OverallInjuryStatus, string> = { NONE: "", MONITORED: "🟡", PARTIAL: "🟠", ACTIVE_INJURY: "🔴" };
@@ -47,9 +48,7 @@ export function AthletesClient() {
       <SportProfileCard />
 
       {athletes === null ? (
-        <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
-        </div>
+        <ListSkeleton />
       ) : athletes.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted">Non hai ancora nessun atleta.</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { trackClient } from "@/lib/track-client";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { ListSkeleton } from "@/components/list-skeleton";
 
 const CATEGORY_LABEL: Record<string, string> = {
   TECHNICAL: "Tecnica",
@@ -121,9 +122,7 @@ export function ExercisesClient() {
       </div>
 
       {exercises === null ? (
-        <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
-        </div>
+        <ListSkeleton />
       ) : exercises.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted">Nessun esercizio ancora nella tua libreria.</p>

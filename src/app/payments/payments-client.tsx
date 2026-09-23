@@ -72,7 +72,14 @@ export function PaymentsClient() {
       <p className="mb-6 text-sm text-muted">Tieni organizzato il tuo business di coaching.</p>
 
       {overview === null ? (
-        <p className="text-sm text-muted">Caricamento…</p>
+        <div className="grid animate-pulse grid-cols-2 gap-3 sm:grid-cols-4" aria-hidden="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-surface p-4">
+              <div className="h-3 w-2/3 rounded bg-surface-2" />
+              <div className="mt-2 h-5 w-1/2 rounded bg-surface-2" />
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -115,6 +115,9 @@ export function DashboardClient({ interestedFeatures }: { interestedFeatures: st
   const todaySessionCount = todayEvents?.filter((e) => e.type === "TRAINING").length ?? 0;
   const todayCompetitionCount = todayEvents?.filter((e) => e.type === "COMPETITION").length ?? 0;
 
+  const isEmptyStart =
+    athletes !== null && teams !== null && events !== null && athletes.length === 0 && teams.length === 0 && events.length === 0;
+
   const defaultQuickLinks = [
     { label: "+ Nuovo atleta", href: "/athletes" },
     { label: "Pianifica", href: "/calendar" },
@@ -136,6 +139,8 @@ export function DashboardClient({ interestedFeatures }: { interestedFeatures: st
         {greeting()}{firstName ? `, ${firstName}` : ""}
       </h1>
       <p className="mb-6 text-sm text-muted">Il tuo allenamento, oggi.</p>
+
+      {isEmptyStart && <GettingStartedCard />}
 
       {todayEvents && needsAttention && (
         <div className="mb-6 flex flex-wrap gap-2 text-sm">
@@ -194,6 +199,40 @@ export function DashboardClient({ interestedFeatures }: { interestedFeatures: st
         ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * First thing a brand-new coach sees after onboarding, before any athlete,
+ * team or event exists — the rest of the page renders nothing in that state,
+ * which otherwise reads as broken rather than simply new.
+ */
+function GettingStartedCard() {
+  const steps = [
+    { label: "Aggiungi il tuo primo atleta", detail: "Nome, sport e livello: il profilo si costruisce da solo da lì.", href: "/athletes" },
+    { label: "Pianifica il primo allenamento", detail: "Un evento in calendario, con data e orario.", href: "/calendar" },
+    { label: "Costruisci la tua libreria esercizi", detail: "Riutilizzabile in ogni sessione che genererai.", href: "/exercises" },
+  ];
+  return (
+    <section className="mb-6 rounded-xl border border-border bg-surface p-5">
+      <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted">Per iniziare</h2>
+      <p className="mb-4 text-sm text-muted">Tre passi per portare Mentathlos al tuo primo allenamento vero.</p>
+      <div className="space-y-2">
+        {steps.map((step, i) => (
+          <Link
+            key={step.href}
+            href={step.href}
+            className="flex items-center gap-3 rounded-lg bg-surface-2 p-3 transition-colors hover:bg-surface"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-xs text-muted">{i + 1}</span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">{step.label}</span>
+              <span className="block text-xs text-muted">{step.detail}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trackClient } from "@/lib/track-client";
+import { ListSkeleton } from "@/components/list-skeleton";
 
 type TeamListItem = { id: string; name: string; sportName: string; memberCount: number };
 type AthleteOption = { id: string; name: string; sportName: string };
@@ -36,9 +37,7 @@ export function TeamsClient() {
       </div>
 
       {teams === null ? (
-        <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
-        </div>
+        <ListSkeleton rows={2} />
       ) : teams.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted">Non hai ancora nessuna squadra.</p>

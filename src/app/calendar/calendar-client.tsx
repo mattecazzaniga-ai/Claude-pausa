@@ -90,7 +90,16 @@ export function CalendarClient() {
   const [athletes, setAthletes] = useState<Option[]>([]);
   const [teams, setTeams] = useState<Option[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [formInitialDate, setFormInitialDate] = useState<string | undefined>(undefined);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+  function openFormForDay(day: Date) {
+    const yyyy = day.getFullYear();
+    const mm = String(day.getMonth() + 1).padStart(2, "0");
+    const dd = String(day.getDate()).padStart(2, "0");
+    setFormInitialDate(`${yyyy}-${mm}-${dd}`);
+    setShowForm(true);
+  }
 
   async function loadEvents() {
     const from = weekStart.toISOString();
@@ -130,7 +139,10 @@ export function CalendarClient() {
             →
           </button>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setFormInitialDate(undefined);
+              setShowForm(true);
+            }}
             className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black transition-opacity hover:opacity-90"
           >
             + Nuovo evento
@@ -143,8 +155,13 @@ export function CalendarClient() {
       </p>
 
       {events === null ? (
-        <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-accent" />
+        <div className="grid animate-pulse grid-cols-1 gap-3 sm:grid-cols-7" aria-hidden="true">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-surface p-3">
+              <div className="mb-3 h-3 w-10 rounded bg-surface-2" />
+              <div className="h-3 w-6 rounded bg-surface-2" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-7">
@@ -152,12 +169,18 @@ export function CalendarClient() {
             const dayEvents = events.filter((e) => sameDay(new Date(e.startAt), day)).sort((a, b) => +new Date(a.startAt) - +new Date(b.startAt));
             const isToday = sameDay(day, today);
             return (
-              <div key={day.toISOString()} className={`rounded-xl border p-3 ${isToday ? "border-accent/40 bg-accent/5" : "border-border bg-surface"}`}>
+              <div key={day.toISOString()} className={`group rounded-xl border p-3 ${isToday ? "border-accent/40 bg-accent/5" : "border-border bg-surface"}`}>
                 <p className={`mb-2 text-xs font-medium uppercase tracking-wider ${isToday ? "text-accent" : "text-muted"}`}>
                   {day.toLocaleDateString("it-IT", { weekday: "short" })} {day.getDate()}
                 </p>
                 {dayEvents.length === 0 ? (
-                  <p className="text-xs text-muted">—</p>
+                  <button
+                    onClick={() => openFormForDay(day)}
+                    className="flex w-full items-center gap-1.5 rounded-md py-1 text-xs text-muted transition-colors hover:text-accent"
+                  >
+                    <span className="opacity-0 transition-opacity group-hover:opacity-100">+</span>
+                    <span>Aggiungi evento</span>
+                  </button>
                 ) : (
                   <div className="space-y-1.5">
                     {dayEvents.map((ev) => (
@@ -189,6 +212,7 @@ export function CalendarClient() {
         <NewEventForm
           athletes={athletes}
           teams={teams}
+          initialDate={formInitialDate}
           onClose={() => setShowForm(false)}
           onCreated={() => {
             setShowForm(false);
@@ -214,18 +238,20 @@ export function CalendarClient() {
 function NewEventForm({
   athletes,
   teams,
+  initialDate,
   onClose,
   onCreated,
 }: {
   athletes: Option[];
   teams: Option[];
+  initialDate?: string;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"TRAINING" | "OTHER">("TRAINING");
   const [subject, setSubject] = useState(""); // "athlete:id" or "team:id" or ""
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(initialDate ?? "");
   const [startTime, setStartTime] = useState("18:00");
   const [endTime, setEndTime] = useState("19:00");
   const [location, setLocation] = useState("");
