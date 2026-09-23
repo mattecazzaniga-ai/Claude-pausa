@@ -167,6 +167,16 @@ model Coach {
   /// structure rather than a separate identity system — see Phase 2 scope.
   selfCoaching Boolean @default(false)
 
+  /// Onboarding step right after choosing a sport: "which areas of
+  /// Mentathlos matter most to you" (Calendario, Pagamenti, ecc.), shown as
+  /// clickable cards with an explanation each. Purely a personalization
+  /// signal — highlights the chosen areas first on the Home quick-links row
+  /// — never gates access to anything. null means the coach hasn't reached
+  /// this step yet (distinct from "reached it and picked nothing"), so the
+  /// redirect in dashboard/page.tsx knows whether to show it.
+  interestedFeatures  String[]  @default([])
+  featuresOnboardedAt DateTime?
+
   primarySport          Sport?                      @relation(fields: [primarySportId], references: [id])
   athletes              Athlete[]
   sessionNotes          SessionNote[]

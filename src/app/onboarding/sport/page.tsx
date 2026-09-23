@@ -14,7 +14,7 @@ export default async function OnboardingSportPage() {
   const sports = await prisma.sport.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="auth-backdrop flex min-h-screen items-center justify-center px-4 py-10">
       <OnboardingSportClient sports={sports} />
     </main>
   );

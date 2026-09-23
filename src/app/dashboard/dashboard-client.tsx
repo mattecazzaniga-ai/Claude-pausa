@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { ALL_FEATURES, isValidFeatureId } from "@/lib/features";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -57,7 +58,7 @@ const SOON_DAYS = 7;
  * every other part of the app already fetches (calendar, athlete/team
  * priorities, injury status) — no new AI calls, no new backend entity.
  */
-export function DashboardClient() {
+export function DashboardClient({ interestedFeatures }: { interestedFeatures: string[] }) {
   const { data: session } = useSession();
   const [athletes, setAthletes] = useState<AthleteListItem[] | null>(null);
   const [teams, setTeams] = useState<TeamListItem[] | null>(null);
@@ -114,6 +115,21 @@ export function DashboardClient() {
   const todaySessionCount = todayEvents?.filter((e) => e.type === "TRAINING").length ?? 0;
   const todayCompetitionCount = todayEvents?.filter((e) => e.type === "COMPETITION").length ?? 0;
 
+  const defaultQuickLinks = [
+    { label: "+ Nuovo atleta", href: "/athletes" },
+    { label: "Pianifica", href: "/calendar" },
+    { label: "Coach Brain", href: "/coach-brain" },
+  ];
+  const defaultQuickHrefs = new Set(defaultQuickLinks.map((l) => l.href));
+  // Scelte durante l'onboarding ("cosa ti interessa di più?") — compaiono
+  // per prime, prima delle 3 scorciatoie di sempre, senza duplicarle.
+  const highlightedQuickLinks = interestedFeatures
+    .filter(isValidFeatureId)
+    .map((id) => ALL_FEATURES.find((f) => f.id === id))
+    .filter((f) => f && !defaultQuickHrefs.has(f.href))
+    .map((f) => ({ label: f!.label, href: f!.href }));
+  const quickLinks = [...highlightedQuickLinks, ...defaultQuickLinks];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight">
@@ -167,15 +183,15 @@ export function DashboardClient() {
       {events && events.length > 0 && <UpcomingEventsCard events={events} />}
 
       <div className="flex flex-wrap gap-2 border-t border-border pt-6">
-        <Link href="/athletes" className="rounded-md border border-border px-3 py-1.5 text-xs transition-colors hover:bg-surface-2">
-          + Nuovo atleta
-        </Link>
-        <Link href="/calendar" className="rounded-md border border-border px-3 py-1.5 text-xs transition-colors hover:bg-surface-2">
-          Pianifica
-        </Link>
-        <Link href="/coach-brain" className="rounded-md border border-border px-3 py-1.5 text-xs transition-colors hover:bg-surface-2">
-          Coach Brain
-        </Link>
+        {quickLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="rounded-md border border-border px-3 py-1.5 text-xs transition-colors hover:bg-surface-2"
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
     </div>
   );

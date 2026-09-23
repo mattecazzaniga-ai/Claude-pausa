@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { FEATURE_IDS } from "@/lib/features";
+
+export const setInterestedFeaturesSchema = z.object({
+  features: z.array(z.enum(FEATURE_IDS)).max(FEATURE_IDS.length),
+});
 
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Il nome deve avere almeno 2 caratteri").max(60),

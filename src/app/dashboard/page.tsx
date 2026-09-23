@@ -11,9 +11,10 @@ export default async function DashboardPage() {
 
   const coach = await prisma.coach.findUnique({
     where: { id: session.user.id },
-    select: { primarySportId: true, selfCoaching: true, name: true },
+    select: { primarySportId: true, selfCoaching: true, name: true, featuresOnboardedAt: true, interestedFeatures: true },
   });
   if (!coach?.primarySportId) redirect("/onboarding/sport");
+  if (!coach.featuresOnboardedAt) redirect("/onboarding/features");
 
   if (coach.selfCoaching) {
     let selfAthlete = await prisma.athlete.findFirst({ where: { coachId: session.user.id, isSelf: true } });
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-screen">
       <Nav />
-      <DashboardClient />
+      <DashboardClient interestedFeatures={coach.interestedFeatures} />
     </main>
   );
 }

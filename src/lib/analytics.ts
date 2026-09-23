@@ -79,7 +79,8 @@ export type AnalyticsEventName =
   | "sport_metric_created"
   | "command_bar_used"
   | "training_load_recorded"
-  | "training_load_deleted";
+  | "training_load_deleted"
+  | "coach_features_onboarded";
 
 /**
  * Fire-and-forget server-side event log. Never throws into the caller —
