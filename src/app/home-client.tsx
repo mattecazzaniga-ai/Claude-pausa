@@ -13,7 +13,6 @@ export function HomeClient() {
     <>
       <LandingNav />
       <Hero />
-      <ProductPreview />
       <ValueProposition />
       <HowItWorks />
       <AiSection />
@@ -33,73 +32,56 @@ export function HomeClient() {
 
 function Hero() {
   return (
-    <section className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-16 pt-16 text-center sm:pt-24">
-      <Reveal>
-        <span className="mb-5 inline-block rounded-full border border-border bg-surface px-3 py-1 text-xs uppercase tracking-widest text-muted">
-          Piattaforma per allenatori sportivi
-        </span>
-        <h1 className="font-serif text-balance text-4xl font-semibold tracking-tight sm:text-6xl">
-          Tutto il tuo coaching.
-          <br />
-          In un unico posto.
-        </h1>
-        <p className="mx-auto mt-5 max-w-xl text-balance text-lg text-muted">
-          Gestisci atleti, allenamenti, calendario, progressi e pagamenti. Mentathlos organizza tutto il tuo lavoro e
-          usa l&apos;AI per aiutarti a decidere cosa fare dopo.
-        </p>
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Link
-            href="/register"
-            className="rounded-md bg-accent px-6 py-3 text-sm font-medium text-black transition-opacity hover:opacity-90"
-          >
-            Prova gratis
-          </Link>
-          <a
-            href="#come-funziona"
-            className="rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-surface-2"
-          >
-            Scopri come funziona
-          </a>
-        </div>
-
-        <div className="mt-7 flex flex-col items-center gap-1.5 text-sm text-muted sm:flex-row sm:gap-5">
-          <span className="flex items-center gap-1.5">
-            <CheckIcon /> Configurazione in pochi minuti
+    <section className="hero-backdrop relative overflow-hidden px-4 pb-20 pt-14 sm:px-6 lg:pb-28 lg:pt-20">
+      <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+        <Reveal>
+          <span className="inline-block rounded-full border border-border bg-surface px-3 py-1 text-xs uppercase tracking-widest text-muted">
+            Piattaforma per allenatori sportivi
           </span>
-          <span className="flex items-center gap-1.5">
-            <CheckIcon /> Pensato per allenatori e coach
-          </span>
-          <span className="flex items-center gap-1.5">
-            <CheckIcon /> Tutto il tuo lavoro in un unico spazio
-          </span>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
+          <h1 className="mt-5 text-balance font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            Tutto il tuo coaching.
+            <br />
+            In un unico posto.
+          </h1>
+          <p className="mt-5 max-w-md text-balance text-lg text-muted">
+            Gestisci atleti, allenamenti, calendario, progressi e pagamenti. Mentathlos organizza tutto il tuo lavoro
+            e usa l&apos;AI per aiutarti a decidere cosa fare dopo.
+          </p>
 
-/* ------------------------------ PRODUCT PREVIEW ---------------------------- */
-
-function ProductPreview() {
-  return (
-    <section className="px-4 pb-24 sm:px-6">
-      <Reveal className="relative mx-auto max-w-4xl">
-        <div className="absolute inset-x-8 -top-6 h-24 rounded-full bg-accent/10 blur-3xl" aria-hidden />
-        <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <div className="flex items-center gap-2 text-sm font-semibold">
-              <img src="/logo.png" alt="" className="h-4 w-4" />
-              Mentathlos
-            </div>
-            <div className="flex gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
-              <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
-              <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
-            </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/register"
+              className="rounded-md bg-accent px-6 py-3 text-sm font-medium text-black transition-opacity hover:opacity-90"
+            >
+              Prova gratis
+            </Link>
+            <a
+              href="#come-funziona"
+              className="rounded-md border border-border px-6 py-3 text-sm font-medium transition-colors hover:bg-surface-2"
+            >
+              Scopri come funziona
+            </a>
           </div>
 
-          <div className="grid gap-px bg-border sm:grid-cols-[1.4fr_1fr]">
+          <p className="mt-6 flex items-center gap-1.5 text-sm text-muted">
+            <CheckIcon /> Configurazione in pochi minuti, pensato per allenatori e coach.
+          </p>
+        </Reveal>
+
+        <Reveal delay={120} className="relative">
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <img src="/logo.png" alt="" className="h-4 w-4" />
+                Mentathlos
+              </div>
+              <div className="flex gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
+                <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
+                <span className="h-2.5 w-2.5 rounded-full bg-surface-2" />
+              </div>
+            </div>
+
             <div className="bg-surface p-5">
               <p className="text-lg font-semibold">Buongiorno, Marco</p>
               <p className="mt-0.5 text-xs uppercase tracking-wider text-muted">Oggi</p>
@@ -120,7 +102,7 @@ function ProductPreview() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-px bg-border">
+            <div className="grid grid-cols-2 gap-px border-t border-border bg-border">
               <div className="bg-surface p-5">
                 <p className="text-xs uppercase tracking-wider text-muted">I tuoi atleti</p>
                 <p className="mt-2 text-2xl font-semibold">24</p>
@@ -128,14 +110,14 @@ function ProductPreview() {
               </div>
               <div className="bg-surface p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-accent">AI Insight</p>
-                <p className="mt-1.5 text-sm text-foreground/90">
-                  &ldquo;Luca è pronto per aumentare l&apos;intensità nella prossima sessione.&rdquo;
+                <p className="mt-1.5 text-xs text-foreground/90">
+                  &ldquo;Luca è pronto per aumentare l&apos;intensità.&rdquo;
                 </p>
               </div>
             </div>
           </div>
-        </div>
-      </Reveal>
+        </Reveal>
+      </div>
     </section>
   );
 }
@@ -213,30 +195,33 @@ const STEPS = [
 
 function HowItWorks() {
   return (
-    <section id="come-funziona" className="scroll-mt-16 border-y border-border bg-surface/50 px-4 py-20 sm:px-6">
+    <section id="come-funziona" className="scroll-mt-16 border-y border-border bg-surface/50 px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-3xl">
-        <Reveal className="text-center">
+        <Reveal className="max-w-xl">
           <h2 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Dal primo allenamento al prossimo.</h2>
-          <p className="mx-auto mt-3 max-w-xl text-muted">
+          <p className="mt-3 text-muted">
             Mentathlos conserva il contesto del tuo lavoro, così ogni sessione parte da ciò che è successo prima.
           </p>
         </Reveal>
 
-        <div className="mt-10 space-y-3">
-          {STEPS.map((s, i) => (
-            <Reveal key={s.n} delay={i * 80}>
-              <div className="flex items-start gap-4 rounded-xl border border-border bg-surface p-5">
-                <span className="font-serif text-2xl font-medium text-accent">{s.n}</span>
-                <div>
-                  <h3 className="text-sm font-semibold">{s.title}</h3>
+        <div className="relative mt-12">
+          <div className="absolute bottom-2 left-[17px] top-2 w-px bg-border" aria-hidden />
+          <div className="space-y-9">
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 80} className="relative flex gap-6">
+                <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background font-serif text-sm font-medium text-accent">
+                  {s.n}
+                </span>
+                <div className="pt-1">
+                  <h3 className="text-base font-semibold">{s.title}</h3>
                   <p className="mt-1 text-sm text-muted">{s.text}</p>
                 </div>
-              </div>
-            </Reveal>
-          ))}
+              </Reveal>
+            ))}
+          </div>
         </div>
 
-        <Reveal className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-2">
+        <Reveal className="mt-12 flex flex-wrap items-center gap-2">
           {["Atleta", "Sessione", "Dati", "AI", "Prossimo allenamento"].map((step, i, arr) => (
             <div key={step} className="flex items-center gap-2">
               <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium">{step}</span>
