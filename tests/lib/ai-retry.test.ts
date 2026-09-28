@@ -2,8 +2,21 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { ApiError } from "@google/genai";
 import { withAiRetry } from "@/lib/ai-retry";
 
-function apiError(status: number) {
-  return new ApiError({ message: "boom", status });
+function apiError(status: number, message = "boom") {
+  return new ApiError({ message, status });
+}
+
+function quotaError(retryDelay: string) {
+  return apiError(
+    429,
+    JSON.stringify({
+      error: {
+        code: 429,
+        status: "RESOURCE_EXHAUSTED",
+        details: [{ "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay }],
+      },
+    }),
+  );
 }
 
 describe("withAiRetry", () => {
@@ -43,6 +56,31 @@ describe("withAiRetry", () => {
 
     await expect(promise).rejects.toBeInstanceOf(ApiError);
     expect(call).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits the server-suggested retryDelay from a 429's RetryInfo instead of the fixed backoff", async () => {
+    vi.useFakeTimers();
+    const call = vi.fn().mockRejectedValueOnce(quotaError("10.5s")).mockResolvedValueOnce("ok");
+
+    const promise = withAiRetry(call);
+    // The fixed backoff for attempt 1 would be 600ms — advancing just past
+    // that must NOT be enough if the suggested 10.5s delay is being honored.
+    await vi.advanceTimersByTimeAsync(700);
+    expect(call).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(promise).resolves.toBe("ok");
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+
+  it("caps an absurdly long suggested retryDelay instead of waiting it out in full", async () => {
+    vi.useFakeTimers();
+    const call = vi.fn().mockRejectedValueOnce(quotaError("120s")).mockResolvedValueOnce("ok");
+
+    const promise = withAiRetry(call);
+    await vi.advanceTimersByTimeAsync(12_000);
+    await expect(promise).resolves.toBe("ok");
+    expect(call).toHaveBeenCalledTimes(2);
   });
 
   it("does not retry a non-transient client error (bad request / invalid key)", async () => {
